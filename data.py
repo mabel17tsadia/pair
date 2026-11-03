@@ -21,7 +21,7 @@ def rows_for(name, person_id):
     return df[df["person_id"] == person_id].to_dict("records")
 
 
-# All demo people, with drains and calms as lists
+# All demo people (id, first_name, last_name), with drains and calms as lists
 def get_people():
     people = read_csv("people.csv").to_dict("records")
     for p in people:
@@ -61,6 +61,33 @@ def get_inbox(person_id):
     return rows_for("inbox.csv", person_id)
 
 
-# A person's trust circle: people they can reach out to, and the best way to reach them
+# A person's trust circle: name, relationship and what they are allowed to see (access)
 def get_circle(person_id):
     return rows_for("circle.csv", person_id)
+
+
+# A person's daily signals (sleep, steps, screen time, unlocks, time out, laundry), oldest first
+def get_signals(person_id):
+    return sorted(rows_for("signals.csv", person_id), key=lambda s: s["date"])
+
+
+# A person's devices, with signals as a list and paired as True or False
+def get_devices(person_id):
+    devices = rows_for("devices.csv", person_id)
+    for d in devices:
+        d["signals"] = split_list(d["signals"])
+        d["paired"] = d["paired"] == "yes"
+    return devices
+
+
+# A person's check ins, oldest first (newest last), with body feelings as a list
+def get_checkins(person_id):
+    checkins = sorted(rows_for("checkins.csv", person_id), key=lambda c: c["date"])
+    for c in checkins:
+        c["body"] = split_list(c["body"])
+    return checkins
+
+
+# The latest date in signals.csv; the app treats it as "today" so the demo works on any day
+def get_today():
+    return read_csv("signals.csv")["date"].max()

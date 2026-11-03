@@ -1,4 +1,4 @@
-id,first_name,last_name,usual_sleep_min,usual_resting_hr,drains,calms
-p1,Jordan,Reyes,450,68,Crowds|Phone calls|Last minute changes,Music|A short walk|Quiet room
-p2,Maya,Chen,450,72,Loud places|Bright lights,Deep breathing|Texting a friend
-p3,Theo,Okafor,465,64,Crowds|Long meetings,Music|Drawing|A short walk
+id,first_name,last_name,drains,calms
+p1,Jordan,Reyes,Crowds|Phone calls|Last minute changes,Music|A short walk|Quiet room
+p2,Maya,Chen,Loud places|Bright lights,Deep breathing|Texting a friend
+p3,Theo,Okafor,Crowds|Long meetings,Music|Drawing|A short walk

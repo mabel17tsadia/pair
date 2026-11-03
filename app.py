@@ -89,9 +89,17 @@ def heart_chart(heart, usual):
             "last": heart[-1]["time"][-5:]}
 
 
-# The person picked on the home page, or None if nobody is picked yet
+# The person picked on the home page, or None if nobody is picked yet.
+# For now it also adds two values the old pace rule, heart chart and Body page need:
+# usual sleep (average sleep_min in signals.csv) and a fixed usual heart rate of 68.
+# Both go away when patterns.py replaces the pace rule.
 def current_person():
-    return data.get_person(session.get("person_id"))
+    person = data.get_person(session.get("person_id"))
+    if person:
+        sleep = [s["sleep_min"] for s in data.get_signals(person["id"])]
+        person["usual_sleep_min"] = round(sum(sleep) / len(sleep)) if sleep else 0
+        person["usual_resting_hr"] = 68
+    return person
 
 
 # Today's tasks for a person: the demo tasks plus any they added, minus any moved
@@ -312,6 +320,19 @@ def settings():
         return redirect(url_for("settings"))
     return render_template("settings.html", title="Settings", sources=SOURCES,
                            google_connected=session.get("google_key") in google_health.TOKENS)
+
+
+# Temporary check (Stage P2): how many rows each data function returns for one person
+@app.route("/debug/<person_id>")
+def debug(person_id):
+    counts = {"get_people": len(data.get_people()),
+              "get_person": 1 if data.get_person(person_id) else 0,
+              "get_signals": len(data.get_signals(person_id)),
+              "get_devices": len(data.get_devices(person_id)),
+              "get_checkins": len(data.get_checkins(person_id)),
+              "get_circle": len(data.get_circle(person_id))}
+    lines = [f"{name}: {count} rows" for name, count in counts.items()]
+    return "<br>".join(lines + [f"get_today: {data.get_today()}"])
 
 
 # Me page setting: turn the greeting banner on Today on or off
