@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, render_template_string, session, redirect, request, url_for, abort, flash
 import data
 from patterns import get_patterns
-from pace import get_pace, format_minutes
-from ai import suggest_task, write_alert
+from pace import format_minutes
+from ai import explain_week
 import google_health
 
 # Load settings like SECRET_KEY from the .env file
@@ -24,12 +24,6 @@ THEMES = ["calm", "colorful", "bright", "dark"]
 # The five feelings on the Check in page
 FEELINGS = ["Calm", "Okay", "Tired", "Worried", "Overwhelmed"]
 
-# The three load levels a task can have
-LOADS = ["Light", "Medium", "Heavy"]
-
-# Gentle alert messages already written, so Today doesn't call Claude on every visit
-ALERT_CACHE = {}
-
 # Data sources in the hidden Demo controls
 SOURCES = {"sample": "Sample data", "google": "Google Health"}
 
@@ -42,15 +36,6 @@ def add_settings():
             "theme": session.get("theme", "calm"),
             "data_source": session.get("data_source", "sample"),
             "show_banner": session.get("banner", True)}
-
-
-# Morning, Afternoon or Evening for a time like "13:30" (no time counts as Morning)
-def part_of_day(time):
-    if not time or time < "12:00":
-        return "Morning"
-    if time < "17:00":
-        return "Afternoon"
-    return "Evening"
 
 
 # Template filter: minutes as "6 h 40 min"
@@ -99,13 +84,9 @@ def current_person():
     return person
 
 
-# Today's tasks for a person: the demo tasks plus any they added, minus any moved
-# to tomorrow, in time order
+# A person's picture-step tasks from tasks.csv, in time order (opened from routine notes)
 def tasks_for(person):
-    added = [t for t in session.get("added_tasks", []) if t["person_id"] == person["id"]]
-    moved = session.get("moved", [])
-    tasks = [t for t in data.get_tasks(person["id"]) + added if [person["id"], t["title"]] not in moved]
-    return sorted(tasks, key=lambda t: t["time"] or "99:99")
+    return sorted(data.get_tasks(person["id"]), key=lambda t: t["time"] or "99:99")
 
 
 # Paired devices. A real product would connect through each maker's official app or account.
@@ -135,6 +116,20 @@ def set_paired(person, name, paired):
     choices = session.get("paired", {})
     choices.setdefault(person["id"], {})[name] = paired
     session["paired"] = choices
+    # Devices changed, so the saved week summary is out of date
+    session.get("week", {}).pop(person["id"], None)
+    session.modified = True
+
+
+# The AI (or rule based) week summary and gentle step, saved in the session so Claude is
+# asked only once per person per day (cleared when their paired devices change)
+def week_text(person, patterns):
+    saved = session.get("week", {})
+    today_text = date.today().isoformat()
+    if saved.get(person["id"], {}).get("day") != today_text:
+        saved[person["id"]] = {**explain_week(person, patterns), "day": today_text}
+        session["week"] = saved
+    return saved[person["id"]]
 
 
 # Daily rows (date, sleep_min, steps), heart readings and a short note about the source.
@@ -177,42 +172,12 @@ def today():
     checkins = [c for c in session.get("checkins", []) if c["person_id"] == pid]
     # The laundry picture steps, opened from the "No laundry" note (None if this person has none)
     laundry = next((i for i, t in enumerate(tasks_for(person)) if t["title"] == "Laundry"), None)
+    patterns = get_patterns(pid, devices_for(person))
     return render_template("today.html", title="Today", person=person,
-                           day=f"{d:%A} {d.day} {d:%B}", patterns=get_patterns(pid, devices_for(person)),
+                           day=f"{d:%A} {d.day} {d:%B}", patterns=patterns,
+                           week=week_text(person, patterns),
                            laundry_index=laundry, circle=data.get_circle(pid),
                            last_checkin=checkins[-1] if checkins else None)
-
-
-# Gentle alert choices: lighter task first, move to tomorrow, keep my plan, message someone
-@app.route("/alert", methods=["POST"])
-def alert_choice():
-    person = current_person()
-    if not person:
-        return redirect(url_for("choose"))
-    choice = request.form.get("choice")
-    title = request.form.get("title", "")
-    tasks = tasks_for(person)
-
-    # Lighter task first: open the steps of the first Light task
-    if choice == "lighter":
-        light = next((i for i, t in enumerate(tasks) if t["load"] == "Light"), None)
-        if light is not None:
-            flash(f"Starting with a lighter task: {tasks[light]['title']}.")
-            return redirect(url_for("task_steps", index=light))
-        flash("There is no lighter task today.")
-    # Move to tomorrow: hide the task from today's plan (demo only, saved in the session)
-    elif choice == "move":
-        session["moved"] = session.get("moved", []) + [[person["id"], title]]
-        flash(f"{title} moved to tomorrow.")
-    # Keep my plan: hide the alert for this person
-    elif choice == "keep":
-        session["alert_kept"] = session.get("alert_kept", []) + [person["id"]]
-        flash("Okay, keeping your plan. Go gently.")
-    # Message someone I trust: open the Circle page
-    elif choice == "message":
-        flash("Choose someone in your Circle to message.")
-        return redirect(url_for("circle"))
-    return redirect(url_for("today"))
 
 
 # Task steps screen: one task's steps, shown one at a time by static/js/steps.js
@@ -226,34 +191,6 @@ def task_steps(index):
         abort(404)
     return render_template("task.html", title=tasks[index]["title"],
                            task=tasks[index], person=person)
-
-
-# Add a task: type a task, get a suggested load and steps, change them, then save
-@app.route("/add", methods=["GET", "POST"])
-def add_task():
-    person = current_person()
-    if not person:
-        return redirect(url_for("choose"))
-    task_title = request.form.get("title", "").strip()[:80]
-    action = request.form.get("action")
-
-    # Save: keep the edited task in the session (demo only, keeps the last 10) and go to Today
-    if action == "save" and task_title and request.form.get("load") in LOADS:
-        steps = [s.strip()[:80] for s in request.form.getlist("steps") if s.strip()]
-        added = session.get("added_tasks", [])
-        added.append({"person_id": person["id"], "title": task_title,
-                      "time": request.form.get("time", ""),
-                      "part_of_day": part_of_day(request.form.get("time", "")),
-                      "load": request.form["load"], "source": "manual",
-                      "steps": steps or [task_title]})
-        session["added_tasks"] = added[-10:]
-        flash("Task added to your plan.")
-        return redirect(url_for("today"))
-
-    # Suggest: ask the AI (or the keyword backup) for a load level and steps
-    suggestion = suggest_task(task_title) if action == "suggest" and task_title else None
-    return render_template("add.html", title="Add a task", task_title=task_title,
-                           suggestion=suggestion, loads=LOADS)
 
 
 # Check in screen: pick a feeling, add an optional note, then Save (or Skip)

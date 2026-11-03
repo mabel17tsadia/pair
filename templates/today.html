@@ -36,17 +36,16 @@
         <p class="week-status">{{ icon("leaf") }} {{ patterns.status }}</p>
       </section>
 
-      <!-- What Pair noticed: one row per change with its icon, usual and recent values;
-           on a steady week (or while still learning) a short reassuring line instead -->
+      <!-- What Pair noticed: a short summary (AI or rules, with a tiny label saying which), then
+           one row per change with its icon, usual and recent values (no rows on a steady week) -->
       {% set icons = {"sleep_min": "moon", "steps": "footprints", "late_screen_min": "phone",
                       "unlocks": "phone", "time_out_min": "door"} %}
+      {% set written_by = "Written with AI" if week.source == "ai" else "Written by rules" %}
       <section class="card">
         <h2>What Pair noticed</h2>
-        {% if patterns.status == "Still learning your usual" %}
-          <p>Pair is still learning your usual. This takes about 10 days.</p>
-        {% elif patterns.status == "Steady week" %}
-          <p>Your patterns look like your usual this week.</p>
-        {% else %}
+        <p class="week-summary">{{ week.summary }}</p>
+        <p class="note">{{ written_by }}</p>
+        {% if patterns.status not in ["Still learning your usual", "Steady week"] %}
           <ul class="noticed">
             {% for c in patterns.changes %}
               <li>
@@ -78,13 +77,12 @@
         </section>
       {% endfor %}
 
-      <!-- One gentle step: for now, the first thing that helps this person feel calm -->
-      {% if person.calms %}
-        <section class="card">
-          <h2>One gentle step</h2>
-          <p class="icon-line">{{ icon("heart") }} Try: {{ person.calms[0] }}</p>
-        </section>
-      {% endif %}
+      <!-- One gentle step: one small suggestion from the person's own calms list, with the same label -->
+      <section class="card">
+        <h2>One gentle step</h2>
+        <p class="icon-line">{{ icon("heart") }} {{ week.gentle_step }}</p>
+        <p class="note">{{ written_by }}</p>
+      </section>
 
       <!-- Two buttons: check in, or share with the trust circle (Circle page for now) -->
       <div class="actions">

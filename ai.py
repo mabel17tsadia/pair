@@ -6,43 +6,23 @@ from dotenv import load_dotenv
 # Load ANTHROPIC_API_KEY from the .env file (the Anthropic client reads it from there)
 load_dotenv()
 
-# Instructions for Claude when suggesting a task's load and steps
-SYSTEM = """You help people plan their day in small, calm steps.
-For the task the person gives you, choose how much energy it takes
-(Light, Medium or Heavy) and write up to 4 short, concrete steps.
-Each step should be under 10 words and start with a verb."""
+# Instructions for Claude when explaining the person's week
+WEEK_SYSTEM = """You write for Pair, an app that tells a person in kind, plain words how their
+daily patterns changed this week. Write to the person as "you", in short, simple sentences.
+summary: 2 or 3 sentences describing what changed. If the status is "Steady week", reassure them.
+Only describe changes. Never use medical words, never guess a cause or a diagnosis, and never
+use words like bad, warning or abnormal.
+gentle_step: one small suggestion under 12 words, built from one item in their calms list and
+linked to what changed (for example, more late screen time and less sleep could suggest
+"Music in a quiet room before bed"). On a steady week, suggest something they enjoy from calms."""
 
-# The exact JSON shape we want back: a load level and a list of steps
-SCHEMA = {
+# The exact JSON shape we want back: a summary and one gentle step
+WEEK_SCHEMA = {
     "type": "object",
-    "properties": {
-        "load": {"type": "string", "enum": ["Light", "Medium", "Heavy"]},
-        "steps": {"type": "array", "items": {"type": "string"}},
-    },
-    "required": ["load", "steps"],
+    "properties": {"summary": {"type": "string"}, "gentle_step": {"type": "string"}},
+    "required": ["summary", "gentle_step"],
     "additionalProperties": False,
 }
-
-# Instructions for Claude when writing the gentle alert
-ALERT_SYSTEM = """You write short, kind messages for a calm planning app.
-The person has low energy today and a heavy task coming up.
-Write 2 short sentences in plain, simple words. Gently name one thing
-that may drain them, and suggest one thing that helps them feel calm.
-Do not give medical advice. Do not use exclamation marks.
-Reply with only the message."""
-
-# Backup suggestions: if a keyword appears in the task, use its load and steps
-KEYWORDS = {
-    "clean": ("Medium", ["Get your cleaning things", "Clean one small area", "Put things back", "Wash your hands"]),
-    "laundry": ("Light", ["Gather your clothes", "Start the machine", "Set a timer", "Hang or dry the clothes"]),
-    "email": ("Light", ["Open the message", "Write a short reply", "Read it once", "Send it"]),
-    "reply": ("Light", ["Open the message", "Write a short reply", "Read it once", "Send it"]),
-    "call": ("Medium", ["Write what you want to say", "Find a quiet spot", "Make the call", "Note what was agreed"]),
-    "shop": ("Heavy", ["Check what you need", "Write a short list", "Take bags and wallet", "Go to the store"]),
-    "cook": ("Medium", ["Choose a simple recipe", "Get the ingredients out", "Cook step by step", "Clean up"]),
-    "meeting": ("Medium", ["Check the time and place", "Write one question to ask", "Leave or join on time"]),
-}
-DEFAULT = ("Medium", ["Get what you need ready", "Start with one small part", "Take a short break if needed", "Finish and tidy up"])
 
 
 # Send one message to Claude and return its text reply (raises an error if anything goes wrong)
@@ -51,11 +31,9 @@ def ask_claude(system, text, output_format=None):
     output_config = {"effort": "low"}
     if output_format:
         output_config["format"] = output_format
-    response = client.beta.messages.create(
-        model="claude-opus-5-5",
+    response = client.messages.create(
+        model="claude-haiku-5-5",
         max_tokens=16000,
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",  # if Claude declines, the API retries on another model
         output_config=output_config,
         system=system,
         messages=[{"role": "user", "content": text}],
@@ -65,44 +43,38 @@ def ask_claude(system, text, output_format=None):
     return next((b.text for b in response.content if b.type == "text"), "")
 
 
-# Ask Claude for a load level and up to 4 steps; use the keyword backup if anything goes wrong
-def suggest_task(text):
-    # No key in .env: don't try to call Claude, go straight to the backup
+# Rule based backup: the change sentences as the summary, and the first calms item as the step
+def week_backup(person, patterns):
+    changes = [c["words"] for c in patterns["changes"]]
+    if patterns["status"] == "Still learning your usual":
+        summary = "Pair is still learning your usual. This takes about 10 days."
+    elif patterns["status"] == "Steady week" or not changes:
+        summary = "Your patterns look like your usual this week."
+    else:
+        summary = "Pair noticed some changes this week. " + ". ".join(changes) + "."
+    step = f"Try: {person['calms'][0]}" if person["calms"] else "Try: a short, quiet break"
+    return {"summary": summary, "gentle_step": step, "source": "rules"}
+
+
+# Ask Claude for a kind summary of the week and one gentle step; use the rule based backup
+# if there is no API key, Pair is still learning, or anything goes wrong.
+# Sends only the first name, drains, calms, the status and the change sentences
+# (never last names, check in notes or device names).
+def explain_week(person, patterns):
     if not os.getenv("ANTHROPIC_API_KEY"):
-        print("No API key found, using keyword backup")
-        return keyword_backup(text)
+        print("No API key found, using rule based week summary")
+        return week_backup(person, patterns)
+    if patterns["status"] == "Still learning your usual":
+        return week_backup(person, patterns)
+    details = json.dumps({"first_name": person["first_name"], "drains": person["drains"],
+                          "calms": person["calms"], "status": patterns["status"],
+                          "changes": [c["words"] for c in patterns["changes"]]})
     try:
-        answer = json.loads(ask_claude(SYSTEM, text, {"type": "json_schema", "schema": SCHEMA}))
-        return {"load": answer["load"], "steps": answer["steps"][:4], "source": "ai"}
+        answer = json.loads(ask_claude(WEEK_SYSTEM, details, {"type": "json_schema", "schema": WEEK_SCHEMA}))
+        if not answer["summary"].strip() or not answer["gentle_step"].strip():
+            raise ValueError("Empty answer")
+        return {"summary": answer["summary"], "gentle_step": answer["gentle_step"], "source": "ai"}
     # Any error at all (network, bad key, odd answer, SDK problem) uses the backup instead of crashing
     except Exception as error:
-        print("AI suggestion failed, using keyword backup:", error)
-        return keyword_backup(text)
-
-
-# Backup: look for a known keyword in the task, or use general steps
-def keyword_backup(text):
-    for word, (load, steps) in KEYWORDS.items():
-        if word in text.lower():
-            return {"load": load, "steps": steps, "source": "backup"}
-    load, steps = DEFAULT
-    return {"load": load, "steps": steps, "source": "backup"}
-
-
-# Write a kind alert about a Heavy task on a Gentle day, using the person's drains and calms
-def write_alert(person, task):
-    backup = f"Your energy may be lower today, and {task['title']} can take a lot. It is okay to go slowly or change your plan."
-    # No key in .env: use the fixed sentence
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        print("No API key found, using fixed alert")
-        return backup
-    details = (f"Name: {person['first_name']}\n"
-               f"Heavy task: {task['title']} at {task['time']}\n"
-               f"Things that drain them: {', '.join(person['drains'])}\n"
-               f"Things that help them feel calm: {', '.join(person['calms'])}")
-    try:
-        return ask_claude(ALERT_SYSTEM, details).strip() or backup
-    # Any error at all uses the fixed sentence instead of crashing
-    except Exception as error:
-        print("AI alert failed, using fixed alert:", error)
-        return backup
+        print("AI week summary failed, using rule based summary:", type(error).__name__)
+        return week_backup(person, patterns)

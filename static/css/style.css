@@ -249,6 +249,12 @@ main {
   height: 36px;
 }
 
+/* What Pair noticed: the short summary at the top, slightly larger */
+.week-summary {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
 /* What Pair noticed: one roomy row per change, icon on the left */
 .noticed {
   margin: 0;
@@ -289,24 +295,6 @@ main {
 
 .icon-line .icon {
   color: var(--secondary);
-}
-
-/* ===== Today: gentle alert card (amber, never red) ===== */
-.alert-card {
-  border-left: 6px solid var(--alert);
-  background: var(--alert-soft);
-}
-
-.alert-card h2 {
-  color: var(--alert);
-}
-
-/* Task name, time and load tag on one line */
-.task-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 /* ===== Today: My plan task cards ===== */
@@ -608,7 +596,7 @@ section[tabindex="-1"]:focus {
   border: none;
 }
 
-.choices legend, .step-fields legend {
+.choices legend {
   margin-bottom: 0.75rem;
   font-family: "Lexend", system-ui, sans-serif;
   font-size: 1.1rem;
@@ -663,17 +651,6 @@ input[type="text"], input[type="time"], textarea {
   background: var(--bg);
   color: var(--text);
   font: inherit;
-}
-
-/* Steps boxes on Add a task, stacked with small gaps */
-.step-fields {
-  margin: 0 0 1rem;
-  padding: 0;
-  border: none;
-}
-
-.step-fields input {
-  margin: 0 0 0.5rem;
 }
 
 /* Earlier check ins list */
