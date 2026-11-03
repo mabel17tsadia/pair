@@ -16,7 +16,7 @@
   <!-- Profile card: name, what drains and calms the person as chips, and an Edit panel -->
   <section class="card">
     <div class="person-row">
-      <span class="initials" aria-hidden="true">{{ person.first_name[0] }}{{ person.last_name[0] }}</span>
+      <span class="initials" aria-hidden="true">{{ person.first_name[0] }}{{ person.last_name[:1] }}</span>
       <strong class="person-name">{{ person.first_name }} {{ person.last_name }}</strong>
     </div>
 

@@ -32,6 +32,22 @@
 </svg>
 {% endmacro %}
 
+{# Inside of a theme preview card: the theme name, four colour dots and a sample card with text
+   and a button. Used in Settings (as links) and in sign up (as choices). #}
+{% macro theme_preview(t, current) %}
+{{ t | capitalize }}{% if t == current %} (current){% endif %}
+<span class="swatches" aria-hidden="true">
+  <span style="background: var(--primary)"></span>
+  <span style="background: var(--secondary)"></span>
+  <span style="background: var(--alert)"></span>
+  <span style="background: var(--celebrate)"></span>
+</span>
+<span class="theme-sample" aria-hidden="true">
+  <span class="sample-text">Sample text</span>
+  <span class="sample-button">Button</span>
+</span>
+{% endmacro %}
+
 {# Initials in a small circle: "Dr. Patel" shows "DP", a single name like "Mom" shows "M" #}
 {% macro initials(name) %}
 {% set words = name.split() %}

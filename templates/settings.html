@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import theme_preview %}
 
 {% block content %}
   <!-- Page title -->
@@ -10,19 +11,7 @@
     <div class="theme-list">
       {% for t in themes %}
         <a class="theme-option" data-theme="{{ t }}" href="{{ url_for('set_theme', name=t) }}"
-           {% if t == theme %}aria-current="true"{% endif %}>
-          {{ t | capitalize }}{% if t == theme %} (current){% endif %}
-          <span class="swatches" aria-hidden="true">
-            <span style="background: var(--primary)"></span>
-            <span style="background: var(--secondary)"></span>
-            <span style="background: var(--alert)"></span>
-            <span style="background: var(--celebrate)"></span>
-          </span>
-          <span class="theme-sample" aria-hidden="true">
-            <span class="sample-text">Sample text</span>
-            <span class="sample-button">Button</span>
-          </span>
-        </a>
+           {% if t == theme %}aria-current="true"{% endif %}>{{ theme_preview(t, theme) }}</a>
       {% endfor %}
     </div>
   </section>

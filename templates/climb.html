@@ -42,6 +42,13 @@
         </li>
       {% endfor %}
     </ul>
+
+    <!-- Add a goal: just a name; it is reached by tapping Done -->
+    <form method="post" action="{{ url_for('climb_add') }}" id="add-goal">
+      <label for="new-goal">{{ "Add your first goal" if not climb.total else "Add a goal" }}</label>
+      <input type="text" id="new-goal" name="goal" maxlength="40" placeholder="For example: Call a friend" required>
+      <button type="submit" class="btn-secondary">Add</button>
+    </form>
   </section>
 
   <!-- My badges: one for each week the summit was reached (personal only, never compared) -->

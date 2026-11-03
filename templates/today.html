@@ -33,12 +33,19 @@
       <!-- Your week: the status in large text; its colour shows how much changed (never red) -->
       {{ week_card("Your week", patterns.status) }}
 
-      <!-- My climb: a mini mountain and how many flags are reached; the whole card links to My climb -->
+      <!-- My climb: a mini mountain and how many flags are reached (the whole card links to My climb);
+           with no goals yet, an empty mountain and a button to add the first goal -->
       {% if climb.total %}
         <a class="card climb-mini" href="{{ url_for('climb') }}">
           {% include "partials/climb_mountain.html" %}
           <span><strong>My climb</strong><br>{{ climb.reached }} of {{ climb.total }} flags</span>
         </a>
+      {% else %}
+        <section class="card climb-mini">
+          {% include "partials/climb_mountain.html" %}
+          <span><strong>My climb</strong><br>
+            <a class="btn-secondary" href="{{ url_for('climb') }}#add-goal">Add a first goal</a></span>
+        </section>
       {% endif %}
 
       <!-- What Pair noticed: a short summary (AI or rules, with a tiny label saying which), then

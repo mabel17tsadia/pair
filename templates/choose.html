@@ -9,9 +9,12 @@
   <div class="person-list">
     {% for p in people %}
       <a class="person-card" href="{{ url_for('choose_person', person_id=p.id) }}">
-        <span class="initials" aria-hidden="true">{{ p.first_name[0] }}{{ p.last_name[0] }}</span>
+        <span class="initials" aria-hidden="true">{{ p.first_name[0] }}{{ p.last_name[:1] }}</span>
         <span class="person-name">{{ p.first_name }} {{ p.last_name }}</span>
       </a>
     {% endfor %}
   </div>
+
+  <!-- Sign up for someone new -->
+  <p><a class="btn-primary" href="{{ url_for('start') }}">New to Pair? Get started</a></p>
 {% endblock %}

@@ -28,6 +28,18 @@ FEELINGS = ["Calm", "Okay", "Tired", "Worried", "Overwhelmed"]
 # Optional body feelings on the Check in page (the same words as checkins.csv)
 BODY_FEELINGS = ["Tired", "Headache", "Stomach"]
 
+# The id of a person who signed up at /start (kept in the session only, never in a file)
+NEW_ID = "new"
+
+# Phone signals offered when signing up: (device signal, name, one plain sentence, on at the start)
+SIGNUP_SIGNALS = [
+    ("sleep", "Sleep", "Roughly how long you sleep, from when your phone rests at night.", True),
+    ("steps", "Movement", "How many steps you take each day.", True),
+    ("late screen time", "Late screen time", "How many minutes you spend on your phone late at night.", True),
+    ("unlocks", "Unlocks", "How often you pick up your phone.", True),
+    ("time out of home", "Time away from home", "Only the minutes you are away from home. Never a map.", False),
+]
+
 # Types of visit on the doctor visit page
 VISIT_TYPES = ["General check up", "Specialist", "Therapist", "Other"]
 
@@ -106,12 +118,13 @@ def trend_chart(values, usual):
             "recent_dots": [(x, to_y(v)) for x, v in zip(xs[-RECENT_DAYS:], values[-RECENT_DAYS:])]}
 
 
-# The person picked on the home page, or None if nobody is picked yet.
+# The person picked on the home page (a demo person, or someone who signed up), or None.
 # For now it also adds two values the old pace rule, heart chart and Body page need:
 # usual sleep (average sleep_min in signals.csv) and a fixed usual heart rate of 68.
 # Both go away when patterns.py replaces the pace rule.
 def current_person():
-    person = data.get_person(session.get("person_id"))
+    pid = session.get("person_id")
+    person = dict(session["new_person"]) if pid == NEW_ID and session.get("new_person") else data.get_person(pid)
     if person:
         sleep = [s["sleep_min"] for s in data.get_signals(person["id"])]
         person["usual_sleep_min"] = round(sum(sleep) / len(sleep)) if sleep else 0
@@ -135,7 +148,7 @@ GOOGLE_DEVICE = "Google Health (Fitbit, Pixel Watch)"
 # A person's devices with their current pairing choices from the session (the CSV never changes)
 def devices_for(person):
     choices = session.get("paired", {}).get(person["id"], {})
-    devices = data.get_devices(person["id"])
+    devices = [dict(d) for d in person.get("devices") or data.get_devices(person["id"])]
     for d in devices:
         d["paired"] = choices.get(d["device"], d["paired"])
     return devices
@@ -205,7 +218,8 @@ def climb_flags(goals):
 def climb_for(person):
     done = session.get("goals_done", {}).get(person["id"], [])
     today_checkins = sum(c["person_id"] == person["id"] for c in session.get("checkins", []))
-    goals = sorted(get_goals(person["id"], done, today_checkins), key=lambda g: not g["done"])
+    added = saved("goals_added", person["id"], [])
+    goals = sorted(get_goals(person["id"], done, today_checkins, added), key=lambda g: not g["done"])
     flags = climb_flags(goals)
     reached = sum(g["done"] for g in goals)
     return {"flags": flags, "reached": reached, "total": len(goals),
@@ -217,6 +231,8 @@ def climb_for(person):
 # One encouraging line for the climb (never "failed" or "missed")
 def climb_message(climb):
     left = climb["total"] - climb["reached"]
+    if not climb["total"]:
+        return "Add your first goal to start your climb."
     if climb["summit"]:
         return "You reached the summit this week!"
     if climb["reached"] * 2 >= climb["total"]:
@@ -301,16 +317,80 @@ def body_data(person):
 # Home page: choose which demo person to use
 @app.route("/")
 def choose():
-    return render_template("choose.html", title="Choose a demo person", people=data.get_people())
+    new_person = [session["new_person"]] if session.get("new_person") else []
+    return render_template("choose.html", title="Choose a demo person", people=data.get_people() + new_person)
 
 
 # Save the chosen person in the session, then open Today
 @app.route("/choose/<person_id>")
 def choose_person(person_id):
-    if data.get_person(person_id):
+    if data.get_person(person_id) or (person_id == NEW_ID and session.get("new_person")):
         session["person_id"] = person_id
         return redirect(url_for("today"))
     return redirect(url_for("choose"))
+
+
+# Sign up (four short screens, then a finish screen):
+# 1 Welcome and consent, 2 name and theme, 3 pair your phone, 4 someone you trust (optional), 5 finish.
+# Answers are kept in session["signup"] until step 4, then the new person is made (session only).
+@app.route("/start")
+@app.route("/start/<int:step>", methods=["GET", "POST"])
+def start(step=1):
+    signup = session.get("signup", {})
+    if request.method == "POST":
+        if step == 1:
+            signup = {}
+        elif step == 2:
+            signup["first_name"] = request.form.get("first_name", "").strip()[:30]
+            if request.form.get("theme") in THEMES:
+                session["theme"] = request.form["theme"]
+            if not signup["first_name"]:
+                flash("Please write what Pair should call you.")
+                session["signup"] = signup
+                return redirect(url_for("start", step=2))
+        elif step == 3:
+            chosen = [] if "skip" in request.form else request.form.getlist("signals")
+            signup["signals"] = [signal for signal, _, _, _ in SIGNUP_SIGNALS if signal in chosen]
+        elif step == 4:
+            name = request.form.get("name", "").strip()[:40]
+            access = request.form.get("access") if request.form.get("access") in LEVELS else "none"
+            trusted = None if "skip" in request.form or not name else {"name": name, "relationship": "", "access": access, "routines": False}
+            create_new_person(signup, trusted)
+        session["signup"] = signup
+        return redirect(url_for("start", step=step + 1))
+
+    # Steps out of order (or a missing name) go back to the welcome screen
+    if step not in range(1, 6) or (step >= 3 and not signup.get("first_name")):
+        return redirect(url_for("start", step=1))
+    return render_template("start.html", title="Get started", step=step, signup=signup,
+                           signals=SIGNUP_SIGNALS, levels=LEVELS)
+
+
+# Make the new person from the sign up answers and pick them. Everything stays in the session;
+# anything saved for an earlier new person is cleared first.
+def create_new_person(signup, trusted):
+    for key in list(session.keys()):
+        if isinstance(session[key], dict):
+            session[key].pop(NEW_ID, None)
+    session["checkins"] = [c for c in session.get("checkins", []) if c["person_id"] != NEW_ID]
+    phone = [signal for signal in signup.get("signals", []) if signal != "time out of home"]
+    session["new_person"] = {
+        "id": NEW_ID, "first_name": signup["first_name"], "last_name": "", "drains": [], "calms": [],
+        "devices": [
+            {"device": "My phone", "kind": "phone", "connects_through": "Phone sensors and screen time",
+             "signals": phone or ["sleep", "steps", "late screen time", "unlocks"], "paired": bool(phone)},
+            {"device": "Time away from home", "kind": "phone", "connects_through": "Phone location, shown only as minutes",
+             "signals": ["time out of home"], "paired": "time out of home" in signup.get("signals", [])},
+        ]}
+    save("circle", NEW_ID, [trusted] if trusted else [])
+    session["person_id"] = NEW_ID
+    session.modified = True
+
+
+# Full terms: a simple placeholder page for the prototype
+@app.route("/terms")
+def terms():
+    return render_template("terms.html", title="Full terms")
 
 
 # Today screen: greeting, "Your week", what Pair noticed, notes, one gentle step and two buttons;
@@ -611,11 +691,26 @@ def climb_done():
     if not person:
         return redirect(url_for("choose"))
     name = request.form.get("goal")
-    if any(g["goal"] == name and g["rule"] == "done" for g in data.get_goals(person["id"])):
+    added = saved("goals_added", person["id"], [])
+    if name in added or any(g["goal"] == name and g["rule"] == "done" for g in data.get_goals(person["id"])):
         all_done = session.get("goals_done", {})
         all_done[person["id"]] = list(set(all_done.get(person["id"], []) + [name]))
         session["goals_done"] = all_done
         flash(f"{name}: done. Nice work.")
+    return redirect(url_for("climb"))
+
+
+# Add a goal on My climb: only a name; it is reached by tapping Done (at most 8 added goals)
+@app.route("/climb/add", methods=["POST"])
+def climb_add():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    name = request.form.get("goal", "").strip()[:40]
+    added = saved("goals_added", person["id"], [])
+    if name and name not in added and len(added) < 8:
+        save("goals_added", person["id"], added + [name])
+        flash(f"Goal added: {name}.")
     return redirect(url_for("climb"))
 
 
@@ -744,6 +839,9 @@ def body():
     if not person:
         return redirect(url_for("choose"))
     daily, heart, source_note = body_data(person)
+    if not daily or not heart:
+        flash("No body data yet. Pair needs about 10 days to learn your usual.")
+        return redirect(url_for("patterns"))
     week = daily[-7:]
     # Bar lengths are relative to the biggest day (at least 1, so we never divide by 0)
     return render_template("body.html", title="My body today", person=person,

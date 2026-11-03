@@ -143,6 +143,8 @@ message: exactly 2 short sentences that connect how they feel with their pattern
 - Feeling good or okay but patterns changed: a gentle heads up about one change, linked to a drain if it fits.
 - Feeling low or overwhelmed and patterns steady: validate how they feel.
 - Feeling low or overwhelmed and patterns changed: validate, and say it is okay to go gently.
+- Status "Still learning your usual": do not talk about patterns; thank them, and say each check in
+  helps Pair learn what is usual for them.
 suggestion: one small suggestion under 15 words. When they feel low or overwhelmed, use one item
 from their calms list."""
 
@@ -175,7 +177,10 @@ def checkin_backup(person, mood, patterns):
     calm = person["calms"][0] if person["calms"] else "a short, quiet break"
     feels_okay = mood in OKAY_FEELINGS
     changed = patterns["status"] in CHANGED_STATUSES
-    if feels_okay and not changed:
+    if patterns["status"] == "Still learning your usual":
+        message = "Thank you for checking in. Each check in helps Pair learn what is usual for you."
+        suggestion = "A short walk could feel good today." if feels_okay else f"Try: {calm}"
+    elif feels_okay and not changed:
         message = "Your patterns look like your usual. It is good to hear you feel " + mood.lower() + "."
         suggestion = "A short walk could feel good today."
     elif feels_okay:

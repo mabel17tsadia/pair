@@ -692,6 +692,71 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   border-radius: 50%;
 }
 
+/* In sign up the theme cards are choices: the picked one gets the thick border */
+.theme-option:has(input:checked) {
+  border: 4px solid var(--primary);
+}
+
+.theme-option:has(input:focus-visible) {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+fieldset.theme-list {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+fieldset.theme-list legend {
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+}
+
+/* Sign up: Back on the left, four progress dots on the right */
+.start-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.progress-dots {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress-dots li {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+}
+
+.progress-dots li.on {
+  background: var(--primary);
+}
+
+.start-lines {
+  padding-left: 1.25rem;
+}
+
+.start-lines li {
+  margin-bottom: 0.5rem;
+}
+
+/* Sign up: each phone signal is a large tappable row */
+.toggle-row {
+  align-items: flex-start;
+  padding: 0.5rem 0;
+}
+
+.toggle-row input {
+  margin-top: 0.25rem;
+}
+
 /* A small card inside the preview, with sample text and a sample button */
 .theme-sample {
   display: block;
