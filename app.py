@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, render_template_string, session, redirect, request, url_for, abort, flash
 import data
-from patterns import get_patterns, get_trends, feeling_counts, RECENT_DAYS
+from patterns import get_patterns, get_trends, movement_streak, feeling_counts, RECENT_DAYS
 from pace import format_minutes
 from ai import explain_week, explain_for_doctor
 import google_health
@@ -29,13 +29,14 @@ SOURCES = {"sample": "Sample data", "google": "Google Health"}
 
 
 # Give every template the theme list and the user's settings
-# (calm theme, sample data and greeting banner on, if nothing picked yet)
+# (calm theme, sample data, greeting banner and movement streak on, if nothing picked yet)
 @app.context_processor
 def add_settings():
     return {"themes": THEMES,
             "theme": session.get("theme", "calm"),
             "data_source": session.get("data_source", "sample"),
-            "show_banner": session.get("banner", True)}
+            "show_banner": session.get("banner", True),
+            "show_streak": session.get("streak", True)}
 
 
 # Template filter: minutes as "6 h 40 min"
@@ -293,15 +294,18 @@ def checkin():
     return render_template("checkin.html", title="Check in", feelings=FEELINGS, checkins=mine)
 
 
-# Patterns: a 21 day line chart for each signal from a paired device, with the usual range
-# shaded, the last 5 days highlighted and one plain sentence above it
+# Patterns: a movement streak card (if steps come from a paired device and the setting is on), then
+# a 21 day line chart for each signal from a paired device, with the usual range shaded, the last
+# 5 days highlighted and one plain sentence above it
 @app.route("/patterns")
 def patterns():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
     trends = get_trends(person["id"], devices_for(person))
-    return render_template("patterns.html", title="Patterns",
+    steps = next((t for t in trends if t["signal"] == "steps"), None)
+    streak = movement_streak(steps, data.get_today()) if steps and session.get("streak", True) else None
+    return render_template("patterns.html", title="Patterns", streak=streak,
                            trends=[{**t, "chart": trend_chart(t["values"], t["usual"])} for t in trends])
 
 
@@ -537,6 +541,14 @@ def debug(person_id):
               "get_circle": len(data.get_circle(person_id))}
     lines = [f"{name}: {count} rows" for name, count in counts.items()]
     return "<br>".join(lines + [f"get_today: {data.get_today()}"])
+
+
+# Settings: turn the movement streak on the Patterns page on or off
+@app.route("/streak", methods=["POST"])
+def toggle_streak():
+    session["streak"] = not session.get("streak", True)
+    flash("Movement streak turned " + ("on." if session["streak"] else "off."))
+    return redirect(url_for("settings"))
 
 
 # Me page setting: turn the greeting banner on Today on or off

@@ -122,6 +122,19 @@ def get_trends(person_id, devices=None):
     return trends
 
 
+# Movement streak: days in a row, counting back from "today", where steps reached the person's own
+# usual average (the steps trend from get_trends). Personal only: never compared with anyone else.
+def movement_streak(steps_trend, today):
+    streak = 0
+    for day, value in reversed(list(zip(steps_trend["dates"], steps_trend["values"]))):
+        if day > today:
+            continue
+        if value < steps_trend["usual"]:
+            break
+        streak += 1
+    return streak
+
+
 # How often each mood and each body feeling came up in some check ins, most common first,
 # for example {"moods": [("Low", 2)], "body": [("Tired", 4), ("Headache", 2)]} ("none" is left out)
 def feeling_counts(checkins):

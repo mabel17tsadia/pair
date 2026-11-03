@@ -22,6 +22,14 @@
     </div>
   </section>
 
+  <!-- Setting: show or hide the movement streak card on Patterns (on by default) -->
+  <form method="post" action="{{ url_for('toggle_streak') }}" class="card">
+    <h2>Show movement streak</h2>
+    <p>Shows how many days in a row you reached your own usual movement, on the Patterns page.
+      It is <strong>{{ "on" if show_streak else "off" }}</strong>.</p>
+    <button type="submit" class="btn-secondary">{{ "Turn it off" if show_streak else "Turn it on" }}</button>
+  </form>
+
   <!-- Link to Paired devices -->
   <nav class="card link-list" aria-label="Devices">
     <a href="{{ url_for('devices') }}">Paired devices <span aria-hidden="true">›</span></a>
