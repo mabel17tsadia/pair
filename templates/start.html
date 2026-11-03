@@ -24,14 +24,14 @@
       <p><strong>Pair only reads what you pair. You choose who sees what. You can stop at any time.</strong></p>
       <p><a class="text-link" href="{{ url_for('terms') }}">Full terms</a></p>
     </section>
-    <form method="post">
+    <form method="post" action="{{ url_for('start', step=step) }}">
       <button type="submit" class="btn-primary">I agree, let's start</button>
     </form>
 
   {% elif step == 2 %}
     <!-- 2 About you: first name only, and the three theme cards -->
     <h1>About you</h1>
-    <form method="post">
+    <form method="post" action="{{ url_for('start', step=step) }}">
       <section class="card">
         <label for="first-name">What should Pair call you?</label>
         <input type="text" id="first-name" name="first_name" maxlength="30" value="{{ signup.first_name or '' }}" required>
@@ -54,7 +54,7 @@
     <!-- 3 Pair your phone: each signal as a toggle with one plain sentence (time away from home off) -->
     <h1>Pair your phone</h1>
     <p>Choose what Pair may read from your phone. You can change this later.</p>
-    <form method="post">
+    <form method="post" action="{{ url_for('start', step=step) }}">
       <section class="card">
         {% for key, name, sentence, on in signals %}
           <label class="share-pick toggle-row">
@@ -73,7 +73,7 @@
     <!-- 4 Someone you trust (optional): a name and a level, or Skip -->
     <h1>Someone you trust</h1>
     <p>Optional. They see nothing unless you choose a level.</p>
-    <form method="post">
+    <form method="post" action="{{ url_for('start', step=step) }}">
       <section class="card">
         <label for="trusted-name">Their name</label>
         <input type="text" id="trusted-name" name="name" maxlength="40">

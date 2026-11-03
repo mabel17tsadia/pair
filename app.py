@@ -295,13 +295,24 @@ def choose_person(person_id):
     return redirect(url_for("choose"))
 
 
+# "New to Pair? Get started": always begin at step 1, so every step has its own address
+@app.route("/start")
+def start_begin():
+    return redirect(url_for("start", step=1))
+
+
 # Sign up (four short screens, then a finish screen):
 # 1 Welcome and consent, 2 name and theme, 3 pair your phone, 4 someone you trust (optional), 5 finish.
+# GET shows a step; POST (steps 1 to 4 only) saves it and goes to the next step.
 # Answers are kept in session["signup"] until step 4, then the new person is made (session only).
-@app.route("/start")
 @app.route("/start/<int:step>", methods=["GET", "POST"])
-def start(step=1):
+def start(step):
     signup = session.get("signup", {})
+
+    # Steps out of order (or a missing name, for example after cookies were cleared) go back to step 1
+    if step not in range(1, 6) or (step >= 3 and not signup.get("first_name")):
+        return redirect(url_for("start", step=1))
+
     if request.method == "POST":
         if step == 1:
             signup = {}
@@ -321,12 +332,12 @@ def start(step=1):
             access = request.form.get("access") if request.form.get("access") in LEVELS else "none"
             trusted = None if "skip" in request.form or not name else {"name": name, "relationship": "", "access": access, "routines": False}
             create_new_person(signup, trusted)
+        elif step == 5:
+            # The finish screen has no form; it only links to Today
+            return redirect(url_for("today"))
         session["signup"] = signup
         return redirect(url_for("start", step=step + 1))
 
-    # Steps out of order (or a missing name) go back to the welcome screen
-    if step not in range(1, 6) or (step >= 3 and not signup.get("first_name")):
-        return redirect(url_for("start", step=1))
     return render_template("start.html", title="Get started", step=step, signup=signup,
                            signals=SIGNUP_SIGNALS, levels=LEVELS)
 
