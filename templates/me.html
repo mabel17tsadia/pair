@@ -1,42 +1,48 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon %}
+
+{# One large link card: an icon, a title and a short line under it #}
+{% macro link_card(endpoint, icon_name, title, line) %}
+<a class="card link-card" href="{{ url_for(endpoint) }}">
+  {{ icon(icon_name) }}
+  <span class="link-card-text"><strong>{{ title }}</strong><span class="note">{{ line }}</span></span>
+  <span aria-hidden="true">›</span>
+</a>
+{% endmacro %}
 
 {% block content %}
-  <!-- Page heading with the person's initials and name -->
   <h1>Me</h1>
-  <div class="person-row">
-    <span class="initials" aria-hidden="true">{{ person.first_name[0] }}{{ person.last_name[0] }}</span>
-    <div>
-      <strong class="person-name">{{ person.first_name }} {{ person.last_name }}</strong><br>
-      <span class="note">Demo mode. Sample data.</span>
+
+  <!-- Profile card: name, what drains and calms the person as chips, and an Edit panel -->
+  <section class="card">
+    <div class="person-row">
+      <span class="initials" aria-hidden="true">{{ person.first_name[0] }}{{ person.last_name[0] }}</span>
+      <strong class="person-name">{{ person.first_name }} {{ person.last_name }}</strong>
     </div>
-  </div>
 
-  <!-- What drains this person -->
-  <section class="card">
     <h2>What drains me</h2>
-    <ul>{% for d in person.drains %}<li>{{ d }}</li>{% endfor %}</ul>
+    <ul class="chip-list">{% for d in person.drains %}<li class="chip chip-drain">{{ d }}</li>{% else %}<li class="note">Nothing added yet.</li>{% endfor %}</ul>
+
+    <h2>What calms me</h2>
+    <ul class="chip-list">{% for c in person.calms %}<li class="chip chip-calm">{{ c }}</li>{% else %}<li class="note">Nothing added yet.</li>{% endfor %}</ul>
+
+    <details>
+      <summary class="btn-secondary">Edit</summary>
+      <form method="post" action="{{ url_for('me_edit') }}" class="edit-panel">
+        <label for="drains">What drains me <span class="note">(separate with commas)</span></label>
+        <input type="text" id="drains" name="drains" value="{{ person.drains | join(', ') }}">
+        <label for="calms">What calms me <span class="note">(separate with commas)</span></label>
+        <input type="text" id="calms" name="calms" value="{{ person.calms | join(', ') }}">
+        <button type="submit" class="btn-primary">Save</button>
+      </form>
+    </details>
   </section>
 
-  <!-- What helps this person feel calm -->
-  <section class="card">
-    <h2>What helps me feel calm</h2>
-    <ul>{% for c in person.calms %}<li>{{ c }}</li>{% endfor %}</ul>
-  </section>
-
-  <!-- Setting: show or hide the greeting banner at the top of Today on laptops -->
-  <form method="post" action="{{ url_for('toggle_banner') }}" class="card">
-    <h2>Greeting banner</h2>
-    <p>Shows a greeting and a mountain picture at the top of Today on larger screens. It is <strong>{{ "on" if show_banner else "off" }}</strong>.</p>
-    <button type="submit" class="btn-secondary">{{ "Turn it off" if show_banner else "Turn it on" }}</button>
-  </form>
-
-  <!-- Links to more screens -->
-  <nav class="card link-list" aria-label="More">
-    <a href="{{ url_for('body') }}">My body today <span aria-hidden="true">›</span></a>
-    <a href="{{ url_for('patterns') }}">My patterns <span aria-hidden="true">›</span></a>
-    <a href="{{ url_for('devices') }}">Paired devices <span aria-hidden="true">›</span></a>
-    <a href="{{ url_for('doctor') }}">Prepare for a doctor visit <span aria-hidden="true">›</span></a>
-    <a href="{{ url_for('settings') }}">Settings <span aria-hidden="true">›</span></a>
-    <a href="{{ url_for('choose') }}">Switch person <span aria-hidden="true">›</span></a>
+  <!-- Four large link cards to more screens -->
+  <nav class="link-cards" aria-label="More">
+    {{ link_card("patterns", "wave", "My patterns", "Your last 21 days") }}
+    {{ link_card("devices", "phone", "Paired devices", "Choose what Pair reads") }}
+    {{ link_card("doctor", "clipboard", "Prepare for a doctor visit", "A one page summary you check first") }}
+    {{ link_card("settings", "gear", "Settings", "Look, celebrations and privacy") }}
   </nav>
 {% endblock %}

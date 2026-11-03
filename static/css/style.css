@@ -475,6 +475,52 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   white-space: nowrap;
 }
 
+/* Me: drains and calms as rows of chips (calm chips are soft green, text stays dark for contrast) */
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.chip-drain {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.chip-calm {
+  background: var(--secondary-soft);
+  color: var(--text);
+}
+
+/* Me: four large link cards, each with an icon, a title and a short line */
+.link-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0 1rem;
+}
+
+.link-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 72px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.link-card .icon {
+  color: var(--primary);
+}
+
+.link-card-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
 .edit-panel {
   margin-top: 1rem;
   padding-top: 1rem;

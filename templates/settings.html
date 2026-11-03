@@ -42,17 +42,22 @@
     <button type="submit" class="btn-primary">Save</button>
   </form>
 
-  <!-- Link to Paired devices -->
-  <nav class="card link-list" aria-label="Devices">
-    <a href="{{ url_for('devices') }}">Paired devices <span aria-hidden="true">›</span></a>
-  </nav>
+  <!-- Privacy: a short plain summary and links to the two places where the person decides -->
+  <section class="card">
+    <h2>Privacy</h2>
+    <p>Your data stays yours. You choose what to pair and who sees what.</p>
+    <nav class="link-list" aria-label="Privacy">
+      <a href="{{ url_for('devices') }}">Paired devices <span aria-hidden="true">›</span></a>
+      <a href="{{ url_for('circle') }}">Circle <span aria-hidden="true">›</span></a>
+    </nav>
+  </section>
 
-  <!-- Demo controls: closed unless Google Health is chosen; switch the data source for testing -->
-  <details class="card demo-controls" {% if data_source == "google" %}open{% endif %}>
+  <!-- Demo controls, collapsed at the very bottom: switch demo person, data source, coach view -->
+  <details class="card demo-controls">
     <summary>Demo controls</summary>
-    <p class="note">For testing the demo. Google Health shows your own sleep and steps for the last 21 days (heart rate stays sample data).
-      If it is not connected or fails, the app shows sample data.</p>
-    <p><a class="text-link" href="{{ url_for('coach') }}">Coach view (demo)</a></p>
+    <p><a class="text-link" href="{{ url_for('choose') }}">Switch demo person</a></p>
+
+    <!-- Data source: sample data, or Google Health (sleep and steps on the Body page and test page) -->
     <form method="post">
       <fieldset class="choices">
         <legend>Data source</legend>
@@ -82,5 +87,7 @@
       <p class="note">Testing mode: only test users added in Google Cloud can sign in.
         Your data is kept in memory only, never saved, and is deleted when you disconnect or the app restarts.</p>
     {% endif %}
+
+    <p><a class="text-link" href="{{ url_for('coach') }}">Coach view (demo)</a></p>
   </details>
 {% endblock %}

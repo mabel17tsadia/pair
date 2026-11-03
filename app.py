@@ -42,14 +42,13 @@ SOURCES = {"sample": "Sample data", "google": "Google Health"}
 
 
 # Give every template the theme list and the user's settings
-# (calm theme, sample data, greeting banner on and calm celebrations, if nothing picked yet)
+# (calm theme, sample data and calm celebrations, if nothing picked yet)
 @app.context_processor
 def add_settings():
     return {"themes": THEMES,
             # An old or unknown theme (for example "colorful") shows as Calm
             "theme": session.get("theme") if session.get("theme") in THEMES else "calm",
             "data_source": session.get("data_source", "sample"),
-            "show_banner": session.get("banner", True),
             "celebrations": session.get("celebrations", "calm")}
 
 
@@ -117,6 +116,8 @@ def current_person():
         sleep = [s["sleep_min"] for s in data.get_signals(person["id"])]
         person["usual_sleep_min"] = round(sum(sleep) / len(sleep)) if sleep else 0
         person["usual_resting_hr"] = 68
+        # Drains and calms the person edited on Me (kept in the session)
+        person.update(saved("profile", person["id"], {}))
     return person
 
 
@@ -612,13 +613,28 @@ def climb_done():
     return redirect(url_for("climb"))
 
 
-# Me: the person, what drains and calms them, and links to My body today and Settings
+# Me: a profile card (name, what drains and calms the person, with Edit) and four link cards
 @app.route("/me")
 def me():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
     return render_template("me.html", title="Me", person=person)
+
+
+# Edit what drains and calms the person: comma separated, up to 8 of each, saved in the session.
+# The saved week summary is cleared so the gentle step uses the new calms.
+@app.route("/me/edit", methods=["POST"])
+def me_edit():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    split = lambda text: [w.strip()[:30] for w in text.split(",") if w.strip()][:8]
+    save("profile", person["id"], {"drains": split(request.form.get("drains", "")),
+                                   "calms": split(request.form.get("calms", ""))})
+    session.get("week", {}).pop(person["id"], None)
+    flash("Saved.")
+    return redirect(url_for("me"))
 
 
 # My body today: heart rate line chart, plus sleep and steps for the last 7 days
@@ -726,14 +742,6 @@ def set_celebrations():
         session["celebrations"] = request.form["celebrations"]
         flash(f"Celebrations set to {CELEBRATIONS[session['celebrations']]}.")
     return redirect(url_for("settings"))
-
-
-# Me page setting: turn the greeting banner on Today on or off
-@app.route("/banner", methods=["POST"])
-def toggle_banner():
-    session["banner"] = not session.get("banner", True)
-    flash("Greeting banner turned " + ("on." if session["banner"] else "off."))
-    return redirect(url_for("me"))
 
 
 # Save the chosen theme, then go back to the page the user was on
