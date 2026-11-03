@@ -1,6 +1,11 @@
+## Project
+Name: Pair. A web app for the North American AI Challenge, built with our challenge partner First Place AZ in mind.
+Pair connects, with consent, to devices a person already uses (phone first; optional smart washer, mattress sensor or smart ring), learns the person's own usual patterns, notices when several patterns change together, tells the person first in plain language, and lets them choose what each trust circle member can see.
+All device data is simulated from CSV files. Pair does not diagnose and is not a task planner.
+Out of scope: task lists, adding tasks, inbox, wearables being required, medical devices like pacemakers.
+
 # Rules for this project
 
-Project: Pace, a web app for the North American AI Challenge.
 The team must be able to read and explain every line in a code review.
 
 1. Keep code short and simple. Prefer fewer lines over clever code.
