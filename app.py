@@ -7,7 +7,9 @@ from patterns import get_patterns, get_trends, feeling_counts, RECENT_DAYS
 from goals import get_goals, days_left, week_name
 from vitals import get_body_signals
 from pace import format_minutes
-from ai import explain_week, explain_for_doctor, respond_to_checkin, suggest_questions, suggest_steps
+from ai import (explain_week, explain_for_doctor, respond_to_checkin, suggest_questions, suggest_steps,
+                suggest_professionals, is_urgent)
+from visits import VISITS, things_to_tell
 import google_health
 
 # Load settings like SECRET_KEY from the .env file
@@ -37,9 +39,6 @@ SIGNUP_SIGNALS = [
     ("unlocks", "Unlocks", "How often you pick up your phone.", True),
     ("time out of home", "Time away from home", "Only the minutes you are away from home. Never a map.", False),
 ]
-
-# Types of visit on the doctor visit page
-VISIT_TYPES = ["General check up", "Specialist", "Therapist", "Other"]
 
 # How the summit is celebrated on My climb (Calm is the default)
 CELEBRATIONS = {"big": "Big", "calm": "Calm", "off": "Off"}
@@ -533,72 +532,98 @@ def share():
                            members=[{**m, "view": shared_view(m["access"], patterns, celebrations)} for m in members])
 
 
-# Prepare for a doctor visit: a one page summary of the last 14 days that the person reviews,
-# then prints or sends to a Health summary member. Questions they type are kept in the session.
-@app.route("/doctor", methods=["GET", "POST"])
+# The old address /doctor opens the Visit companion
+@app.route("/doctor")
 def doctor():
+    return redirect(url_for("visit_start"))
+
+
+# Get ready for an appointment, step 1: "Who are you seeing?" as large choice cards
+@app.route("/visit")
+def visit_start():
+    if not current_person():
+        return redirect(url_for("choose"))
+    return render_template("visit_start.html", title="Get ready for an appointment", visits=VISITS)
+
+
+# The 14 days a visit summary covers (counting back from the demo "today") and the check ins in them
+def visit_period(pid):
+    end = date.fromisoformat(data.get_today())
+    start = end - timedelta(days=13)
+    return start, end, [c for c in data.get_checkins(pid) if c["date"] >= start.isoformat()]
+
+
+# Step 2: the one page summary for this kind of appointment, which the person reviews, then prints
+# or sends to a Health summary member. Questions they type are kept in the session.
+@app.route("/visit/<visit>", methods=["GET", "POST"])
+def visit_page(visit):
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
+    if visit not in VISITS:
+        abort(404)
     pid = person["id"]
     if request.method == "POST":
-        save("doctor_questions", pid, request.form.get("questions", "").strip()[:1000])
+        save("visit_questions", pid, request.form.get("questions", "").strip()[:1000])
         flash("Your questions are saved.")
-        return redirect(url_for("doctor"))
+        return redirect(url_for("visit_page", visit=visit))
 
-    # The last 14 days, counting back from the demo "today"
-    end = date.fromisoformat(data.get_today())
-    start = end - timedelta(days=13)
-    checkins = [c for c in data.get_checkins(pid) if c["date"] >= start.isoformat()]
+    start, end, checkins = visit_period(pid)
     devices = devices_for(person)
-    patterns = get_patterns(pid, devices)
-    return render_template("doctor.html", title="Prepare for a doctor visit", person=person,
+    patterns, body = get_patterns(pid, devices), get_body_signals(pid, devices)
+    suggestions = saved("visit_suggestions", pid, None)
+    return render_template("visit.html", title="Get ready for an appointment", person=person,
+                           visit=visit, visit_label=VISITS[visit]["label"],
                            period=f"{start.day} {start:%B} to {end.day} {end:%B %Y}",
                            patterns=patterns, counts=feeling_counts(checkins),
                            summary=daily_cache("doctor", person, lambda: explain_for_doctor(person, patterns, checkins)),
-                           questions=saved("doctor_questions", pid, ""),
-                           visit_types=VISIT_TYPES, visit_type=saved("doctor_visit", pid, ""),
-                           suggestions=saved("doctor_suggestions", pid, None),
-                           entries=saved("doctor_entries", pid, []),
+                           questions=saved("visit_questions", pid, ""),
+                           suggestions=suggestions if suggestions and suggestions["visit"] == visit else None,
+                           tell=things_to_tell(visit, patterns, body, devices),
+                           entries=saved("visit_entries", pid, []),
                            sources=[d["device"] for d in devices if d["paired"]] + ["My own check ins"],
                            contacts=[m["name"] for m in circle_for(person) if m["access"] == "health"])
 
 
-# Suggest questions: save the type of visit and ask for 3 short questions (AI or general ones)
-@app.route("/doctor/suggest", methods=["POST"])
-def doctor_suggest():
+# Suggest questions for this kind of appointment (AI, or 3 general questions for the visit type)
+@app.route("/visit/<visit>/suggest", methods=["POST"])
+def visit_suggest(visit):
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
-    visit_type = request.form.get("visit_type")
-    if visit_type in VISIT_TYPES:
-        save("doctor_visit", person["id"], visit_type)
-        save("doctor_suggestions", person["id"], suggest_questions(visit_type, get_patterns(person["id"], devices_for(person))))
-    return redirect(url_for("doctor"))
+    if visit not in VISITS:
+        abort(404)
+    pid = person["id"]
+    _, _, checkins = visit_period(pid)
+    devices = devices_for(person)
+    result = suggest_questions(person, visit, get_patterns(pid, devices), get_body_signals(pid, devices),
+                               feeling_counts(checkins)["moods"])
+    save("visit_suggestions", pid, {**result, "visit": visit})
+    return redirect(url_for("visit_page", visit=visit))
 
 
-# Add one suggested question to "Questions I want to ask" (each on its own line)
-@app.route("/doctor/add-question", methods=["POST"])
-def doctor_add_question():
+# Add one suggested question to "Questions I want to ask" (each on its own line, still editable)
+@app.route("/visit/<visit>/add-question", methods=["POST"])
+def visit_add_question(visit):
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
     question = request.form.get("question", "").strip()[:200]
-    current = saved("doctor_questions", person["id"], "")
+    current = saved("visit_questions", person["id"], "")
     if question and question not in current:
-        save("doctor_questions", person["id"], (current + "\n" + question).strip()[:1000])
+        save("visit_questions", person["id"], (current + "\n" + question).strip()[:1000])
         flash("Question added.")
-    return redirect(url_for("doctor"))
+    return redirect(url_for("visit_page", visit=visit if visit in VISITS else "other"))
 
 
-# Add something from another app (a label and a value), or remove one; at most 10 entries.
-# These are kept apart from paired device data, which can never be edited.
-@app.route("/doctor/entry", methods=["POST"])
-def doctor_entry():
+# Entered by me: add something from another app or from memory (a label and a value), or remove
+# one; at most 10. Kept apart from device readings, which can never be edited.
+@app.route("/visit/<visit>/entry", methods=["POST"])
+def visit_entry(visit):
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
-    entries = saved("doctor_entries", person["id"], [])
+    entries = saved("visit_entries", person["id"], [])
     label = request.form.get("label", "").strip()[:40]
     value = request.form.get("value", "").strip()[:40]
     remove = request.form.get("remove", "")
@@ -608,14 +633,14 @@ def doctor_entry():
         entries.append({"label": label, "value": value})
     else:
         flash("Please add both a label and a value.")
-    save("doctor_entries", person["id"], entries)
-    return redirect(url_for("doctor"))
+    save("visit_entries", person["id"], entries)
+    return redirect(url_for("visit_page", visit=visit if visit in VISITS else "other"))
 
 
 # Send to my health contact: only ticked Health summary members; a confirmation only,
 # nothing is really sent in the prototype
-@app.route("/doctor/send", methods=["POST"])
-def doctor_send():
+@app.route("/visit/<visit>/send", methods=["POST"])
+def visit_send(visit):
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
@@ -625,7 +650,27 @@ def doctor_send():
         flash(f"Prototype: nothing was really sent. In the real app, {words_filter(names)} would get this summary.")
     else:
         flash("No one was ticked, so nothing was sent.")
-    return redirect(url_for("doctor"))
+    return redirect(url_for("visit_page", visit=visit if visit in VISITS else "other"))
+
+
+# Not sure who to see? The person types how they have been feeling. Emergency words are checked
+# first by rules (then only 911 and 988 are shown); otherwise 1 to 3 kinds of professional.
+@app.route("/visit/not-sure", methods=["GET", "POST"])
+def visit_not_sure():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    text = request.form.get("feelings", "").strip()[:500]
+    urgent, result = False, None
+    if request.method == "POST" and text:
+        if is_urgent(text):
+            urgent = True
+        else:
+            devices = devices_for(person)
+            result = suggest_professionals(person, text, get_patterns(person["id"], devices),
+                                           get_body_signals(person["id"], devices))
+    return render_template("visit_not_sure.html", title="Not sure who to see?", text=text,
+                           urgent=urgent, result=result, visits=VISITS)
 
 
 # My climb this week: the mountain with one flag per goal, the goal list, the summit message and

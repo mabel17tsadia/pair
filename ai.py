@@ -3,6 +3,7 @@ import os
 import anthropic
 from dotenv import load_dotenv
 from patterns import feeling_counts
+from visits import VISITS
 
 # Load ANTHROPIC_API_KEY from the .env file (the Anthropic client reads it from there)
 load_dotenv()
@@ -257,11 +258,14 @@ def respond_to_checkin(person, mood, patterns, body, note=""):
         return backup()
 
 
-# Instructions for Claude when suggesting questions for a doctor visit
-QUESTIONS_SYSTEM = """You help a person prepare for a health visit. You get the type of visit and how
-their daily patterns changed. Write exactly 3 short questions (under 15 words each) the person could
-ask, in the first person ("I", "my"). Plain words. Never name a condition, never suggest a diagnosis
-or a treatment; only ask."""
+# Instructions for Claude when suggesting questions for an appointment
+QUESTIONS_SYSTEM = """You help a person get ready for a health appointment. You get their first name,
+who they are seeing, sentences about how their daily patterns and body signals changed, and how
+often they chose each mood in check ins. Write 3 to 5 short questions (under 25 words each) the person
+could ask, in their own voice ("I", "my"), fitted to this kind of professional. A question may mention
+one fact, for example for a dietitian: "My monitor showed some low readings this week. What should I
+eat before work?" Only use the facts given; never invent details. Never name a condition and never
+suggest a diagnosis or treatment yourself; only ask."""
 
 # The exact JSON shape we want back: a list of questions
 QUESTIONS_SCHEMA = {
@@ -271,31 +275,72 @@ QUESTIONS_SCHEMA = {
     "additionalProperties": False,
 }
 
-# Rule based backup: 3 general questions that fit any visit
-GENERAL_QUESTIONS = [
-    "Is there anything in these changes you would like me to keep an eye on?",
-    "What would be a good next step for me?",
-    "When should I come back or get in touch?",
-]
+
+# What Pair may tell the AI about a person's week: change sentences, body signal sentences and mood counts
+def week_facts(patterns, body, mood_counts):
+    return {"changes": [c["words"] for c in patterns["changes"]],
+            "body_signals": [v["sentence"] for v in body], "mood_counts": dict(mood_counts)}
 
 
-# Suggest 3 short questions for a visit; use the general questions if there is no API key or
-# anything goes wrong. Sends only the visit type and the change sentences (no name or other data).
-def suggest_questions(visit_type, patterns):
+# Suggest 3 to 5 questions for this kind of appointment; use the 3 general questions for that
+# visit type if there is no API key or anything goes wrong. Sends only the first name, the visit
+# type, the change and body sentences and mood counts (never notes or last names).
+def suggest_questions(person, visit, patterns, body, mood_counts):
+    backup = {"questions": VISITS[visit]["questions"], "source": "rules"}
     if not os.getenv("ANTHROPIC_API_KEY"):
         print("No API key found, using general questions")
-        return {"questions": GENERAL_QUESTIONS, "source": "rules"}
-    details = json.dumps({"visit_type": visit_type, "changes": [c["words"] for c in patterns["changes"]]})
+        return backup
+    details = json.dumps({"first_name": person["first_name"], "seeing": VISITS[visit]["label"],
+                          **week_facts(patterns, body, mood_counts)})
     try:
         answer = json.loads(ask_claude(QUESTIONS_SYSTEM, details, {"type": "json_schema", "schema": QUESTIONS_SCHEMA}))
-        questions = [q.strip() for q in answer["questions"] if q.strip()][:3]
+        questions = [q.strip()[:200] for q in answer["questions"] if q.strip()][:5]
         if len(questions) < 3:
             raise ValueError("Too few questions")
         return {"questions": questions, "source": "ai"}
     # Any error at all uses the general questions instead of crashing
     except Exception as error:
         print("AI question suggestions failed, using general questions:", type(error).__name__)
-        return {"questions": GENERAL_QUESTIONS, "source": "rules"}
+        return backup
+
+
+# Instructions for Claude when helping someone choose who to see
+PROFESSIONALS_SYSTEM = """You help a person choose which kind of health professional to see.
+You get their first name, how they say they have been feeling, and sentences about their patterns
+and body signals. Pick 1 to 3 kinds of professional from the allowed list that people with similar
+feelings often see. Never diagnose and never name a condition. If unsure, pick "primary"."""
+
+# The exact JSON shape we want back: 1 to 3 keys from the visit types (not "other")
+PROFESSIONALS_SCHEMA = {
+    "type": "object",
+    "properties": {"visits": {"type": "array",
+                              "items": {"type": "string", "enum": [k for k in VISITS if k != "other"]}}},
+    "required": ["visits"],
+    "additionalProperties": False,
+}
+
+
+# Suggest 1 to 3 kinds of professional for what the person typed; Primary care doctor if there is
+# no API key or anything goes wrong. The reason shown for each comes from VISITS (fixed sentences),
+# not from the AI. Run the emergency check (is_urgent) before calling this.
+def suggest_professionals(person, text, patterns, body):
+    backup = {"visits": ["primary"], "source": "rules"}
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        print("No API key found, suggesting a primary care doctor")
+        return backup
+    details = json.dumps({"first_name": person["first_name"], "feelings": text[:500],
+                          "changes": [c["words"] for c in patterns["changes"]],
+                          "body_signals": [v["sentence"] for v in body]})
+    try:
+        answer = json.loads(ask_claude(PROFESSIONALS_SYSTEM, details, {"type": "json_schema", "schema": PROFESSIONALS_SCHEMA}))
+        visits = list(dict.fromkeys(v for v in answer["visits"] if v in VISITS))[:3]
+        if not visits:
+            raise ValueError("No suggestions")
+        return {"visits": visits, "source": "ai"}
+    # Any error at all suggests a primary care doctor instead of crashing
+    except Exception as error:
+        print("AI professional suggestions failed, suggesting a primary care doctor:", type(error).__name__)
+        return backup
 
 
 # Instructions for Claude when suggesting steps for a routine

@@ -15,8 +15,8 @@
     <p class="card">No patterns to show yet. Pair needs a paired device and about 10 days of data.</p>
   {% endfor %}
 
-  <!-- Link to the doctor visit summary -->
+  <!-- Link to get ready for an appointment -->
   <nav class="card link-list" aria-label="More">
-    <a href="{{ url_for('doctor') }}">Prepare for a doctor visit <span aria-hidden="true">›</span></a>
+    <a href="{{ url_for('visit_start') }}">Get ready for an appointment <span aria-hidden="true">›</span></a>
   </nav>
 {% endblock %}

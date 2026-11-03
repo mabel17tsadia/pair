@@ -1300,9 +1300,24 @@ a:focus-visible, button:focus-visible {
   white-space: pre-line;
 }
 
-/* Type of visit and the Suggest questions button, with space above */
-.suggest-form {
-  margin-top: 1.5rem;
+/* Get ready for an appointment: large choice cards for who the person is seeing */
+.visit-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0 1rem;
+}
+
+.visit-choice {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.visit-choice:hover {
+  border-color: var(--primary);
 }
 
 /* Printing: black on white, no navigation, buttons or messages, small enough for one page */

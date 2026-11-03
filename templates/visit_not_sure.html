@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Link back to step 1 and page title -->
+  <a class="text-link" href="{{ url_for('visit_start') }}">‹ Who are you seeing?</a>
+  <h1>Not sure who to see?</h1>
+
+  <!-- How have you been feeling? (checked for emergency words first, by rules) -->
+  <form method="post" class="card">
+    <label for="feelings">How have you been feeling?</label>
+    <textarea id="feelings" name="feelings" rows="4" maxlength="500" required>{{ text }}</textarea>
+    <button type="submit" class="btn-primary">Help me choose</button>
+  </form>
+
+  {% if urgent %}
+    <!-- Emergency words: only how to get help now -->
+    <section class="card emergency" role="alert">
+      <p><strong>This could be urgent. Call 911, or call or text 988.</strong></p>
+      <div class="actions">
+        <a class="btn-primary" href="tel:911">Call 911</a>
+        <a class="btn-secondary" href="tel:988">Call 988</a>
+        <a class="btn-secondary" href="sms:988">Text 988</a>
+      </div>
+    </section>
+  {% elif result %}
+    <!-- 1 to 3 kinds of professional, each with why people often see them and a way to get ready -->
+    <section role="status">
+      {% for key in result.visits %}
+        <section class="card">
+          <h2>{{ visits[key].label }}</h2>
+          <p>{{ visits[key].why }}</p>
+          <a class="btn-secondary" href="{{ url_for('visit_page', visit=key) }}">Get ready for this visit</a>
+        </section>
+      {% endfor %}
+      <p class="note">{{ "Written with AI" if result.source == "ai" else "Written by rules" }}</p>
+      <p><strong>This is not medical advice. Your primary care doctor can help you decide.</strong></p>
+    </section>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Link back to Me and the question for step 1 -->
+  <a class="text-link" href="{{ url_for('me') }}">‹ Me</a>
+  <h1>Get ready for an appointment</h1>
+  <h2>Who are you seeing?</h2>
+
+  <!-- One large choice card per kind of professional; each opens the summary for that visit -->
+  <div class="visit-choices">
+    {% for key, v in visits.items() %}
+      <a class="card visit-choice" href="{{ url_for('visit_page', visit=key) }}">{{ v.label }}</a>
+    {% endfor %}
+  </div>
+
+  <p><a class="text-link" href="{{ url_for('visit_not_sure') }}">Not sure who to see?</a></p>
+{% endblock %}
