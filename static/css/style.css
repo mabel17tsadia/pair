@@ -639,7 +639,7 @@ label {
   font-weight: 700;
 }
 
-input[type="text"], input[type="time"], textarea {
+input[type="text"], input[type="time"], textarea, select {
   display: block;
   box-sizing: border-box;
   width: 100%;
@@ -651,6 +651,35 @@ input[type="text"], input[type="time"], textarea {
   background: var(--bg);
   color: var(--text);
   font: inherit;
+}
+
+/* Circle: the four access levels, each name in bold with its meaning underneath */
+.levels dt {
+  font-weight: 700;
+}
+
+.levels dd {
+  margin: 0 0 0.75rem;
+}
+
+/* Share: a large checkbox with the person's name, easy to tap */
+.share-pick {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+}
+
+.share-pick input {
+  width: 24px;
+  height: 24px;
+}
+
+/* Circle: the emergency line at the bottom */
+.emergency {
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--alert-soft);
 }
 
 /* Earlier check ins list */

@@ -1,11 +1,32 @@
 {% extends "base.html" %}
 
+{# A dropdown of the four access levels, with the current one picked #}
+{% macro level_select(id, current) %}
+<select id="{{ id }}" name="access">
+  {% for key, (label, meaning) in levels.items() %}
+    <option value="{{ key }}" {% if key == current %}selected{% endif %}>{{ label }}</option>
+  {% endfor %}
+</select>
+{% endmacro %}
+
 {% block content %}
   <!-- Page title and short intro -->
   <h1>Circle</h1>
-  <p>People you trust. Reach out when you need a hand.</p>
+  <p>People you trust. You always see everything first. Nothing is shared automatically.</p>
 
-  <!-- One card per trusted person, with a ready-made message to copy -->
+  <!-- The four access levels in plain words -->
+  <section class="card">
+    <h2>What each level sees</h2>
+    <dl class="levels">
+      {% for key, (label, meaning) in levels.items() %}
+        <dt>{{ label }}</dt>
+        <dd>{{ meaning }}</dd>
+      {% endfor %}
+    </dl>
+    <p class="note">Time away from home and check in notes are never shared, at any level.</p>
+  </section>
+
+  <!-- One card per trusted person: name, relationship and level, a "Change" option and a message to copy -->
   {% for c in circle %}
     {% set first = c.name.split()[0] %}
     <section class="card">
@@ -13,20 +34,49 @@
         <span class="initials initials-small" aria-hidden="true">{{ c.name.split()[0][0] }}{{ c.name.split()[-1][0] }}</span>
         <div>
           <strong>{{ c.name }}</strong><br>
-          <span class="note">{{ c.relationship }} · best by {{ c.best_way | lower }}</span>
+          <span class="note">{{ c.relationship }} · {{ levels[c.access][0] }}</span>
         </div>
       </div>
-      <details class="message-box">
-        <summary class="btn-secondary">Message {{ first }}</summary>
-        <label for="msg-{{ loop.index }}">Ready-made message (you can change it)</label>
-        <textarea id="msg-{{ loop.index }}" rows="3">Hi {{ first }}, today is a low-energy day for me. Could you check in with me later?</textarea>
-        <button type="button" class="btn-primary" data-copy="msg-{{ loop.index }}">Copy message</button>
-      </details>
+      <div class="actions">
+        <!-- Change: pick a new level and save it -->
+        <details class="message-box">
+          <summary class="btn-secondary">Change</summary>
+          <form method="post" action="{{ url_for('circle_level') }}">
+            <input type="hidden" name="name" value="{{ c.name }}">
+            <label for="level-{{ loop.index }}">What {{ first }} can see</label>
+            {{ level_select("level-" ~ loop.index, c.access) }}
+            <button type="submit" class="btn-primary">Save</button>
+          </form>
+        </details>
+        <!-- Message: a ready-made message to copy and send yourself -->
+        <details class="message-box">
+          <summary class="btn-secondary">Message {{ first }}</summary>
+          <label for="msg-{{ loop.index }}">Ready-made message (you can change it)</label>
+          <textarea id="msg-{{ loop.index }}" rows="3">Hi {{ first }}, today is a low-energy day for me. Could you check in with me later?</textarea>
+          <button type="button" class="btn-primary" data-copy="msg-{{ loop.index }}">Copy message</button>
+        </details>
+      </div>
     </section>
   {% else %}
     <p class="card">No one in your circle yet.</p>
   {% endfor %}
 
+  <!-- Add someone I trust: name, relationship and level -->
+  <form method="post" action="{{ url_for('circle_add') }}" class="card">
+    <h2>Add someone I trust</h2>
+    <label for="new-name">Name</label>
+    <input type="text" id="new-name" name="name" maxlength="40" required>
+    <label for="new-relationship">Relationship</label>
+    <input type="text" id="new-relationship" name="relationship" maxlength="40" placeholder="For example: Friend" required>
+    <label for="new-level">What they can see</label>
+    {{ level_select("new-level", "checkins") }}
+    <button type="submit" class="btn-primary">Add</button>
+  </form>
+
   <!-- Reminder that Pair never sends messages itself -->
   <p class="note">Pair does not send messages. Copy the text and send it the way you usually would.</p>
+
+  <!-- Emergency line -->
+  <p class="emergency"><strong>In an emergency, call 911.</strong>
+    If you are in crisis or thinking about suicide, call or text 988 (Suicide and Crisis Lifeline).</p>
 {% endblock %}

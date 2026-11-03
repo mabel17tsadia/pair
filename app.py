@@ -132,6 +132,56 @@ def week_text(person, patterns):
     return saved[person["id"]]
 
 
+# ===== Trust circle =====
+# The four access levels: a short name and what that person sees, in plain words
+LEVELS = {
+    "checkins": ("Check ins", "Sees the mood check ins you choose to share."),
+    "summary": ("Weekly summary", "Sees your week status and summary in words, no numbers."),
+    "wellness": ("Wellness details", "Sees the summary plus your signal trends (for a coach or 360 wellness staff)."),
+    "health": ("Health summary", "Sees the doctor visit summary only when you send it."),
+}
+
+# Each change in words with no numbers, for the Weekly summary level.
+# Time away from home is left out on purpose: it is never shared.
+SHARE_WORDS = {"sleep_min": "Sleeping less than usual", "steps": "Walking less than usual",
+               "late_screen_min": "More time on the phone late at night",
+               "unlocks": "Picking up the phone more often"}
+
+# Units for the numbers in Wellness details (daily averages)
+SHARE_UNITS = {"sleep_min": "min", "steps": "steps", "late_screen_min": "min", "unlocks": "unlocks"}
+
+
+# A person's circle: people from circle.csv plus anyone added, with any level changes
+# from the session (the CSV never changes)
+def circle_for(person):
+    added = session.get("circle_added", {}).get(person["id"], [])
+    levels = session.get("circle_levels", {}).get(person["id"], {})
+    members = [dict(m) for m in data.get_circle(person["id"]) + added]
+    for m in members:
+        m["access"] = levels.get(m["name"], m["access"])
+    return members
+
+
+# Exactly what one member would see at their level, as a list of short lines.
+# Health summary sees nothing here (only a doctor visit summary the person sends).
+# Check in notes and time away from home are never included.
+def shared_view(access, patterns):
+    if access == "health":
+        return []
+    if access == "checkins":
+        return [f"{day_filter(c['date'])}: feeling {c['mood']}" for c in patterns["recent_checkins"]]
+    lines = [f"Week: {patterns['status']}"]
+    for c in patterns["changes"]:
+        if c["signal"] not in SHARE_WORDS:
+            continue
+        words = SHARE_WORDS[c["signal"]]
+        if access == "wellness":
+            unit = SHARE_UNITS[c["signal"]]
+            words += f" (usual {c['usual']:,} {unit}, last 5 days {c['recent']:,} {unit})"
+        lines.append(words)
+    return lines
+
+
 # Daily rows (date, sleep_min, steps), heart readings and a short note about the source.
 # Uses only Google Health days when Demo controls say so and Google returned at least one day;
 # otherwise only sample data (never a mix). Heart rate always comes from the sample data.
@@ -176,7 +226,7 @@ def today():
     return render_template("today.html", title="Today", person=person,
                            day=f"{d:%A} {d.day} {d:%B}", patterns=patterns,
                            week=week_text(person, patterns),
-                           laundry_index=laundry, circle=data.get_circle(pid),
+                           laundry_index=laundry, circle=circle_for(person),
                            last_checkin=checkins[-1] if checkins else None)
 
 
@@ -224,13 +274,71 @@ def patterns():
     return render_template("patterns.html", title="Patterns")
 
 
-# Trust circle: people this person can reach out to, each with a ready-made message to copy
+# Trust circle: each person's name, relationship and access level, with a "Change" option,
+# a ready-made message to copy, and a form to add someone
 @app.route("/circle")
 def circle():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
-    return render_template("circle.html", title="Circle", circle=data.get_circle(person["id"]))
+    return render_template("circle.html", title="Circle", circle=circle_for(person), levels=LEVELS)
+
+
+# Change one member's access level (saved in the session)
+@app.route("/circle/level", methods=["POST"])
+def circle_level():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    name, access = request.form.get("name"), request.form.get("access")
+    if access in LEVELS and any(m["name"] == name for m in circle_for(person)):
+        all_levels = session.get("circle_levels", {})
+        all_levels.setdefault(person["id"], {})[name] = access
+        session["circle_levels"] = all_levels
+        flash(f"{name} now has {LEVELS[access][0]}.")
+    return redirect(url_for("circle"))
+
+
+# Add someone I trust: name, relationship and level (saved in the session)
+@app.route("/circle/add", methods=["POST"])
+def circle_add():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    name = request.form.get("name", "").strip()[:40]
+    relationship = request.form.get("relationship", "").strip()[:40]
+    access = request.form.get("access")
+    if not name or not relationship or access not in LEVELS:
+        flash("Please add a name, a relationship and a level.")
+    elif any(m["name"] == name for m in circle_for(person)):
+        flash(f"{name} is already in your circle.")
+    else:
+        added = session.get("circle_added", {})
+        added.setdefault(person["id"], []).append({"name": name, "relationship": relationship, "access": access})
+        session["circle_added"] = added
+        flash(f"{name} added to your circle.")
+    return redirect(url_for("circle"))
+
+
+# Share with my circle: a preview of exactly what each member would see, with a checkbox each
+# (all unticked). "Send" only shows a confirmation; nothing is really sent in the prototype.
+@app.route("/share", methods=["GET", "POST"])
+def share():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    members = circle_for(person)
+    if request.method == "POST":
+        names = [m["name"] for m in members
+                 if m["name"] in request.form.getlist("share") and m["access"] != "health"]
+        if names:
+            flash(f"Prototype: nothing was really sent. In the real app, {words_filter(names)} would now see their view.")
+        else:
+            flash("No one was ticked, so nothing was shared.")
+        return redirect(url_for("today"))
+    patterns = get_patterns(person["id"], devices_for(person))
+    return render_template("share.html", title="Share with my circle", levels=LEVELS,
+                           members=[{**m, "view": shared_view(m["access"], patterns)} for m in members])
 
 
 # Me: the person, what drains and calms them, and links to My body today and Settings

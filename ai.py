@@ -43,15 +43,15 @@ def ask_claude(system, text, output_format=None):
     return next((b.text for b in response.content if b.type == "text"), "")
 
 
-# Rule based backup: the change sentences as the summary, and the first calms item as the step
+# Rule based backup: one short summary (the change rows on Today give the details),
+# and the first calms item as the step
 def week_backup(person, patterns):
-    changes = [c["words"] for c in patterns["changes"]]
     if patterns["status"] == "Still learning your usual":
         summary = "Pair is still learning your usual. This takes about 10 days."
-    elif patterns["status"] == "Steady week" or not changes:
+    elif patterns["status"] == "Steady week":
         summary = "Your patterns look like your usual this week."
     else:
-        summary = "Pair noticed some changes this week. " + ". ".join(changes) + "."
+        summary = f"Pair noticed {patterns['change_count']} changes this week. The details are below."
     step = f"Try: {person['calms'][0]}" if person["calms"] else "Try: a short, quiet break"
     return {"summary": summary, "gentle_step": step, "source": "rules"}
 
