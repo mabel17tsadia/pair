@@ -22,12 +22,6 @@
   {% elif name == "gear" %}<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>
   {% elif name == "flag" %}<path d="M6 21V4M6 4h11l-2 4 2 4H6"/>
   {% elif name == "leaf" %}<path d="M5 19C5 10 10 5 20 4c0 10-5 15-14 15M5 19l7-7"/>
-  {# Feeling faces for Check in #}
-  {% elif name == "face-calm" %}<circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M8.5 14.5a4 4 0 0 0 7 0"/>
-  {% elif name == "face-okay" %}<circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M9 15h6"/>
-  {% elif name == "face-tired" %}<circle cx="12" cy="12" r="9"/><path d="M7.5 10.5h3M13.5 10.5h3M10 15.5h4"/>
-  {% elif name == "face-worried" %}<circle cx="12" cy="12" r="9"/><path d="M7.5 8l2.5 1M16.5 8l-2.5 1M9 11h.01M15 11h.01M8.5 16.5a4 4 0 0 1 7 0"/>
-  {% elif name == "face-overwhelmed" %}<circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/><circle cx="12" cy="15.5" r="1.5"/>
   {% else %}<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>
   {% endif %}
 </svg>
@@ -48,6 +42,12 @@
   <span class="sample-button">Button</span>
 </span>
 {% endmacro %}
+
+{# A mood emoji (from MOODS in app.py) with the mood word as its label for screen readers.
+   "big" on the Check in buttons, "small" in lists. Always show the mood word next to it too. #}
+{% macro mood_emoji(mood, size="small") -%}
+<span class="emoji emoji-{{ size }}" role="img" aria-label="{{ mood }}">{{ MOODS.get(mood, "") }}</span>
+{%- endmacro %}
 
 {# Initials in a small circle: "Dr. Patel" shows "DP", a single name like "Mom" shows "M" #}
 {% macro initials(name) %}

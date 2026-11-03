@@ -25,8 +25,10 @@ app.register_blueprint(google_health.google)
 # The themes a user can pick from
 THEMES = ["calm", "bright", "dark"]
 
-# The five feelings on the Check in page
-FEELINGS = ["Calm", "Okay", "Tired", "Worried", "Overwhelmed"]
+# The five moods on the Check in page, each with its emoji (the one place for the whole app;
+# templates use it through the mood_emoji macro)
+MOODS = {"Calm": "😌", "Okay": "🙂", "Tired": "😴", "Worried": "😟", "Overwhelmed": "😣"}
+app.jinja_env.globals["MOODS"] = MOODS
 
 # The id of a person who signed up at /start (kept in the session only, never in a file)
 NEW_ID = "new"
@@ -406,7 +408,7 @@ def checkin():
 
     # Save: add the check in to the session (demo only, keeps the last 20; it counts toward the
     # weekly Check in goal), work out the response, then show it on this page
-    if request.method == "POST" and request.form.get("feeling") in FEELINGS:
+    if request.method == "POST" and request.form.get("feeling") in MOODS:
         feeling, note = request.form["feeling"], request.form.get("note", "").strip()[:200]
         checkins.append({"person_id": pid, "date": data.get_today(),
                          "time": datetime.now().strftime("%H:%M"), "feeling": feeling, "note": note})
@@ -420,7 +422,7 @@ def checkin():
     response = session.get("checkin_response", {}).pop(pid, None)
     session.modified = True
     mine = [c for c in checkins if c["person_id"] == pid]
-    return render_template("checkin.html", title="Check in", feelings=FEELINGS, response=response, checkins=mine)
+    return render_template("checkin.html", title="Check in", feelings=MOODS, response=response, checkins=mine)
 
 
 # Patterns: a 21 day line chart for each signal from a paired device, with the usual range

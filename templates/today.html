@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, signal_value, week_card, initials %}
+{% from "macros.html" import icon, signal_value, week_card, initials, mood_emoji %}
 
 {% block main_class %}dashboard{% endblock %}
 
@@ -135,7 +135,7 @@
       <section class="card">
         <h2>Last check in</h2>
         {% if last_checkin %}
-          <p>{{ icon("face-" ~ last_checkin.feeling | lower) }} <strong>{{ last_checkin.feeling }}</strong> · {{ last_checkin.time }}</p>
+          <p>{{ mood_emoji(last_checkin.feeling) }} <strong>{{ last_checkin.feeling }}</strong> · {{ last_checkin.time }}</p>
           {% if last_checkin.note %}<p>{{ last_checkin.note }}</p>{% endif %}
         {% else %}
           <p>No check in yet today.</p>

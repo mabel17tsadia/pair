@@ -819,14 +819,27 @@ section[tabindex="-1"]:focus {
   cursor: pointer;
 }
 
-.choice-box .icon {
-  width: 40px;
-  height: 40px;
+/* Mood emoji: shown in colour on every device, large on the buttons and smaller in lists */
+.emoji {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  line-height: 1;
+}
+
+.emoji-big {
+  font-size: 36px;
+}
+
+.emoji-small {
+  font-size: 20px;
+  vertical-align: middle;
 }
 
 /* The picked choice: thicker border, soft fill and bold word (not color alone) */
+/* The picked choice: a thick primary border and a soft primary background (padding shrinks by the
+   extra border width, so nothing moves) */
 .choice input:checked + .choice-box {
-  border: 3px solid var(--primary);
+  padding: calc(0.75rem - 2px) calc(0.25rem - 2px);
+  border: 4px solid var(--primary);
   background: var(--primary-soft);
   font-weight: 700;
 }
@@ -889,10 +902,6 @@ input[type="text"], input[type="time"], textarea, select {
 .checkin-list {
   padding: 0;
   list-style: none;
-}
-
-.checkin-list .icon {
-  vertical-align: middle;
 }
 
 /* Hides something visually but keeps it for screen readers and keyboards */

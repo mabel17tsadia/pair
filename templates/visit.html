@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import mood_emoji %}
 
 {# "Tired: 4 times, Headache: 2 times" from a list of (name, count) pairs #}
 {% macro counts_line(items) %}
@@ -31,7 +32,8 @@
   <!-- How I have been feeling: how often each mood and body feeling came up in check ins -->
   <section class="card doctor-section">
     <h2>How I have been feeling</h2>
-    <p><strong>Moods:</strong> {{ counts_line(counts.moods) if counts.moods else "No check ins in these 14 days." }}</p>
+    <p><strong>Moods:</strong>
+      {% for name, n in counts.moods %}{{ mood_emoji(name) }} {{ name }}: {{ n }} time{{ "s" if n != 1 }}{{ ", " if not loop.last }}{% else %}No check ins in these 14 days.{% endfor %}</p>
     {% if counts.body %}<p><strong>Body feelings:</strong> {{ counts_line(counts.body) }}</p>{% endif %}
   </section>
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon %}
+{% from "macros.html" import icon, mood_emoji %}
 
 {% block content %}
   <!-- Page title -->
@@ -22,7 +22,7 @@
          overwhelmed and signals changed, and a tiny label saying who wrote it -->
     <section class="card soft-card" role="status">
       <h2>Thank you for checking in</h2>
-      <p><strong>You said:</strong> {{ response.mood }}</p>
+      <p><strong>You said:</strong> {{ mood_emoji(response.mood) }} {{ response.mood }}</p>
       <p><strong>Your body and devices show:</strong></p>
       <ul>{% for f in response.facts %}<li>{{ f }}</li>{% endfor %}</ul>
       <p>{{ response.message }}</p>
@@ -34,14 +34,14 @@
       </div>
     </section>
   {% else %}
-    <!-- Check in form: five mood picture buttons, an optional note, Save and Skip -->
+    <!-- Check in form: five mood buttons (a large emoji above the word), an optional note, Save and Skip -->
     <form method="post" class="card">
       <fieldset class="choices">
         <legend>How are you feeling?</legend>
         {% for f in feelings %}
           <label class="choice">
             <input type="radio" name="feeling" value="{{ f }}" class="visually-hidden" required>
-            <span class="choice-box">{{ icon("face-" ~ f | lower) }}{{ f }}</span>
+            <span class="choice-box">{{ mood_emoji(f, "big") }}{{ f }}</span>
           </label>
         {% endfor %}
       </fieldset>
@@ -62,7 +62,7 @@
     <ul class="checkin-list">
       {% for c in checkins | reverse %}
         <li class="card">
-          {{ icon("face-" ~ c.feeling | lower) }} <strong>{{ c.feeling }}</strong> · {{ c.time }}
+          {{ mood_emoji(c.feeling) }} <strong>{{ c.feeling }}</strong> · {{ c.time }}
           {% if c.note %}<p>{{ c.note }}</p>{% endif %}
         </li>
       {% endfor %}
