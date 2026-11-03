@@ -26,9 +26,6 @@ THEMES = ["calm", "bright", "dark"]
 # The five feelings on the Check in page
 FEELINGS = ["Calm", "Okay", "Tired", "Worried", "Overwhelmed"]
 
-# Optional body feelings on the Check in page (the same words as checkins.csv)
-BODY_FEELINGS = ["Tired", "Headache", "Stomach"]
-
 # The id of a person who signed up at /start (kept in the session only, never in a file)
 NEW_ID = "new"
 
@@ -397,8 +394,9 @@ def task_steps(index):
                            task=tasks[index], person=person)
 
 
-# Check in screen: pick a feeling, any body feelings and an optional note, then Save (or Skip).
-# After saving, a short response combines the feeling with this week's patterns.
+# Check in screen: pick a mood and add an optional note, then Save (or Skip). After saving, a
+# response card compares the mood with what patterns and body signals show (or, if the note has
+# emergency words, shows 911 and 988 instead).
 @app.route("/checkin", methods=["GET", "POST"])
 def checkin():
     person = current_person()
@@ -410,23 +408,20 @@ def checkin():
     # Save: add the check in to the session (demo only, keeps the last 20; it counts toward the
     # weekly Check in goal), work out the response, then show it on this page
     if request.method == "POST" and request.form.get("feeling") in FEELINGS:
-        feeling = request.form["feeling"]
-        body = [b for b in request.form.getlist("body") if b in BODY_FEELINGS]
+        feeling, note = request.form["feeling"], request.form.get("note", "").strip()[:200]
         checkins.append({"person_id": pid, "date": data.get_today(),
-                         "time": datetime.now().strftime("%H:%M"), "feeling": feeling, "body": body,
-                         "note": request.form.get("note", "").strip()[:200]})
+                         "time": datetime.now().strftime("%H:%M"), "feeling": feeling, "note": note})
         session["checkins"] = checkins[-20:]
-        responses = session.get("checkin_response", {})
-        responses[pid] = respond_to_checkin(person, feeling, body, get_patterns(pid, devices_for(person)))
-        session["checkin_response"] = responses
+        devices = devices_for(person)
+        response = respond_to_checkin(person, feeling, get_patterns(pid, devices), get_body_signals(pid, devices), note)
+        save("checkin_response", pid, {**response, "mood": feeling})
         return redirect(url_for("checkin"))
 
     # Show the response once (if there is one), otherwise the form, plus earlier check ins
     response = session.get("checkin_response", {}).pop(pid, None)
     session.modified = True
     mine = [c for c in checkins if c["person_id"] == pid]
-    return render_template("checkin.html", title="Check in", feelings=FEELINGS, body_feelings=BODY_FEELINGS,
-                           response=response, checkins=mine)
+    return render_template("checkin.html", title="Check in", feelings=FEELINGS, response=response, checkins=mine)
 
 
 # Patterns: a 21 day line chart for each signal from a paired device, with the usual range

@@ -5,11 +5,26 @@
   <!-- Page title -->
   <h1>Check in</h1>
 
-  {% if response %}
-    <!-- Response after saving: 2 short sentences, one suggestion, "Share with my circle" when the
-         person feels low and their patterns changed, and a tiny label saying who wrote it -->
+  {% if response and response.urgent %}
+    <!-- Emergency words in the note: no normal response, only how to get help now -->
+    <section class="card emergency" role="alert">
+      <h2>This could be urgent</h2>
+      <p><strong>This could be urgent. Call 911, or call or text 988.</strong></p>
+      <div class="actions">
+        <a class="btn-primary" href="tel:911">Call 911</a>
+        <a class="btn-secondary" href="tel:988">Call 988</a>
+        <a class="btn-secondary" href="sms:988">Text 988</a>
+      </div>
+    </section>
+  {% elif response %}
+    <!-- Response after saving: what the person said, what their body and devices show (up to three
+         facts), 2 short sentences, one suggestion, "Share with my circle" when they feel worried or
+         overwhelmed and signals changed, and a tiny label saying who wrote it -->
     <section class="card soft-card" role="status">
       <h2>Thank you for checking in</h2>
+      <p><strong>You said:</strong> {{ response.mood }}</p>
+      <p><strong>Your body and devices show:</strong></p>
+      <ul>{% for f in response.facts %}<li>{{ f }}</li>{% endfor %}</ul>
       <p>{{ response.message }}</p>
       <p class="icon-line">{{ icon("heart") }} {{ response.suggestion }}</p>
       <p class="note">{{ "Written with AI" if response.source == "ai" else "Written by rules" }}</p>
@@ -19,7 +34,7 @@
       </div>
     </section>
   {% else %}
-    <!-- Check in form: five feeling picture buttons, optional body feelings, an optional note, Save and Skip -->
+    <!-- Check in form: five mood picture buttons, an optional note, Save and Skip -->
     <form method="post" class="card">
       <fieldset class="choices">
         <legend>How are you feeling?</legend>
@@ -27,16 +42,6 @@
           <label class="choice">
             <input type="radio" name="feeling" value="{{ f }}" class="visually-hidden" required>
             <span class="choice-box">{{ icon("face-" ~ f | lower) }}{{ f }}</span>
-          </label>
-        {% endfor %}
-      </fieldset>
-
-      <fieldset class="choices">
-        <legend>How does your body feel? <span class="note">(optional, pick any)</span></legend>
-        {% for b in body_feelings %}
-          <label class="choice">
-            <input type="checkbox" name="body" value="{{ b }}" class="visually-hidden">
-            <span class="choice-box">{{ b }}</span>
           </label>
         {% endfor %}
       </fieldset>
@@ -58,7 +63,6 @@
       {% for c in checkins | reverse %}
         <li class="card">
           {{ icon("face-" ~ c.feeling | lower) }} <strong>{{ c.feeling }}</strong> · {{ c.time }}
-          {% if c.body %}<span class="note">· Body: {{ c.body | join(", ") | lower }}</span>{% endif %}
           {% if c.note %}<p>{{ c.note }}</p>{% endif %}
         </li>
       {% endfor %}

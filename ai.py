@@ -134,19 +134,20 @@ def explain_for_doctor(person, patterns, checkins):
 
 # Instructions for Claude when answering a check in
 CHECKIN_SYSTEM = """You write for Pair, an app that responds kindly right after a person checks in.
-You get how they say they feel (and any body feelings) and how their daily patterns changed this week.
-Write to the person as "you", in plain, short, warm sentences. Never use medical words, never
-diagnose, never guess a cause, and never say that a pattern explains how they feel (mention them
-side by side instead). Do not use exclamation marks.
-message: exactly 2 short sentences that connect how they feel with their patterns.
-- Feeling good or okay and patterns steady: encourage them.
-- Feeling good or okay but patterns changed: a gentle heads up about one change, linked to a drain if it fits.
-- Feeling low or overwhelmed and patterns steady: validate how they feel.
-- Feeling low or overwhelmed and patterns changed: validate, and say it is okay to go gently.
-- Status "Still learning your usual": do not talk about patterns; thank them, and say each check in
-  helps Pair learn what is usual for them.
-suggestion: one small suggestion under 15 words. When they feel low or overwhelmed, use one item
-from their calms list."""
+You get their first name, what helps them feel calm, the mood they chose, and short facts that their
+patterns and paired devices show. Write to the person as "you", in plain, short, warm sentences.
+Never diagnose, never guess a cause, never say a fact explains how they feel, and never use the
+words good or bad about a reading. Never suggest food, drinks, medicine or doses. For glucose, only
+say "follow your care plan" or "check with your care team". Do not use exclamation marks.
+message: exactly 2 short sentences that put the mood and the facts side by side.
+- Calm or okay, facts steady: encourage them.
+- Calm or okay, but facts show changes or a low glucose reading: a gentle heads up about one fact.
+- Tired, facts steady: gentle motivation, using one item from their calms list.
+- Worried or overwhelmed, facts steady: validate how they feel.
+- Worried or overwhelmed, facts show changes: validate, and say it is okay to go gently.
+- Facts say Pair is still learning: thank them; each check in helps Pair learn their usual.
+suggestion: one small step under 15 words, using one item from their calms list when it fits.
+If a fact mentions a low glucose reading, the suggestion is "Follow your care plan before anything active." """
 
 # The exact JSON shape we want back: two sentences and one suggestion
 CHECKIN_SCHEMA = {
@@ -156,68 +157,104 @@ CHECKIN_SCHEMA = {
     "additionalProperties": False,
 }
 
-# A heads up for the first change, in words with no numbers (used by the rule based backup)
-CHANGE_HEADS_UP = {
-    "sleep_min": "Your sleep has been shorter this week",
-    "steps": "You have been moving less this week",
-    "late_screen_min": "You have been on your phone later at night this week",
-    "unlocks": "You have been picking up your phone more often this week",
-    "time_out_min": "You have been spending more time at home this week",
-}
-
-# Feelings on the Check in page that count as "good or okay"; the others count as "low or overwhelmed"
+# Moods on the Check in page that count as "calm or okay"
 OKAY_FEELINGS = ["Calm", "Okay"]
+
+# Moods that get "Share with my circle" when signals changed
+WORRIED_FEELINGS = ["Worried", "Overwhelmed"]
 
 # Week statuses that count as "patterns changed" ("Steady week" and "Still learning" count as steady)
 CHANGED_STATUSES = ["A few changes", "Several changes"]
 
+# Words in the note that may mean an emergency (checked by rules, before any AI call).
+# "’" is the curly apostrophe phones often type in "can't".
+URGENT_WORDS = ["chest pain", "can't breathe", "cant breathe", "can\u2019t breathe", "cannot breathe",
+                "hurt myself", "suicide", "kill myself"]
 
-# Rule based backup: the four cases (feels okay or low, patterns steady or changed)
-def checkin_backup(person, mood, patterns):
-    calm = person["calms"][0] if person["calms"] else "a short, quiet break"
-    feels_okay = mood in OKAY_FEELINGS
-    changed = patterns["status"] in CHANGED_STATUSES
+# Words an AI answer must never contain (food, medicine or doses); if one appears, the rules answer is used
+BLOCKED_WORDS = ["eat", "food", "snack", "juice", "sugar", "carb", "carbs", "insulin", "medicine", "medication",
+                 "dose", "doses", "pill", "pills", "tablet"]
+
+# The suggestion whenever the glucose monitor shows a low reading
+CARE_PLAN = "Follow your care plan before anything active."
+
+
+# True if the optional note contains words that may mean an emergency
+def is_urgent(note):
+    note = note.lower()
+    return any(word in note for word in URGENT_WORDS)
+
+
+# Up to three short facts from body signals and patterns: changed body signals first (so a low
+# glucose reading is never left out), then pattern changes, then anything steady
+def checkin_facts(patterns, body):
+    changed = [f for v in body if v["changed"] for f in v["facts"]]
+    steady = [f for v in body if not v["changed"] for f in v["facts"]]
+    pattern_facts = [c["words"] for c in patterns["changes"]]
     if patterns["status"] == "Still learning your usual":
+        steady.append("Pair is still learning your usual")
+    elif not pattern_facts:
+        steady.append("Your daily patterns look like your usual")
+    return (changed + pattern_facts + steady)[:3]
+
+
+# Rule based backup for the cases (mood calm or okay, tired, worried or overwhelmed; signals steady
+# or changed; a low glucose reading always gets the care plan suggestion)
+def checkin_backup(person, mood, facts, changed, low_glucose, learning):
+    calm = person["calms"][0] if person["calms"] else "a short, quiet break"
+    if learning and not changed:
         message = "Thank you for checking in. Each check in helps Pair learn what is usual for you."
-        suggestion = "A short walk could feel good today." if feels_okay else f"Try: {calm}"
-    elif feels_okay and not changed:
-        message = "Your patterns look like your usual. It is good to hear you feel " + mood.lower() + "."
+        suggestion = "A short walk could feel good today." if mood in OKAY_FEELINGS else f"Try: {calm}"
+    elif mood in OKAY_FEELINGS and not changed:
+        message = f"Glad you feel {mood.lower()}. Your patterns look like your usual."
         suggestion = "A short walk could feel good today."
-    elif feels_okay:
-        message = f"Glad you feel {mood.lower()}. {CHANGE_HEADS_UP[patterns['changes'][0]['signal']]}."
+    elif mood in OKAY_FEELINGS:
+        heads_up = "Your glucose monitor shows a low reading" if low_glucose else "Pair noticed: " + facts[0][0].lower() + facts[0][1:]
+        message = f"Glad you feel {mood.lower()}. {heads_up}."
         suggestion = "If today includes somewhere busy, give yourself extra breaks."
+    elif mood == "Tired" and not changed:
+        message = "Thank you for telling Pair you feel tired. Your sleep and movement look like your usual."
+        suggestion = f"Something from your calms list, like {calm.lower()}, might lift your energy."
     elif not changed:
         message = "Thank you for telling Pair how you feel. It is okay to have days like this."
         suggestion = f"Try: {calm}"
     else:
-        message = "Thank you for telling Pair how you feel. Your patterns have changed this week too, so go gently today."
+        message = "Thank you for telling Pair how you feel. Some of your signals have changed too, so go gently today."
         suggestion = f"One gentle step: {calm}"
-    return {"message": message, "suggestion": suggestion, "source": "rules"}
+    return {"message": message, "suggestion": CARE_PLAN if low_glucose else suggestion, "source": "rules"}
 
 
-# Respond right after a check in: 2 short sentences and one suggestion that combine how the person
-# feels with this week's patterns, plus whether to offer "Share with my circle" (feeling low and
-# patterns changed). Sends only the first name, drains, calms, the feeling, body feelings, the
-# status and the change sentences (never the check in note, last names or device names).
-# A real product could also use live signals here, such as heart rate or glucose from a paired device.
-def respond_to_checkin(person, mood, body, patterns):
-    offer_share = mood not in OKAY_FEELINGS and patterns["status"] in CHANGED_STATUSES
+# Respond right after a check in. First a rule based emergency check of the note (no AI call if it
+# matches). Otherwise: up to three facts from patterns and body signals, then 2 sentences and one
+# suggestion (AI, or the rules backup), and whether to offer "Share with my circle" (worried or
+# overwhelmed, and signals changed). Sends only the first name, calms, the mood and the facts:
+# never the note, last names or device names. Live signals (heart rate, glucose) come from paired devices.
+def respond_to_checkin(person, mood, patterns, body, note=""):
+    if is_urgent(note):
+        return {"urgent": True}
+    facts = checkin_facts(patterns, body)
+    changed = patterns["status"] in CHANGED_STATUSES or any(v["changed"] for v in body)
+    low_glucose = any(v["lows"] for v in body)
+    learning = patterns["status"] == "Still learning your usual"
+    extra = {"facts": facts, "share": mood in WORRIED_FEELINGS and changed}
+    backup = lambda: {**checkin_backup(person, mood, facts, changed, low_glucose, learning), **extra}
     if not os.getenv("ANTHROPIC_API_KEY"):
         print("No API key found, using rule based check in response")
-        return {**checkin_backup(person, mood, patterns), "share": offer_share}
-    details = json.dumps({"first_name": person["first_name"], "drains": person["drains"],
-                          "calms": person["calms"], "feeling": mood, "body": body,
-                          "status": patterns["status"],
-                          "changes": [c["words"] for c in patterns["changes"]]})
+        return backup()
+    details = json.dumps({"first_name": person["first_name"], "calms": person["calms"], "mood": mood, "facts": facts})
     try:
         answer = json.loads(ask_claude(CHECKIN_SYSTEM, details, {"type": "json_schema", "schema": CHECKIN_SCHEMA}))
+        text = (answer["message"] + " " + answer["suggestion"]).lower()
         if not answer["message"].strip() or not answer["suggestion"].strip():
             raise ValueError("Empty answer")
-        return {"message": answer["message"], "suggestion": answer["suggestion"], "source": "ai", "share": offer_share}
+        if any(word in text.replace(",", " ").replace(".", " ").split() for word in BLOCKED_WORDS):
+            raise ValueError("Answer mentioned food, medicine or doses")
+        suggestion = CARE_PLAN if low_glucose else answer["suggestion"]
+        return {"message": answer["message"], "suggestion": suggestion, "source": "ai", **extra}
     # Any error at all uses the backup instead of crashing
     except Exception as error:
         print("AI check in response failed, using rule based response:", type(error).__name__)
-        return {**checkin_backup(person, mood, patterns), "share": offer_share}
+        return backup()
 
 
 # Instructions for Claude when suggesting questions for a doctor visit
