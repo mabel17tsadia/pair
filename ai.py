@@ -213,3 +213,44 @@ def respond_to_checkin(person, mood, body, patterns):
     except Exception as error:
         print("AI check in response failed, using rule based response:", type(error).__name__)
         return {**checkin_backup(person, mood, patterns), "share": offer_share}
+
+
+# Instructions for Claude when suggesting questions for a doctor visit
+QUESTIONS_SYSTEM = """You help a person prepare for a health visit. You get the type of visit and how
+their daily patterns changed. Write exactly 3 short questions (under 15 words each) the person could
+ask, in the first person ("I", "my"). Plain words. Never name a condition, never suggest a diagnosis
+or a treatment; only ask."""
+
+# The exact JSON shape we want back: a list of questions
+QUESTIONS_SCHEMA = {
+    "type": "object",
+    "properties": {"questions": {"type": "array", "items": {"type": "string"}}},
+    "required": ["questions"],
+    "additionalProperties": False,
+}
+
+# Rule based backup: 3 general questions that fit any visit
+GENERAL_QUESTIONS = [
+    "Is there anything in these changes you would like me to keep an eye on?",
+    "What would be a good next step for me?",
+    "When should I come back or get in touch?",
+]
+
+
+# Suggest 3 short questions for a visit; use the general questions if there is no API key or
+# anything goes wrong. Sends only the visit type and the change sentences (no name or other data).
+def suggest_questions(visit_type, patterns):
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        print("No API key found, using general questions")
+        return {"questions": GENERAL_QUESTIONS, "source": "rules"}
+    details = json.dumps({"visit_type": visit_type, "changes": [c["words"] for c in patterns["changes"]]})
+    try:
+        answer = json.loads(ask_claude(QUESTIONS_SYSTEM, details, {"type": "json_schema", "schema": QUESTIONS_SCHEMA}))
+        questions = [q.strip() for q in answer["questions"] if q.strip()][:3]
+        if len(questions) < 3:
+            raise ValueError("Too few questions")
+        return {"questions": questions, "source": "ai"}
+    # Any error at all uses the general questions instead of crashing
+    except Exception as error:
+        print("AI question suggestions failed, using general questions:", type(error).__name__)
+        return {"questions": GENERAL_QUESTIONS, "source": "rules"}

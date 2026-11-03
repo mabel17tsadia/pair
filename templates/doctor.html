@@ -9,7 +9,7 @@
   <!-- Link back to Me (hidden when printing), page title and the 14 days it covers -->
   <a class="text-link no-print" href="{{ url_for('me') }}">‹ Me</a>
   <h1>Doctor visit summary</h1>
-  <p class="note">{{ person.first_name }} · {{ period }}</p>
+  <p class="note">{{ person.first_name }} · {{ period }}{% if visit_type %} · {{ visit_type }}{% endif %}</p>
   <p class="no-print">Check this page first. Nothing is shared until you print it or send it.</p>
 
   <!-- Short paragraph for the doctor (AI or rules, with a tiny label saying which) -->
@@ -43,13 +43,67 @@
       <textarea id="questions" name="questions" rows="4" maxlength="1000">{{ questions }}</textarea>
       <button type="submit" class="btn-secondary">Save my questions</button>
     </form>
-    <p class="print-only">{{ questions or "None written yet." }}</p>
+    <p class="print-only keep-lines">{{ questions or "None written yet." }}</p>
+
+    <!-- Suggest questions: pick the type of visit, get 3 short questions, add any of them above -->
+    <form method="post" action="{{ url_for('doctor_suggest') }}" class="no-print suggest-form">
+      <label for="visit-type">Type of visit</label>
+      <select id="visit-type" name="visit_type">
+        {% for v in visit_types %}<option {% if v == visit_type %}selected{% endif %}>{{ v }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn-secondary">Suggest questions</button>
+    </form>
+    {% if suggestions %}
+      <ul class="goal-list no-print">
+        {% for q in suggestions.questions %}
+          <li>
+            <span>{{ q }}</span>
+            <form method="post" action="{{ url_for('doctor_add_question') }}">
+              <input type="hidden" name="question" value="{{ q }}">
+              <button type="submit" class="btn-secondary">Add</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+      <p class="note no-print">{{ "Written with AI" if suggestions.source == "ai" else "Written by rules" }}</p>
+    {% endif %}
   </section>
 
-  <!-- Where this information came from: paired devices and the person's own check ins -->
+  <!-- Entered by me: values the person typed from another app, kept apart from paired device data -->
+  <section class="card doctor-section">
+    <h2>Entered by me, not from a paired device</h2>
+    {% if entries %}
+      <ul class="goal-list">
+        {% for e in entries %}
+          <li>
+            <span><strong>{{ e.label }}:</strong> {{ e.value }}</span>
+            <form method="post" action="{{ url_for('doctor_entry') }}" class="no-print">
+              <input type="hidden" name="remove" value="{{ loop.index0 }}">
+              <button type="submit" class="btn-secondary">Remove</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Nothing entered.</p>
+    {% endif %}
+
+    <!-- Add something from another app: a label and a value -->
+    <form method="post" action="{{ url_for('doctor_entry') }}" class="no-print">
+      <h3>Add something from another app</h3>
+      <label for="entry-label">What it is</label>
+      <input type="text" id="entry-label" name="label" maxlength="40" placeholder="For example: Blood sugar average" required>
+      <label for="entry-value">Value</label>
+      <input type="text" id="entry-value" name="value" maxlength="40" placeholder="For example: 110" required>
+      <button type="submit" class="btn-secondary">Add</button>
+    </form>
+  </section>
+
+  <!-- Where this information came from: paired devices and the person's own check ins (read only) -->
   <section class="card doctor-section">
     <h2>Where this information came from</h2>
     <p>{{ sources | words }}.</p>
+    <p class="note no-print">Data from paired devices cannot be edited.</p>
   </section>
 
   <!-- Print or save as PDF (browser print), and send to Health summary members (all unticked) -->

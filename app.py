@@ -6,7 +6,7 @@ import data
 from patterns import get_patterns, get_trends, feeling_counts, RECENT_DAYS
 from goals import get_goals, days_left, week_name
 from pace import format_minutes
-from ai import explain_week, explain_for_doctor, respond_to_checkin
+from ai import explain_week, explain_for_doctor, respond_to_checkin, suggest_questions
 import google_health
 
 # Load settings like SECRET_KEY from the .env file
@@ -27,6 +27,9 @@ FEELINGS = ["Calm", "Okay", "Tired", "Worried", "Overwhelmed"]
 
 # Optional body feelings on the Check in page (the same words as checkins.csv)
 BODY_FEELINGS = ["Tired", "Headache", "Stomach"]
+
+# Types of visit on the doctor visit page
+VISIT_TYPES = ["General check up", "Specialist", "Therapist", "Other"]
 
 # How the summit is celebrated on My climb (Calm is the default)
 CELEBRATIONS = {"big": "Big", "calm": "Calm", "off": "Off"}
@@ -153,6 +156,18 @@ def set_paired(person, name, paired):
     session.get("week", {}).pop(person["id"], None)
     session.get("doctor", {}).pop(person["id"], None)
     session.modified = True
+
+
+# One person's value saved in the session under "key" (or "default" if nothing is saved yet)
+def saved(key, pid, default):
+    return session.get(key, {}).get(pid, default)
+
+
+# Save one person's value in the session under "key"
+def save(key, pid, value):
+    values = session.get(key, {})
+    values[pid] = value
+    session[key] = values
 
 
 # Run make() at most once per person per day and keep its answer in the session under "key",
@@ -456,9 +471,7 @@ def doctor():
         return redirect(url_for("choose"))
     pid = person["id"]
     if request.method == "POST":
-        questions = session.get("doctor_questions", {})
-        questions[pid] = request.form.get("questions", "").strip()[:1000]
-        session["doctor_questions"] = questions
+        save("doctor_questions", pid, request.form.get("questions", "").strip()[:1000])
         flash("Your questions are saved.")
         return redirect(url_for("doctor"))
 
@@ -472,9 +485,60 @@ def doctor():
                            period=f"{start.day} {start:%B} to {end.day} {end:%B %Y}",
                            patterns=patterns, counts=feeling_counts(checkins),
                            summary=daily_cache("doctor", person, lambda: explain_for_doctor(person, patterns, checkins)),
-                           questions=session.get("doctor_questions", {}).get(pid, ""),
+                           questions=saved("doctor_questions", pid, ""),
+                           visit_types=VISIT_TYPES, visit_type=saved("doctor_visit", pid, ""),
+                           suggestions=saved("doctor_suggestions", pid, None),
+                           entries=saved("doctor_entries", pid, []),
                            sources=[d["device"] for d in devices if d["paired"]] + ["My own check ins"],
                            contacts=[m["name"] for m in circle_for(person) if m["access"] == "health"])
+
+
+# Suggest questions: save the type of visit and ask for 3 short questions (AI or general ones)
+@app.route("/doctor/suggest", methods=["POST"])
+def doctor_suggest():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    visit_type = request.form.get("visit_type")
+    if visit_type in VISIT_TYPES:
+        save("doctor_visit", person["id"], visit_type)
+        save("doctor_suggestions", person["id"], suggest_questions(visit_type, get_patterns(person["id"], devices_for(person))))
+    return redirect(url_for("doctor"))
+
+
+# Add one suggested question to "Questions I want to ask" (each on its own line)
+@app.route("/doctor/add-question", methods=["POST"])
+def doctor_add_question():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    question = request.form.get("question", "").strip()[:200]
+    current = saved("doctor_questions", person["id"], "")
+    if question and question not in current:
+        save("doctor_questions", person["id"], (current + "\n" + question).strip()[:1000])
+        flash("Question added.")
+    return redirect(url_for("doctor"))
+
+
+# Add something from another app (a label and a value), or remove one; at most 10 entries.
+# These are kept apart from paired device data, which can never be edited.
+@app.route("/doctor/entry", methods=["POST"])
+def doctor_entry():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    entries = saved("doctor_entries", person["id"], [])
+    label = request.form.get("label", "").strip()[:40]
+    value = request.form.get("value", "").strip()[:40]
+    remove = request.form.get("remove", "")
+    if remove.isdigit() and int(remove) < len(entries):
+        entries.pop(int(remove))
+    elif label and value and len(entries) < 10:
+        entries.append({"label": label, "value": value})
+    else:
+        flash("Please add both a label and a value.")
+    save("doctor_entries", person["id"], entries)
+    return redirect(url_for("doctor"))
 
 
 # Send to my health contact: only ticked Health summary members; a confirmation only,

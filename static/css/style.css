@@ -1131,6 +1131,16 @@ a:focus-visible, button:focus-visible {
   display: none;
 }
 
+/* Keep each typed question on its own line when printed */
+.keep-lines {
+  white-space: pre-line;
+}
+
+/* Type of visit and the Suggest questions button, with space above */
+.suggest-form {
+  margin-top: 1.5rem;
+}
+
 /* Printing: black on white, no navigation, buttons or messages, small enough for one page */
 @media print {
   @page { margin: 1.5cm; }
