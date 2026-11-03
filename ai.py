@@ -130,3 +130,86 @@ def explain_for_doctor(person, patterns, checkins):
     except Exception as error:
         print("AI doctor summary failed, using rule based summary:", type(error).__name__)
         return doctor_backup(person, patterns, counts)
+
+
+# Instructions for Claude when answering a check in
+CHECKIN_SYSTEM = """You write for Pair, an app that responds kindly right after a person checks in.
+You get how they say they feel (and any body feelings) and how their daily patterns changed this week.
+Write to the person as "you", in plain, short, warm sentences. Never use medical words, never
+diagnose, never guess a cause, and never say that a pattern explains how they feel (mention them
+side by side instead). Do not use exclamation marks.
+message: exactly 2 short sentences that connect how they feel with their patterns.
+- Feeling good or okay and patterns steady: encourage them.
+- Feeling good or okay but patterns changed: a gentle heads up about one change, linked to a drain if it fits.
+- Feeling low or overwhelmed and patterns steady: validate how they feel.
+- Feeling low or overwhelmed and patterns changed: validate, and say it is okay to go gently.
+suggestion: one small suggestion under 15 words. When they feel low or overwhelmed, use one item
+from their calms list."""
+
+# The exact JSON shape we want back: two sentences and one suggestion
+CHECKIN_SCHEMA = {
+    "type": "object",
+    "properties": {"message": {"type": "string"}, "suggestion": {"type": "string"}},
+    "required": ["message", "suggestion"],
+    "additionalProperties": False,
+}
+
+# A heads up for the first change, in words with no numbers (used by the rule based backup)
+CHANGE_HEADS_UP = {
+    "sleep_min": "Your sleep has been shorter this week",
+    "steps": "You have been moving less this week",
+    "late_screen_min": "You have been on your phone later at night this week",
+    "unlocks": "You have been picking up your phone more often this week",
+    "time_out_min": "You have been spending more time at home this week",
+}
+
+# Feelings on the Check in page that count as "good or okay"; the others count as "low or overwhelmed"
+OKAY_FEELINGS = ["Calm", "Okay"]
+
+# Week statuses that count as "patterns changed" ("Steady week" and "Still learning" count as steady)
+CHANGED_STATUSES = ["A few changes", "Several changes"]
+
+
+# Rule based backup: the four cases (feels okay or low, patterns steady or changed)
+def checkin_backup(person, mood, patterns):
+    calm = person["calms"][0] if person["calms"] else "a short, quiet break"
+    feels_okay = mood in OKAY_FEELINGS
+    changed = patterns["status"] in CHANGED_STATUSES
+    if feels_okay and not changed:
+        message = "Your patterns look like your usual. It is good to hear you feel " + mood.lower() + "."
+        suggestion = "A short walk could feel good today."
+    elif feels_okay:
+        message = f"Glad you feel {mood.lower()}. {CHANGE_HEADS_UP[patterns['changes'][0]['signal']]}."
+        suggestion = "If today includes somewhere busy, give yourself extra breaks."
+    elif not changed:
+        message = "Thank you for telling Pair how you feel. It is okay to have days like this."
+        suggestion = f"Try: {calm}"
+    else:
+        message = "Thank you for telling Pair how you feel. Your patterns have changed this week too, so go gently today."
+        suggestion = f"One gentle step: {calm}"
+    return {"message": message, "suggestion": suggestion, "source": "rules"}
+
+
+# Respond right after a check in: 2 short sentences and one suggestion that combine how the person
+# feels with this week's patterns, plus whether to offer "Share with my circle" (feeling low and
+# patterns changed). Sends only the first name, drains, calms, the feeling, body feelings, the
+# status and the change sentences (never the check in note, last names or device names).
+# A real product could also use live signals here, such as heart rate or glucose from a paired device.
+def respond_to_checkin(person, mood, body, patterns):
+    offer_share = mood not in OKAY_FEELINGS and patterns["status"] in CHANGED_STATUSES
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        print("No API key found, using rule based check in response")
+        return {**checkin_backup(person, mood, patterns), "share": offer_share}
+    details = json.dumps({"first_name": person["first_name"], "drains": person["drains"],
+                          "calms": person["calms"], "feeling": mood, "body": body,
+                          "status": patterns["status"],
+                          "changes": [c["words"] for c in patterns["changes"]]})
+    try:
+        answer = json.loads(ask_claude(CHECKIN_SYSTEM, details, {"type": "json_schema", "schema": CHECKIN_SCHEMA}))
+        if not answer["message"].strip() or not answer["suggestion"].strip():
+            raise ValueError("Empty answer")
+        return {"message": answer["message"], "suggestion": answer["suggestion"], "source": "ai", "share": offer_share}
+    # Any error at all uses the backup instead of crashing
+    except Exception as error:
+        print("AI check in response failed, using rule based response:", type(error).__name__)
+        return {**checkin_backup(person, mood, patterns), "share": offer_share}

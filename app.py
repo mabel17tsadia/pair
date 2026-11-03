@@ -6,7 +6,7 @@ import data
 from patterns import get_patterns, get_trends, feeling_counts, RECENT_DAYS
 from goals import get_goals, days_left, week_name
 from pace import format_minutes
-from ai import explain_week, explain_for_doctor
+from ai import explain_week, explain_for_doctor, respond_to_checkin
 import google_health
 
 # Load settings like SECRET_KEY from the .env file
@@ -24,6 +24,9 @@ THEMES = ["calm", "bright", "dark"]
 
 # The five feelings on the Check in page
 FEELINGS = ["Calm", "Okay", "Tired", "Worried", "Overwhelmed"]
+
+# Optional body feelings on the Check in page (the same words as checkins.csv)
+BODY_FEELINGS = ["Tired", "Headache", "Stomach"]
 
 # How the summit is celebrated on My climb (Calm is the default)
 CELEBRATIONS = {"big": "Big", "calm": "Calm", "off": "Off"}
@@ -319,27 +322,36 @@ def task_steps(index):
                            task=tasks[index], person=person)
 
 
-# Check in screen: pick a feeling, add an optional note, then Save (or Skip)
+# Check in screen: pick a feeling, any body feelings and an optional note, then Save (or Skip).
+# After saving, a short response combines the feeling with this week's patterns.
 @app.route("/checkin", methods=["GET", "POST"])
 def checkin():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
+    pid = person["id"]
     checkins = session.get("checkins", [])
 
-    # Save: add the check in to the session (demo only, keeps the last 20) and go to Today
+    # Save: add the check in to the session (demo only, keeps the last 20; it counts toward the
+    # weekly Check in goal), work out the response, then show it on this page
     if request.method == "POST" and request.form.get("feeling") in FEELINGS:
-        checkins.append({"person_id": person["id"],
-                         "time": datetime.now().strftime("%H:%M"),
-                         "feeling": request.form["feeling"],
+        feeling = request.form["feeling"]
+        body = [b for b in request.form.getlist("body") if b in BODY_FEELINGS]
+        checkins.append({"person_id": pid, "date": data.get_today(),
+                         "time": datetime.now().strftime("%H:%M"), "feeling": feeling, "body": body,
                          "note": request.form.get("note", "").strip()[:200]})
         session["checkins"] = checkins[-20:]
-        flash("Check in saved. Thank you.")
-        return redirect(url_for("today"))
+        responses = session.get("checkin_response", {})
+        responses[pid] = respond_to_checkin(person, feeling, body, get_patterns(pid, devices_for(person)))
+        session["checkin_response"] = responses
+        return redirect(url_for("checkin"))
 
-    # Show the form, plus this person's earlier check ins
-    mine = [c for c in checkins if c["person_id"] == person["id"]]
-    return render_template("checkin.html", title="Check in", feelings=FEELINGS, checkins=mine)
+    # Show the response once (if there is one), otherwise the form, plus earlier check ins
+    response = session.get("checkin_response", {}).pop(pid, None)
+    session.modified = True
+    mine = [c for c in checkins if c["person_id"] == pid]
+    return render_template("checkin.html", title="Check in", feelings=FEELINGS, body_feelings=BODY_FEELINGS,
+                           response=response, checkins=mine)
 
 
 # Patterns: a 21 day line chart for each signal from a paired device, with the usual range

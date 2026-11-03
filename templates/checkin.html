@@ -5,26 +5,51 @@
   <!-- Page title -->
   <h1>Check in</h1>
 
-  <!-- Check in form: five feeling picture buttons, an optional note, Save and Skip -->
-  <form method="post" class="card">
-    <fieldset class="choices">
-      <legend>How are you feeling?</legend>
-      {% for f in feelings %}
-        <label class="choice">
-          <input type="radio" name="feeling" value="{{ f }}" class="visually-hidden" required>
-          <span class="choice-box">{{ icon("face-" ~ f | lower) }}{{ f }}</span>
-        </label>
-      {% endfor %}
-    </fieldset>
+  {% if response %}
+    <!-- Response after saving: 2 short sentences, one suggestion, "Share with my circle" when the
+         person feels low and their patterns changed, and a tiny label saying who wrote it -->
+    <section class="card soft-card" role="status">
+      <h2>Thank you for checking in</h2>
+      <p>{{ response.message }}</p>
+      <p class="icon-line">{{ icon("heart") }} {{ response.suggestion }}</p>
+      <p class="note">{{ "Written with AI" if response.source == "ai" else "Written by rules" }}</p>
+      <div class="actions">
+        {% if response.share %}<a class="btn-primary" href="{{ url_for('share') }}">Share with my circle</a>{% endif %}
+        <a class="btn-secondary" href="{{ url_for('today') }}">Back to Today</a>
+      </div>
+    </section>
+  {% else %}
+    <!-- Check in form: five feeling picture buttons, optional body feelings, an optional note, Save and Skip -->
+    <form method="post" class="card">
+      <fieldset class="choices">
+        <legend>How are you feeling?</legend>
+        {% for f in feelings %}
+          <label class="choice">
+            <input type="radio" name="feeling" value="{{ f }}" class="visually-hidden" required>
+            <span class="choice-box">{{ icon("face-" ~ f | lower) }}{{ f }}</span>
+          </label>
+        {% endfor %}
+      </fieldset>
 
-    <label for="note">Anything else? <span class="note">(optional)</span></label>
-    <textarea id="note" name="note" rows="3" maxlength="200"></textarea>
+      <fieldset class="choices">
+        <legend>How does your body feel? <span class="note">(optional, pick any)</span></legend>
+        {% for b in body_feelings %}
+          <label class="choice">
+            <input type="checkbox" name="body" value="{{ b }}" class="visually-hidden">
+            <span class="choice-box">{{ b }}</span>
+          </label>
+        {% endfor %}
+      </fieldset>
 
-    <div class="actions">
-      <button type="submit" class="btn-primary">Save</button>
-      <a class="btn-secondary" href="{{ url_for('today') }}">Skip</a>
-    </div>
-  </form>
+      <label for="note">Anything else? <span class="note">(optional, just for you)</span></label>
+      <textarea id="note" name="note" rows="3" maxlength="200"></textarea>
+
+      <div class="actions">
+        <button type="submit" class="btn-primary">Save</button>
+        <a class="btn-secondary" href="{{ url_for('today') }}">Skip</a>
+      </div>
+    </form>
+  {% endif %}
 
   <!-- Earlier check ins for this person, newest first (only shown if there are any) -->
   {% if checkins %}
@@ -33,6 +58,7 @@
       {% for c in checkins | reverse %}
         <li class="card">
           {{ icon("face-" ~ c.feeling | lower) }} <strong>{{ c.feeling }}</strong> · {{ c.time }}
+          {% if c.body %}<span class="note">· Body: {{ c.body | join(", ") | lower }}</span>{% endif %}
           {% if c.note %}<p>{{ c.note }}</p>{% endif %}
         </li>
       {% endfor %}
