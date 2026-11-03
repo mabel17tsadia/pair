@@ -1,8 +1,9 @@
 import os
 from datetime import date, datetime
 from dotenv import load_dotenv
-from flask import Flask, render_template, session, redirect, request, url_for, abort, flash
+from flask import Flask, render_template, render_template_string, session, redirect, request, url_for, abort, flash
 import data
+from patterns import get_patterns
 from pace import get_pace, format_minutes
 from ai import suggest_task, write_alert
 import google_health
@@ -320,6 +321,19 @@ def settings():
         return redirect(url_for("settings"))
     return render_template("settings.html", title="Settings", sources=SOURCES,
                            google_connected=session.get("google_key") in google_health.TOKENS)
+
+
+# Temporary check (Stage P3): the patterns result for every demo person, in plain text
+@app.route("/debug")
+def debug_patterns():
+    lines = []
+    for p in data.get_people():
+        result = get_patterns(p["id"])
+        lines.append(f"{p['id']} {p['first_name']}: {result['status']} ({result['change_count']} changes)")
+        lines += [f"  - {c['words']} (usual {c['usual']}, recent {c['recent']})" for c in result["changes"]]
+        lines += [f"  + {n}" for n in result["positive_notes"] + result["routine_notes"]]
+        lines += [f"  check in {c['date']}: {c['mood']}" for c in result["recent_checkins"]]
+    return render_template_string("<pre>{{ text }}</pre>", text="\n".join(lines))
 
 
 # Temporary check (Stage P2): how many rows each data function returns for one person
