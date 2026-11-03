@@ -30,32 +30,15 @@
   {% if data_source == "google" %}<p class="note">{{ source_note }}</p>{% endif %}
 
   <div class="dashboard-grid">
-    <!-- Left column (all of Today on phones): pace, alert, inbox (phones only) and My plan -->
+    <!-- Left column (all of Today on phones): pace, alert and My plan -->
     <div>
       {% include "partials/pace_card.html" %}
       {% if alert %}{% include "partials/alert_card.html" %}{% endif %}
-      {% for item in inbox %}
-        <section class="card phone-only">
-          <h2>From your inbox</h2>
-          {% include "partials/inbox_item.html" %}
-        </section>
-      {% endfor %}
       {% include "partials/plan.html" %}
     </div>
 
     <!-- Right column (laptops only) -->
     <aside class="desktop-only">
-      <!-- New for you: inbox messages and calendar items -->
-      <section class="card">
-        <h2>New for you</h2>
-        {% for item in inbox %}{% include "partials/inbox_item.html" %}{% endfor %}
-        <ul class="new-list">
-          {% for t in tasks if t.source == "calendar" %}
-            <li><a href="{{ url_for('task_steps', index=tasks.index(t)) }}">{{ icon("calendar") }} {{ t.title }} · {{ t.time }}</a></li>
-          {% endfor %}
-        </ul>
-      </section>
-
       <!-- My body today: small heart rate line, last night's sleep and today's steps -->
       <section class="card chart-small">
         <h2>My body today</h2>
@@ -89,7 +72,4 @@
       </section>
     </aside>
   </div>
-
-  <!-- Round + button for adding a task (phones only) -->
-  <a class="add-button phone-only" href="{{ url_for('add_task') }}" aria-label="Add a task">{{ icon("plus") }}</a>
 {% endblock %}

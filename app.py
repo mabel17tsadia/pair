@@ -157,7 +157,6 @@ def today():
     return render_template("today.html", title="Today", person=person,
                            day=f"{d:%A} {d.day} {d:%B}", greeting=greeting(),
                            pace=pace, alert=alert, source_note=source_note,
-                           inbox=data.get_inbox(pid),
                            tasks=tasks,
                            chart=heart_chart(heart, person["usual_resting_hr"]),
                            last_day=daily[-1],
@@ -259,6 +258,14 @@ def checkin():
     # Show the form, plus this person's earlier check ins
     mine = [c for c in checkins if c["person_id"] == person["id"]]
     return render_template("checkin.html", title="Check in", feelings=FEELINGS, checkins=mine)
+
+
+# Patterns: placeholder for now; later shows when several of the person's patterns change together
+@app.route("/patterns")
+def patterns():
+    if not current_person():
+        return redirect(url_for("choose"))
+    return render_template("patterns.html", title="Patterns")
 
 
 # Trust circle: people this person can reach out to, each with a ready-made message to copy

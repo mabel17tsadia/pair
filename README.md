@@ -1,4 +1,4 @@
-# Pace
+# Pair
 
 A web app for the North American AI Challenge, built with Flask.
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title }} · Pace</title>
+  <title>{{ title }} · Pair</title>
 
   <!-- Fonts: Atkinson Hyperlegible for body text, Lexend for headings -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,7 @@
   <!-- Navigation: a top bar on wide screens, a bottom bar on phones -->
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href="{{ url_for('today') }}">Pace</a>
+      <a class="brand" href="{{ url_for('today') }}">Pair</a>
       <nav class="main-nav" aria-label="Main">
         <!-- Today link (sun icon) -->
         <a href="{{ url_for('today') }}" {% if request.endpoint == 'today' %}aria-current="page"{% endif %}>
@@ -27,6 +27,11 @@
         <a href="{{ url_for('checkin') }}" {% if request.endpoint == 'checkin' %}aria-current="page"{% endif %}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
           <span>Check in</span>
+        </a>
+        <!-- Patterns link (wavy line icon) -->
+        <a href="{{ url_for('patterns') }}" {% if request.endpoint == 'patterns' %}aria-current="page"{% endif %}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0"/></svg>
+          <span>Patterns</span>
         </a>
         <!-- Circle link (two people icon) -->
         <a href="{{ url_for('circle') }}" {% if request.endpoint == 'circle' %}aria-current="page"{% endif %}>
