@@ -36,6 +36,8 @@
             </form>
           {% elif g.rule == "checkins" and not g.done %}
             <a class="btn-secondary" href="{{ url_for('checkin') }}">Check in</a>
+          {% elif g.rule == "routine" and not g.done and g.goal in routine_index %}
+            <a class="btn-secondary" href="{{ url_for('routine_steps', index=routine_index[g.goal]) }}">Start</a>
           {% endif %}
         </li>
       {% endfor %}

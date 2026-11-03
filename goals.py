@@ -8,8 +8,8 @@ LATE_SCREEN_MAX = 30   # under 30 minutes of late screen time counts as "phone d
 
 
 # A person's weekly goals with progress, target and done (True or False).
-# "done_names" are manual goals the person tapped Done on (kept in the session by app.py);
-# "extra_checkins" are check ins saved today in the session, on top of checkins.csv.
+# "done_names" are manual goals the person tapped Done on or routines they finished, and
+# "extra_checkins" are check ins saved today on top of checkins.csv (both kept in the session by app.py).
 def get_goals(person_id, done_names=(), extra_checkins=0):
     today = date.fromisoformat(data.get_today())
     start = (today - timedelta(days=WEEK_DAYS - 1)).isoformat()
@@ -28,13 +28,12 @@ def get_goals(person_id, done_names=(), extra_checkins=0):
         "late_screen_under_30": sum(r["late_screen_min"] < LATE_SCREEN_MAX for r in week),
         "sleep_usual": sum(abs(r["sleep_min"] - usual_sleep) <= SLEEP_CLOSE_MIN for r in week),
         "checkins": sum(c["date"] >= start for c in data.get_checkins(person_id)) + extra_checkins,
-        "routine": 0,  # finished routines are counted from Stage R5
     }
 
     goals = []
     for g in data.get_goals(person_id):
         target = int(g["target"])
-        done_count = 1 if g["rule"] == "done" and g["goal"] in done_names else progress.get(g["rule"], 0)
+        done_count = 1 if g["rule"] in ["done", "routine"] and g["goal"] in done_names else progress.get(g["rule"], 0)
         goals.append({**g, "target": target, "progress": min(done_count, target), "done": done_count >= target})
     return goals
 

@@ -6,7 +6,7 @@ import data
 from patterns import get_patterns, get_trends, feeling_counts, RECENT_DAYS
 from goals import get_goals, days_left, week_name
 from pace import format_minutes
-from ai import explain_week, explain_for_doctor, respond_to_checkin, suggest_questions
+from ai import explain_week, explain_for_doctor, respond_to_checkin, suggest_questions, suggest_steps
 import google_health
 
 # Load settings like SECRET_KEY from the .env file
@@ -253,6 +253,11 @@ def circle_for(person):
     return [dict(m) for m in saved("circle", person["id"], None) or data.get_circle(person["id"])]
 
 
+# A person's routines. After the first edit they are kept whole in the session (the CSV never changes).
+def routines_for(person):
+    return [dict(r) for r in saved("routines", person["id"], None) or data.get_routines(person["id"])]
+
+
 # Celebrations a circle member may see: the summit this week (if reached) and the badges
 def celebrations_for(person):
     climb = climb_for(person)
@@ -319,8 +324,8 @@ def today():
     # The demo "today" is the latest date in signals.csv, shown like "Wednesday 4 November"
     d = date.fromisoformat(data.get_today())
     checkins = [c for c in session.get("checkins", []) if c["person_id"] == pid]
-    # The laundry picture steps, opened from the "No laundry" note (None if this person has none)
-    laundry = next((i for i, t in enumerate(tasks_for(person)) if t["title"] == "Laundry"), None)
+    # The Laundry routine, opened from the "No laundry" note (None if this person has none)
+    laundry = next((i for i, r in enumerate(routines_for(person)) if r["routine"] == "Laundry"), None)
     patterns = get_patterns(pid, devices_for(person))
     return render_template("today.html", title="Today", person=person, climb=climb_for(person),
                            day=f"{d:%A} {d.day} {d:%B}", patterns=patterns,
@@ -593,7 +598,8 @@ def climb():
     if new_badge:
         all_badges[pid] = all_badges.get(pid, []) + [badge]
         session["badges"] = all_badges
-    return render_template("climb.html", title="My climb this week", climb=climb,
+    routine_index = {r["routine"]: i for i, r in enumerate(routines_for(person))}
+    return render_template("climb.html", title="My climb this week", climb=climb, routine_index=routine_index,
                            message=climb_message(climb), new_badge=new_badge,
                            badges=SAMPLE_BADGES.get(pid, []) + all_badges.get(pid, []))
 
@@ -611,6 +617,100 @@ def climb_done():
         session["goals_done"] = all_done
         flash(f"{name}: done. Nice work.")
     return redirect(url_for("climb"))
+
+
+# My routines: each routine with who added it; tapping one opens its picture steps
+@app.route("/routines")
+def routines():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    return render_template("routines.html", title="My routines", routines=routines_for(person))
+
+
+# Picture steps for one routine (the same screen and script as before). Finishing the last step
+# posts to routine_finish.
+@app.route("/routines/<int:index>")
+def routine_steps(index):
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    routines = routines_for(person)
+    if index >= len(routines):
+        abort(404)
+    routine = routines[index]
+    if not routine["steps"]:
+        flash("This routine has no steps yet. Add the steps you use.")
+        return redirect(url_for("routine_edit", index=index))
+    return render_template("task.html", title=routine["routine"], person=person,
+                           task={"title": routine["routine"], "steps": routine["steps"]},
+                           back_url=url_for("routines"), finish_url=url_for("routine_finish", index=index))
+
+
+# Finishing a routine marks the weekly goal with the same name as done, then shows My climb
+# (which celebrates if that was the last flag). Without a matching goal, go back to My routines.
+@app.route("/routines/<int:index>/finish", methods=["POST"])
+def routine_finish(index):
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    routines = routines_for(person)
+    if index >= len(routines):
+        abort(404)
+    name = routines[index]["routine"]
+    flash(f"You finished {name}. Nice work.")
+    if any(g["goal"] == name and g["rule"] == "routine" for g in data.get_goals(person["id"])):
+        save("goals_done", person["id"], list(set(saved("goals_done", person["id"], []) + [name])))
+        return redirect(url_for("climb"))
+    return redirect(url_for("routines"))
+
+
+# Edit steps: add, remove or move steps up and down, suggest steps with AI, and choose who added
+# the routine. Nothing is saved until Save. "Added by" only lists the person ("me") and circle
+# members marked "Can add routines". In a real product a trusted person would edit the routine
+# from their own login; this demo lets the person pick who added it.
+@app.route("/routines/<int:index>/edit", methods=["GET", "POST"])
+def routine_edit(index):
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    routines = routines_for(person)
+    if index >= len(routines):
+        abort(404)
+    routine = routines[index]
+    helpers = ["me"] + [m["name"] for m in circle_for(person) if m["routines"]]
+    steps, added_by, message, source = routine["steps"], routine["added_by"], None, None
+
+    if request.method == "POST":
+        steps = [s.strip()[:80] for s in request.form.getlist("steps")][:12]
+        added_by = request.form.get("added_by")
+        what, _, number = request.form.get("action", "").partition(":")
+        i = int(number) if number.isdigit() else -1
+        if what == "up" and 0 < i < len(steps):
+            steps[i - 1], steps[i] = steps[i], steps[i - 1]
+        elif what == "down" and 0 <= i < len(steps) - 1:
+            steps[i], steps[i + 1] = steps[i + 1], steps[i]
+        elif what == "remove" and 0 <= i < len(steps):
+            steps.pop(i)
+        elif what == "add":
+            steps.append("")
+        elif what == "suggest":
+            suggestion = suggest_steps(routine["routine"])
+            steps, source = suggestion["steps"], suggestion["source"]
+            message = None if steps else "Write the steps you use."
+        elif what == "save":
+            steps = [s for s in steps if s]
+            if steps:
+                routine.update(steps=steps, added_by=added_by if added_by in helpers else "me")
+                save("routines", person["id"], routines)
+                flash(f"{routine['routine']} saved.")
+                return redirect(url_for("routines"))
+            message = "Please write at least one step."
+
+    return render_template("routine_edit.html", title=f"Edit {routine['routine']}", routine=routine,
+                           steps=steps or [""], helpers=helpers,
+                           added_by=added_by if added_by in helpers else "me",
+                           message=message, source=source)
 
 
 # Me: a profile card (name, what drains and calms the person, with Edit) and four link cards

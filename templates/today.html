@@ -73,12 +73,12 @@
         </section>
       {% endfor %}
 
-      <!-- Routine notes as soft cards (for now only laundry), with a button for the laundry picture steps -->
+      <!-- Routine notes as soft cards (for now only laundry), with a button that opens the Laundry routine -->
       {% for note in patterns.routine_notes %}
         <section class="card soft-card">
           <p class="icon-line">{{ icon("calendar") }} {{ note }}</p>
           {% if laundry_index is not none %}
-            <a class="btn-secondary" href="{{ url_for('task_steps', index=laundry_index) }}">Show me the steps</a>
+            <a class="btn-secondary" href="{{ url_for('routine_steps', index=laundry_index) }}">Show me the steps</a>
           {% endif %}
         </section>
       {% endfor %}

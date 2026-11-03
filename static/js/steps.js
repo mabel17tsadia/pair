@@ -23,11 +23,15 @@ function showView(name) {
   views[name].focus();
 }
 
-// Done: go to the next step, or show the finish message after the last one
+// Done: go to the next step. After the last one, a routine sends its finish form (to mark the
+// weekly goal); anything else shows the finish message.
 document.getElementById("done").onclick = () => {
+  const finishForm = document.getElementById("finish-form");
   if (current < steps.length - 1) {
     current++;
     showStep();
+  } else if (finishForm) {
+    finishForm.submit();
   } else {
     showView("finish");
   }

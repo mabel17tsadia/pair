@@ -254,3 +254,35 @@ def suggest_questions(visit_type, patterns):
     except Exception as error:
         print("AI question suggestions failed, using general questions:", type(error).__name__)
         return {"questions": GENERAL_QUESTIONS, "source": "rules"}
+
+
+# Instructions for Claude when suggesting steps for a routine
+STEPS_SYSTEM = """You help a person break a home routine into small picture steps.
+Write 3 to 6 short, concrete steps for the routine, in order. Each step is under 10 words,
+starts with a verb, and is one simple action. Plain words, no advice beyond the steps."""
+
+# The exact JSON shape we want back: a list of steps
+STEPS_SCHEMA = {
+    "type": "object",
+    "properties": {"steps": {"type": "array", "items": {"type": "string"}}},
+    "required": ["steps"],
+    "additionalProperties": False,
+}
+
+
+# Suggest 3 to 6 short steps for a routine; sends only the routine name. If there is no API key or
+# anything goes wrong, return an empty list so the person writes the steps they use.
+def suggest_steps(routine):
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        print("No API key found, no step suggestions")
+        return {"steps": [], "source": "rules"}
+    try:
+        answer = json.loads(ask_claude(STEPS_SYSTEM, routine, {"type": "json_schema", "schema": STEPS_SCHEMA}))
+        steps = [s.strip()[:80] for s in answer["steps"] if s.strip()][:6]
+        if len(steps) < 3:
+            raise ValueError("Too few steps")
+        return {"steps": steps, "source": "ai"}
+    # Any error at all gives an empty list instead of crashing
+    except Exception as error:
+        print("AI step suggestions failed:", type(error).__name__)
+        return {"steps": [], "source": "rules"}

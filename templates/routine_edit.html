@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Link back to My routines and the routine name -->
+  <a class="text-link" href="{{ url_for('routines') }}">‹ My routines</a>
+  <h1>Edit {{ routine.routine }}</h1>
+  <p class="note">Nothing is saved until you press Save.</p>
+
+  <!-- One form: each step in a box with Up, Down and Remove; Add a step; Suggest steps with AI;
+       who added the routine; Save. Every button sends the form, so typed changes are kept. -->
+  <form method="post" class="card">
+    <!-- Pressing Enter in a box saves (the first button in a form is the one Enter uses) -->
+    <button type="submit" name="action" value="save" class="visually-hidden" tabindex="-1" aria-hidden="true">Save</button>
+    <h2>Steps</h2>
+    {% if message %}<p class="soft-card card" role="status">{{ message }}</p>{% endif %}
+    {% if source == "ai" %}<p class="note">Suggested with AI. Change anything before you save.</p>{% endif %}
+    <ol class="edit-steps">
+      {% for step in steps %}
+        <li>
+          <label for="step-{{ loop.index }}" class="visually-hidden">Step {{ loop.index }}</label>
+          <input type="text" id="step-{{ loop.index }}" name="steps" value="{{ step }}" maxlength="80">
+          <div class="actions">
+            <button type="submit" name="action" value="up:{{ loop.index0 }}" class="btn-secondary"
+                    {% if loop.first %}disabled{% endif %} aria-label="Move step {{ loop.index }} up">Up</button>
+            <button type="submit" name="action" value="down:{{ loop.index0 }}" class="btn-secondary"
+                    {% if loop.last %}disabled{% endif %} aria-label="Move step {{ loop.index }} down">Down</button>
+            <button type="submit" name="action" value="remove:{{ loop.index0 }}" class="btn-secondary"
+                    aria-label="Remove step {{ loop.index }}">Remove</button>
+          </div>
+        </li>
+      {% endfor %}
+    </ol>
+    <div class="actions">
+      <button type="submit" name="action" value="add" class="btn-secondary">Add a step</button>
+      <button type="submit" name="action" value="suggest" class="btn-secondary">Suggest steps with AI</button>
+    </div>
+
+    <!-- Added by: only the person and circle members marked "Can add routines" -->
+    <label for="added-by">Added by</label>
+    <select id="added-by" name="added_by">
+      {% for h in helpers %}
+        <option value="{{ h }}" {% if h == added_by %}selected{% endif %}>{{ "Me" if h == "me" else h }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit" name="action" value="save" class="btn-primary">Save</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,4 @@
+person_id,routine,steps,added_by
+p1,Laundry,Gather your clothes into the basket|Put the clothes in the machine|Add one pod of detergent|Press start and set a 45 minute timer,Mom
+p1,Clean the kitchen,Clear the counter|Put dishes in the dishwasher|Wipe the counter|Take out the trash,Mom
+p3,Laundry,Gather your clothes into the basket|Put the clothes in the machine|Add one pod of detergent|Press start and set a 45 minute timer,me

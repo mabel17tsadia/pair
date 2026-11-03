@@ -99,3 +99,11 @@ def get_today():
 # A person's weekly goals (goal, kind, rule, target, added_by) in the order they were added
 def get_goals(person_id):
     return rows_for("goals.csv", person_id)
+
+
+# A person's routines (routine, steps as a list, added_by) for the picture steps screen
+def get_routines(person_id):
+    routines = rows_for("routines.csv", person_id)
+    for r in routines:
+        r["steps"] = split_list(r["steps"])
+    return routines

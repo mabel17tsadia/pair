@@ -521,6 +521,24 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   flex-direction: column;
 }
 
+/* My routines: the routine link fills the card, with "Edit steps" underneath */
+.routine-card .link-card {
+  min-height: 56px;
+}
+
+/* Edit steps: each step box with its Up, Down and Remove buttons underneath */
+.edit-steps {
+  padding-left: 1.5rem;
+}
+
+.edit-steps li {
+  margin-bottom: 1rem;
+}
+
+.edit-steps input {
+  margin-bottom: 0.5rem;
+}
+
 .edit-panel {
   margin-top: 1rem;
   padding-top: 1rem;
