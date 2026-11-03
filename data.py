@@ -38,19 +38,6 @@ def get_person(person_id):
     return None
 
 
-# A person's tasks for today, with steps as a list
-def get_tasks(person_id):
-    tasks = rows_for("tasks.csv", person_id)
-    for t in tasks:
-        t["steps"] = split_list(t["steps"])
-    return tasks
-
-
-# A person's inbox messages, each with a suggested task
-def get_inbox(person_id):
-    return rows_for("inbox.csv", person_id)
-
-
 # A person's trust circle: name, relationship, level (access) and whether they can add routines
 def get_circle(person_id):
     circle = rows_for("circle.csv", person_id)

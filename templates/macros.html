@@ -6,8 +6,6 @@
   {% if name == "moon" %}<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>
   {% elif name == "heart" %}<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>
   {% elif name == "calendar" %}<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>
-  {% elif name == "inbox" %}<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>
-  {% elif name == "plus" %}<path d="M12 5v14M5 12h14"/>
   {# Pattern icons for Today #}
   {% elif name == "footprints" %}<ellipse cx="8" cy="8" rx="2.5" ry="4"/><ellipse cx="16" cy="13" rx="2.5" ry="4"/><path d="M7 15h2M15 20h2"/>
   {% elif name == "phone" %}<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18h2"/>
@@ -78,28 +76,3 @@
 {%- else %}{{ value | hours }}{% endif -%}
 {% endmacro %}
 
-{# One task card for My plan: icon, title, time, source and load tag; tap to open its steps #}
-{% macro task_card(t, index) %}
-<a class="card task" href="{{ url_for('task_steps', index=index) }}">
-  <span class="task-icon">{{ icon(t.source) }}</span>
-  <div class="task-info">
-    <strong>{{ t.title }}</strong>
-    <span class="note">
-      {{ t.time }}
-      {% if t.source == "calendar" %} · from your calendar{% elif t.source == "inbox" %} · from your inbox{% endif %}
-    </span>
-  </div>
-  {{ load_tag(t.load) }}
-</a>
-{% endmacro %}
-
-{# Load tag: 1, 2 or 3 filled bars plus the word, so it never relies on color alone #}
-{% macro load_tag(load) %}
-{% set bars = {"Light": 1, "Medium": 2, "Heavy": 3}[load] %}
-<span class="load load-{{ load | lower }}">
-  <span class="load-bars" aria-hidden="true">
-    {% for i in range(3) %}<span class="{% if i < bars %}on{% endif %}"></span>{% endfor %}
-  </span>
-  {{ load }}
-</span>
-{% endmacro %}

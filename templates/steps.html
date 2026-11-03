@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <!-- Link back (to My routines for a routine, otherwise Today) and the title -->
-  <a class="text-link" href="{{ back_url or url_for('today') }}">‹ {{ "My routines" if back_url else "Today" }}</a>
-  <h1>{{ task.title }}</h1>
+  <!-- Link back to My routines and the routine name -->
+  <a class="text-link" href="{{ url_for('routines') }}">‹ My routines</a>
+  <h1>{{ routine.routine }}</h1>
 
   <!-- Steps panel: counter, progress bar, the current step and its buttons -->
   <section id="steps-view" class="card" tabindex="-1">
     <div aria-live="polite">
-      <p id="step-count" class="note">Step 1 of {{ task.steps | length }}</p>
+      <p id="step-count" class="note">Step 1 of {{ routine.steps | length }}</p>
       <div class="progress" aria-hidden="true"><div id="progress-fill" class="progress-fill"></div></div>
       <ol class="steps">
-        {% for step in task.steps %}
+        {% for step in routine.steps %}
           <li class="step-text" {% if not loop.first %}hidden{% endif %}>{{ step }}</li>
         {% endfor %}
       </ol>
@@ -33,15 +33,8 @@
     <button type="button" id="resume" class="btn-primary">Back to my step</button>
   </section>
 
-  <!-- Finish panel: a gentle message after the last step -->
-  <section id="finish-view" class="card" tabindex="-1" hidden>
-    <h2>All done</h2>
-    <p>You finished “{{ task.title }}”. Nice work. Take a moment before the next thing.</p>
-    <a class="btn-primary" href="{{ url_for('today') }}">Back to Today</a>
-  </section>
-
-  <!-- For a routine: posted by steps.js after the last step, to mark its weekly goal as done -->
-  {% if finish_url %}<form id="finish-form" method="post" action="{{ finish_url }}" hidden></form>{% endif %}
+  <!-- Posted by steps.js after the last step: marks the routine's weekly goal as done -->
+  <form id="finish-form" method="post" action="{{ url_for('routine_finish', index=index) }}" hidden></form>
 
   <script src="{{ url_for('static', filename='js/steps.js') }}"></script>
 {% endblock %}

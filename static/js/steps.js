@@ -1,11 +1,10 @@
-// Task steps page: move through steps one at a time with Done, Back and I need a break
+// Picture steps page: move through a routine's steps one at a time with Done, Back and I need a break
 
 const steps = document.querySelectorAll(".step-text");
 const backButton = document.getElementById("back");
 const views = {
   steps: document.getElementById("steps-view"),
   break: document.getElementById("break-view"),
-  finish: document.getElementById("finish-view"),
 };
 let current = 0;
 
@@ -17,23 +16,19 @@ function showStep() {
   backButton.disabled = current === 0;
 }
 
-// Show one panel (steps, break or finish), hide the others, and move focus to it
+// Show one panel (steps or break), hide the other, and move focus to it
 function showView(name) {
   for (const key in views) views[key].hidden = key !== name;
   views[name].focus();
 }
 
-// Done: go to the next step. After the last one, a routine sends its finish form (to mark the
-// weekly goal); anything else shows the finish message.
+// Done: go to the next step; after the last one, send the finish form (it marks the weekly goal)
 document.getElementById("done").onclick = () => {
-  const finishForm = document.getElementById("finish-form");
   if (current < steps.length - 1) {
     current++;
     showStep();
-  } else if (finishForm) {
-    finishForm.submit();
   } else {
-    showView("finish");
+    document.getElementById("finish-form").submit();
   }
 };
 

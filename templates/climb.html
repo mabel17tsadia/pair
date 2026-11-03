@@ -14,7 +14,8 @@
     <p class="note">{{ climb.reached }} of {{ climb.total }} flags</p>
   </section>
 
-  <!-- The goals, in the same order as the flags: progress, who added it, and how to reach it -->
+  <!-- The goals, in the same order as the flags: progress, who added it, and how to reach it.
+       "units" turns a goal's rule into the word after the count, like "3 of 4 nights". -->
   {% set units = {"steps_usual": "day", "late_screen_under_30": "night", "sleep_usual": "night",
                   "laundry": "load", "checkins": "check in"} %}
   <section class="card">

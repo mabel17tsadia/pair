@@ -15,6 +15,12 @@ STEPS_UP_PCT = 15          # 15%+ more steps earns a positive note
 LAUNDRY_GAP_DAYS = 10      # no laundry for 10+ days earns a routine note
 
 
+# Minutes as "6 h 40 min" (or "8 h" when there are no extra minutes)
+def format_minutes(minutes):
+    hours, mins = divmod(round(minutes), 60)
+    return f"{hours} h {mins} min" if mins else f"{hours} h"
+
+
 # Minutes as kind, rounded words: "1 hour", "2 hours" or "40 minutes"
 def about(minutes):
     if minutes >= 60:

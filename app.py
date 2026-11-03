@@ -1,12 +1,11 @@
 import os
 from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
-from flask import Flask, render_template, render_template_string, session, redirect, request, url_for, abort, flash
+from flask import Flask, render_template, session, redirect, request, url_for, abort, flash
 import data
-from patterns import get_patterns, get_trends, feeling_counts, RECENT_DAYS
+from patterns import get_patterns, get_trends, feeling_counts, format_minutes, RECENT_DAYS
 from goals import get_goals, days_left, week_name
 from vitals import get_body_signals
-from pace import format_minutes
 from ai import (explain_week, explain_for_doctor, respond_to_checkin, suggest_questions, suggest_steps,
                 suggest_professionals, is_urgent)
 from visits import VISITS, things_to_tell
@@ -111,11 +110,6 @@ def current_person():
         # Drains and calms the person edited on Me (kept in the session)
         person.update(saved("profile", person["id"], {}))
     return person
-
-
-# A person's picture-step tasks from tasks.csv, in time order (opened from routine notes)
-def tasks_for(person):
-    return sorted(data.get_tasks(person["id"]), key=lambda t: t["time"] or "99:99")
 
 
 # Paired devices. A real product would connect through each maker's official app or account.
@@ -380,19 +374,6 @@ def today():
                            body_signals=get_body_signals(pid, devices_for(person)),
                            laundry_index=laundry, circle=circle_for(person),
                            last_checkin=checkins[-1] if checkins else None)
-
-
-# Task steps screen: one task's steps, shown one at a time by static/js/steps.js
-@app.route("/task/<int:index>")
-def task_steps(index):
-    person = current_person()
-    if not person:
-        return redirect(url_for("choose"))
-    tasks = tasks_for(person)
-    if index >= len(tasks):
-        abort(404)
-    return render_template("task.html", title=tasks[index]["title"],
-                           task=tasks[index], person=person)
 
 
 # Check in screen: pick a mood and add an optional note, then Save (or Skip). After saving, a
@@ -735,8 +716,8 @@ def routines():
     return render_template("routines.html", title="My routines", routines=routines_for(person))
 
 
-# Picture steps for one routine (the same screen and script as before). Finishing the last step
-# posts to routine_finish.
+# Picture steps for one routine, shown one at a time by static/js/steps.js. Finishing the last
+# step posts to routine_finish.
 @app.route("/routines/<int:index>")
 def routine_steps(index):
     person = current_person()
@@ -749,9 +730,7 @@ def routine_steps(index):
     if not routine["steps"]:
         flash("This routine has no steps yet. Add the steps you use.")
         return redirect(url_for("routine_edit", index=index))
-    return render_template("task.html", title=routine["routine"], person=person,
-                           task={"title": routine["routine"], "steps": routine["steps"]},
-                           back_url=url_for("routines"), finish_url=url_for("routine_finish", index=index))
+    return render_template("steps.html", title=routine["routine"], person=person, routine=routine, index=index)
 
 
 # Finishing a routine marks the weekly goal with the same name as done, then shows My climb
@@ -910,32 +889,6 @@ def stop_pairing(name):
         set_paired(person, name, False)
         flash(f"Stopped pairing {name}. Pair no longer reads it.")
     return redirect(url_for("devices"))
-
-
-# Temporary check (Stage P3): the patterns result for every demo person, in plain text
-@app.route("/debug")
-def debug_patterns():
-    lines = []
-    for p in data.get_people():
-        result = get_patterns(p["id"])
-        lines.append(f"{p['id']} {p['first_name']}: {result['status']} ({result['change_count']} changes)")
-        lines += [f"  - {c['words']} (usual {c['usual']}, recent {c['recent']})" for c in result["changes"]]
-        lines += [f"  + {n}" for n in result["positive_notes"] + result["routine_notes"]]
-        lines += [f"  check in {c['date']}: {c['mood']}" for c in result["recent_checkins"]]
-    return render_template_string("<pre>{{ text }}</pre>", text="\n".join(lines))
-
-
-# Temporary check (Stage P2): how many rows each data function returns for one person
-@app.route("/debug/<person_id>")
-def debug(person_id):
-    counts = {"get_people": len(data.get_people()),
-              "get_person": 1 if data.get_person(person_id) else 0,
-              "get_signals": len(data.get_signals(person_id)),
-              "get_devices": len(data.get_devices(person_id)),
-              "get_checkins": len(data.get_checkins(person_id)),
-              "get_circle": len(data.get_circle(person_id))}
-    lines = [f"{name}: {count} rows" for name, count in counts.items()]
-    return "<br>".join(lines + [f"get_today: {data.get_today()}"])
 
 
 # Settings: how big the summit celebration is (Big = confetti, Calm = soft glow, Off = message only)

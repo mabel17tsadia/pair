@@ -50,7 +50,7 @@ h1, h2, h3 {
   font-family: "Lexend", system-ui, sans-serif;
 }
 
-/* Page content area; extra bottom space so the nav bar and + button never cover it */
+/* Page content area; extra bottom space so the nav bar never covers it */
 main {
   max-width: 960px;
   margin: 0 auto;
@@ -161,62 +161,6 @@ main {
   font-weight: 700;
 }
 
-/* ===== Today: pace card ===== */
-.pace-level {
-  margin: 0 0 0.75rem;
-  color: var(--primary);
-  font-family: "Lexend", system-ui, sans-serif;
-  font-size: 2.25rem;
-  font-weight: 700;
-}
-
-/* 3-part bar: Gentle, Steady, Ready; only the current part is filled */
-.pace-bar {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-
-.pace-step {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.pace-fill {
-  height: 10px;
-  border-radius: 5px;
-  background: var(--surface2);
-}
-
-.pace-step.current {
-  color: var(--text);
-  font-weight: 700;
-}
-
-.pace-step.current .pace-fill {
-  background: var(--primary);
-}
-
-/* Reasons list with a small icon before each one */
-.reasons {
-  padding: 0;
-  list-style: none;
-}
-
-.reasons li {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.5rem 0;
-}
-
-.reasons .icon {
-  color: var(--secondary);
-}
-
 /* ===== Today: Your week card ===== */
 /* The left border and status text use one theme colour: secondary (steady), primary (a few), alert (several) */
 .week-steady { --tone: var(--secondary); }
@@ -291,101 +235,7 @@ main {
   color: var(--secondary);
 }
 
-/* ===== Today: My plan task cards ===== */
-.task-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.task {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.task-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--surface2);
-}
-
-.task-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Load tag: bars plus the word, so it never relies on color alone */
-.load {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.load-bars {
-  display: flex;
-  gap: 2px;
-}
-
-/* Each bar; empty bars are faded, filled bars ("on") are solid */
-.load-bars span {
-  width: 5px;
-  height: 14px;
-  border-radius: 2px;
-  background: currentColor;
-  opacity: 0.25;
-}
-
-.load-bars span.on {
-  opacity: 1;
-}
-
-.load-light { background: var(--primary-soft); color: var(--primary); }
-.load-medium { background: var(--secondary-soft); color: var(--secondary); }
-.load-heavy { background: var(--alert-soft); color: var(--alert); }
-
-/* Round + button floating above the phone nav bar */
-.add-button {
-  position: fixed;
-  right: 1rem;
-  bottom: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: var(--on-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-}
-
-.add-button .icon {
-  width: 28px;
-  height: 28px;
-}
-
-/* Task cards on Today are links: keep normal text color, no underline */
-a.task {
-  color: var(--text);
-  text-decoration: none;
-}
-
-a.task:hover {
-  border-color: var(--primary);
-}
-
-/* ===== Task steps page ===== */
+/* ===== Picture steps page (routines) ===== */
 /* Progress bar: grey track with a primary-colored fill */
 .progress {
   height: 10px;
@@ -577,7 +427,7 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   border-bottom: none;
 }
 
-/* ===== My body today ===== */
+/* ===== Charts (Patterns and My body signals) ===== */
 /* Line chart: scales to the card width; colors come from the theme */
 .chart {
   display: block;
@@ -788,7 +638,7 @@ section[tabindex="-1"]:focus {
   outline: none;
 }
 
-/* ===== Picture buttons (feelings on Check in, load levels on Add a task) ===== */
+/* ===== Picture buttons (moods on Check in, choices in Settings) ===== */
 /* A row of choices; wraps onto two rows on narrow phones */
 .choices {
   display: grid;
@@ -1021,27 +871,6 @@ a:focus-visible, button:focus-visible {
   font-weight: 700;
 }
 
-/* My plan heading with the "+ Add a task" button beside it */
-.plan-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* New for you: calendar items as simple links */
-.new-list {
-  padding: 0;
-  list-style: none;
-}
-
-.new-list a {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 48px;
-  color: var(--text);
-}
-
 /* Coach view: week cards side by side, as many as fit (one column on phones) */
 .card-grid {
   display: grid;
@@ -1126,22 +955,6 @@ a:focus-visible, button:focus-visible {
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 1.5rem;
     align-items: start;
-  }
-
-  /* My plan in three columns: Morning, Afternoon, Evening */
-  .plan-columns {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
-  }
-
-  .plan-columns h3 {
-    margin-top: 0;
-  }
-
-  /* Task cards are narrow in a column, so let the load tag wrap underneath */
-  .plan-columns .task {
-    flex-wrap: wrap;
   }
 }
 
@@ -1298,7 +1111,7 @@ a:focus-visible, button:focus-visible {
   margin: 0;
 }
 
-/* ===== Doctor visit summary: print view ===== */
+/* ===== Visit summary: print view ===== */
 /* Shown only on paper (for example the typed questions as plain text) */
 .print-only {
   display: none;
@@ -1356,14 +1169,14 @@ a:focus-visible, button:focus-visible {
   h1 { margin: 0 0 0.25rem; font-size: 18pt; }
   h2 { margin: 0 0 0.25rem; font-size: 12pt; }
 
-  .doctor-section {
+  .visit-section {
     margin: 0 0 0.6rem;
     padding: 0;
     border: none;
     break-inside: avoid;
   }
 
-  .doctor-section p, .doctor-section ul {
+  .visit-section p, .visit-section ul {
     margin: 0.2rem 0;
   }
 
