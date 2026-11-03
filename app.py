@@ -1,10 +1,12 @@
 import os
+import secrets
 from datetime import date, datetime
 from dotenv import load_dotenv
 from flask import Flask, render_template, session, redirect, request, url_for, abort, flash
 import data
 from pace import get_pace, format_minutes
 from ai import suggest_task, write_alert
+import google_health
 
 # Load settings like SECRET_KEY from the .env file
 load_dotenv()
@@ -99,6 +101,29 @@ def tasks_for(person):
     return sorted(tasks, key=lambda t: t["time"] or "99:99")
 
 
+# Daily rows, heart readings and a short note about where they came from.
+# Uses Google Health only when Demo controls say so and the person is signed in;
+# if anything fails, falls back to the sample CSVs.
+def body_data(person):
+    daily, heart = data.get_daily(person["id"]), data.get_heart(person["id"])
+    if session.get("data_source") != "google":
+        return daily, heart, "Data source: Sample data."
+    token = google_health.TOKENS.get(session.get("google_key"))
+    if not token:
+        return daily, heart, "Not signed in to Google Health. Showing sample data."
+    try:
+        today = google_health.read_today(token)
+    except Exception as error:
+        print("Google Health failed, using sample data:", error)
+        return daily, heart, "Could not read Google Health (try signing in again in Settings). Showing sample data."
+    if not today["heart"]:
+        return daily, heart, "No heart rate from Google Health today. Showing sample data."
+    # Swap in today's real sleep and steps (keep the sample value if Google has none)
+    last = {**daily[-1], "sleep_min": today["sleep_min"] or daily[-1]["sleep_min"],
+            "steps": today["steps"] or daily[-1]["steps"]}
+    return daily[:-1] + [last], today["heart"], "Showing today's data from Google Health."
+
+
 # Home page: choose which demo person to use
 @app.route("/")
 def choose():
@@ -122,8 +147,7 @@ def today():
     if not person:
         return redirect(url_for("choose"))
     pid = person["id"]
-    daily = data.get_daily(pid)
-    heart = data.get_heart(pid)
+    daily, heart, source_note = body_data(person)
     # The demo "today" is the newest date in the data, shown like "Wednesday 28 October"
     d = date.fromisoformat(daily[-1]["date"])
     pace = get_pace(person, daily, heart)
@@ -141,7 +165,7 @@ def today():
 
     return render_template("today.html", title="Today", person=person,
                            day=f"{d:%A} {d.day} {d:%B}", greeting=greeting(),
-                           pace=pace, alert=alert,
+                           pace=pace, alert=alert, source_note=source_note,
                            inbox=data.get_inbox(pid),
                            tasks=tasks,
                            chart=heart_chart(heart, person["usual_resting_hr"]),
@@ -270,10 +294,10 @@ def body():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
-    daily = data.get_daily(person["id"])
+    daily, heart, source_note = body_data(person)
     return render_template("body.html", title="My body today", person=person,
-                           chart=heart_chart(data.get_heart(person["id"]), person["usual_resting_hr"]),
-                           daily=daily,
+                           chart=heart_chart(heart, person["usual_resting_hr"]),
+                           daily=daily, source_note=source_note,
                            max_sleep=max(d["sleep_min"] for d in daily),
                            max_steps=max(d["steps"] for d in daily))
 
@@ -281,12 +305,48 @@ def body():
 # Settings: theme choice, plus hidden Demo controls for the data source
 @app.route("/settings", methods=["GET", "POST"])
 def settings():
-    # Demo controls: save the chosen data source (the app still shows sample data either way)
+    # Demo controls: save the chosen data source
     if request.method == "POST" and request.form.get("source") in SOURCES:
         session["data_source"] = request.form["source"]
         flash(f"Data source set to {SOURCES[request.form['source']]}.")
         return redirect(url_for("settings"))
-    return render_template("settings.html", title="Settings", sources=SOURCES)
+    return render_template("settings.html", title="Settings", sources=SOURCES,
+                           google_connected=session.get("google_key") in google_health.TOKENS)
+
+
+# Google sign-in, step 1: send the person to Google with a random "state" to check later
+@app.route("/google/signin")
+def google_signin():
+    session["google_state"] = secrets.token_urlsafe(16)
+    return redirect(google_health.sign_in_url(url_for("google_callback", _external=True),
+                                              session["google_state"]))
+
+
+# Google sign-in, step 2: Google sends the person back here with a one-time code
+@app.route("/google/callback")
+def google_callback():
+    if request.args.get("state") != session.pop("google_state", None) or "code" not in request.args:
+        flash("Google sign-in did not finish. Still using sample data.")
+        return redirect(url_for("settings"))
+    try:
+        token = google_health.exchange_code(request.args["code"], url_for("google_callback", _external=True))
+    except Exception as error:
+        print("Google sign-in failed:", error)
+        flash("Google sign-in did not work. Still using sample data.")
+        return redirect(url_for("settings"))
+    # Keep the token in server memory; the browser only gets a random key that points to it
+    session["google_key"] = secrets.token_hex(16)
+    google_health.TOKENS[session["google_key"]] = token
+    flash("Connected to Google Health.")
+    return redirect(url_for("settings"))
+
+
+# Disconnect: delete the token from server memory
+@app.route("/google/disconnect", methods=["POST"])
+def google_disconnect():
+    google_health.TOKENS.pop(session.pop("google_key", None), None)
+    flash("Disconnected from Google Health. Using sample data.")
+    return redirect(url_for("settings"))
 
 
 # Me page setting: turn the greeting banner on Today on or off

@@ -22,10 +22,11 @@
     </div>
   </section>
 
-  <!-- Demo controls: closed by default; switch the data source for testing -->
-  <details class="card demo-controls">
+  <!-- Demo controls: closed unless Google Health is chosen; switch the data source for testing -->
+  <details class="card demo-controls" {% if data_source == "google" %}open{% endif %}>
     <summary>Demo controls</summary>
-    <p class="note">For testing the demo. Google Health is not connected yet, so the app keeps showing sample data.</p>
+    <p class="note">For testing the demo. Google Health shows your own heart rate, sleep and steps for today.
+      If it is not connected or fails, the app shows sample data.</p>
     <form method="post">
       <fieldset class="choices">
         <legend>Data source</legend>
@@ -39,5 +40,20 @@
       </fieldset>
       <button type="submit" class="btn-primary">Save</button>
     </form>
+
+    <!-- Google Health connection: sign in, or disconnect (which deletes the token) -->
+    {% if data_source == "google" %}
+      <h3>Google Health</h3>
+      {% if google_connected %}
+        <p>Connected.</p>
+        <form method="post" action="{{ url_for('google_disconnect') }}">
+          <button type="submit" class="btn-secondary">Disconnect</button>
+        </form>
+      {% else %}
+        <a class="btn-secondary" href="{{ url_for('google_signin') }}">Sign in with Google</a>
+      {% endif %}
+      <p class="note">Testing mode: only test users added in Google Cloud can sign in.
+        Your data is kept in memory only, never saved, and is deleted when you disconnect or the app restarts.</p>
+    {% endif %}
   </details>
 {% endblock %}

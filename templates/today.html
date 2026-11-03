@@ -26,6 +26,9 @@
     <h1>Today</h1>
   </div>
 
+  <!-- Small note when Google Health is chosen in Demo controls (says if sample data is used instead) -->
+  {% if data_source == "google" %}<p class="note">{{ source_note }}</p>{% endif %}
+
   <div class="dashboard-grid">
     <!-- Left column (all of Today on phones): pace, alert, inbox (phones only) and My plan -->
     <div>

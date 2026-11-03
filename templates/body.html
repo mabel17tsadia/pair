@@ -4,10 +4,7 @@
   <!-- Link back to Me, page title and data source -->
   <a class="text-link" href="{{ url_for('me') }}">‹ Me</a>
   <h1>My body today</h1>
-  <p class="note">
-    {% if data_source == "google" %}Data source: Google Health (not connected yet). Showing sample data.
-    {% else %}Data source: Sample data.{% endif %}
-  </p>
+  <p class="note">{{ source_note }}</p>
 
   <!-- Heart rate today: a simple SVG line chart with a dashed line for the usual resting rate -->
   <section class="card">
