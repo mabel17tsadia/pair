@@ -915,12 +915,13 @@ def set_celebrations():
     return redirect(url_for("settings"))
 
 
-# Save the chosen theme, then go back to the page the user was on
-@app.route("/theme/<name>")
-def set_theme(name):
-    if name in THEMES:
-        session["theme"] = name
-    return redirect(request.referrer or url_for("today"))
+# Save the theme picked on Settings (the cards only preview it until Save is pressed)
+@app.route("/theme", methods=["POST"])
+def save_theme():
+    if request.form.get("theme") in THEMES:
+        session["theme"] = request.form["theme"]
+        flash(f"Theme saved: {request.form['theme'].capitalize()}.")
+    return redirect(url_for("settings"))
 
 
 # Start the app in debug mode when this file is run directly

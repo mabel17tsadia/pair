@@ -1,3 +1,29 @@
+// Theme cards (sign up step 2 and Settings): picking a card previews that theme on the whole page
+// at once, the same way base.html applies it (data-theme on <body>). Only Next or Save keeps it.
+const savedTheme = document.body.dataset.theme;
+const themeInputs = document.querySelectorAll(".theme-option input[name='theme']");
+
+// Show one theme on the page (with a short fade) and select its card
+function previewTheme(name) {
+  document.body.classList.add("theme-fade");
+  document.body.dataset.theme = name;
+  themeInputs.forEach((input) => (input.checked = input.value === name));
+}
+
+themeInputs.forEach((input) => {
+  input.addEventListener("change", () => previewTheme(input.value));
+  // Enter on a card picks it (instead of sending the form), like a click
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      previewTheme(input.value);
+    }
+  });
+});
+
+// Coming back with the browser's Back button (or a refresh that kept the old choice) shows the saved theme
+window.addEventListener("pageshow", () => themeInputs.length && previewTheme(savedTheme));
+
 // Print buttons: open the browser's print window (which can also save as PDF)
 document.querySelectorAll("[data-print]").forEach((button) => {
   button.onclick = () => window.print();

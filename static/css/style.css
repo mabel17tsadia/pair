@@ -520,10 +520,6 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
 }
 
 /* The current theme: thicker border plus the word "(current)" */
-.theme-option[aria-current] {
-  border: 4px solid var(--primary);
-}
-
 .swatches {
   display: flex;
   gap: 0.25rem;
@@ -535,7 +531,18 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   border-radius: 50%;
 }
 
-/* In sign up the theme cards are choices: the picked one gets the thick border */
+/* Previewing a theme: colours fade for 0.2 seconds (not at all if the device asks for less motion) */
+.theme-fade, .theme-fade * {
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, fill 0.2s, stroke 0.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-fade, .theme-fade * {
+    transition: none;
+  }
+}
+
+/* The theme cards are choices: the picked one gets the thick border */
 .theme-option:has(input:checked) {
   border: 4px solid var(--primary);
 }

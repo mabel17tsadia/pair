@@ -25,20 +25,30 @@
 </svg>
 {% endmacro %}
 
-{# Inside of a theme preview card: the theme name, four colour dots and a sample card with text
-   and a button. Used in Settings (as links) and in sign up (as choices). #}
-{% macro theme_preview(t, current) %}
-{{ t | capitalize }}{% if t == current %} (current){% endif %}
-<span class="swatches" aria-hidden="true">
-  <span style="background: var(--primary)"></span>
-  <span style="background: var(--secondary)"></span>
-  <span style="background: var(--alert)"></span>
-  <span style="background: var(--celebrate)"></span>
-</span>
-<span class="theme-sample" aria-hidden="true">
-  <span class="sample-text">Sample text</span>
-  <span class="sample-button">Button</span>
-</span>
+{# The three theme cards as one group of radio buttons (in sign up and in Settings). Each card is drawn
+   in its own theme: the name, four colour dots and a sample card. Picking one previews it on the whole
+   page straight away (static/js/main.js); it is only kept when the form is saved with Next or Save.
+   Screen readers hear each card as a radio button that is "selected" or not. #}
+{% macro theme_choices(themes, current, legend) %}
+<fieldset class="theme-list">
+  <legend>{{ legend }}</legend>
+  {% for t in themes %}
+    <label class="theme-option" data-theme="{{ t }}">
+      <input type="radio" name="theme" value="{{ t }}" class="visually-hidden" {% if t == current %}checked{% endif %}>
+      {{ t | capitalize }}
+      <span class="swatches" aria-hidden="true">
+        <span style="background: var(--primary)"></span>
+        <span style="background: var(--secondary)"></span>
+        <span style="background: var(--alert)"></span>
+        <span style="background: var(--celebrate)"></span>
+      </span>
+      <span class="theme-sample" aria-hidden="true">
+        <span class="sample-text">Sample text</span>
+        <span class="sample-button">Button</span>
+      </span>
+    </label>
+  {% endfor %}
+</fieldset>
 {% endmacro %}
 
 {# A mood emoji (from MOODS in app.py) with the mood word as its label for screen readers.

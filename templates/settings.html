@@ -1,20 +1,17 @@
 {% extends "base.html" %}
-{% from "macros.html" import theme_preview %}
+{% from "macros.html" import theme_choices %}
 
 {% block content %}
   <!-- Page title -->
   <h1>Settings</h1>
 
-  <!-- How Pair looks: three large preview cards, each drawn in its own theme colours -->
-  <section class="card">
+  <!-- How Pair looks: three large preview cards; picking one previews it on the whole page,
+       and Save keeps it (leaving without saving shows the saved theme again) -->
+  <form method="post" action="{{ url_for('save_theme') }}" class="card">
     <h2>How Pair looks</h2>
-    <div class="theme-list">
-      {% for t in themes %}
-        <a class="theme-option" data-theme="{{ t }}" href="{{ url_for('set_theme', name=t) }}"
-           {% if t == theme %}aria-current="true"{% endif %}>{{ theme_preview(t, theme) }}</a>
-      {% endfor %}
-    </div>
-  </section>
+    {{ theme_choices(themes, theme, "Choose a theme") }}
+    <button type="submit" class="btn-primary">Save</button>
+  </form>
 
   <!-- Celebrations: how big the summit celebration on My climb is (always calm if the device asks for less motion) -->
   <form method="post" action="{{ url_for('set_celebrations') }}" class="card">

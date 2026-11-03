@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import theme_preview %}
+{% from "macros.html" import theme_choices %}
 
 {% block content %}
   <!-- Back button and progress dots for the four screens (not on the finish screen) -->
@@ -37,15 +37,8 @@
         <input type="text" id="first-name" name="first_name" maxlength="30" value="{{ signup.first_name or '' }}" required>
       </section>
       <section class="card">
-        <fieldset class="theme-list">
-          <legend>How should Pair look?</legend>
-          {% for t in themes %}
-            <label class="theme-option" data-theme="{{ t }}">
-              <input type="radio" name="theme" value="{{ t }}" class="visually-hidden" {% if t == theme %}checked{% endif %}>
-              {{ theme_preview(t, "") }}
-            </label>
-          {% endfor %}
-        </fieldset>
+        <!-- Theme cards: picking one previews it on the whole page; Next keeps it -->
+        {{ theme_choices(themes, theme, "How should Pair look?") }}
       </section>
       <button type="submit" class="btn-primary">Next</button>
     </form>
