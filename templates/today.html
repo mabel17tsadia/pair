@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon %}
+{% from "macros.html" import icon, signal_value %}
 
 {% block main_class %}dashboard{% endblock %}
 
 {% block content %}
-  <!-- Greeting banner (laptops only, can be turned off on Me): greeting and date over a flat sunset -->
+  <!-- Greeting banner (laptops only, can be turned off on Me): "Hi Jordan" and the date over a flat sunset -->
   {% if show_banner %}
     <section class="banner desktop-only">
       <svg class="banner-art" viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
@@ -14,40 +14,90 @@
         <path class="hill-front" d="M0 170 Q400 120 800 165 T1200 160 V200 H0 Z"/>
       </svg>
       <div class="banner-text">
-        <p class="banner-greeting">{{ greeting }}, {{ person.first_name }}</p>
+        <p class="banner-greeting">Hi {{ person.first_name }}</p>
         <p>{{ day }}</p>
       </div>
     </section>
   {% endif %}
 
-  <!-- Date and page title (on laptops, hidden when the banner shows the date instead) -->
+  <!-- Greeting and date (on laptops, hidden when the banner shows them instead) -->
   <div class="{% if show_banner %}phone-only{% endif %}">
+    <h1>Hi {{ person.first_name }}</h1>
     <p class="note">{{ day }}</p>
-    <h1>Today</h1>
   </div>
 
-  <!-- Small note when Google Health is chosen in Demo controls (says if sample data is used instead) -->
-  {% if data_source == "google" %}<p class="note">{{ source_note }}</p>{% endif %}
-
   <div class="dashboard-grid">
-    <!-- Left column (all of Today on phones): pace, alert and My plan -->
+    <!-- Left column (all of Today on phones) -->
     <div>
-      {% include "partials/pace_card.html" %}
-      {% if alert %}{% include "partials/alert_card.html" %}{% endif %}
-      {% include "partials/plan.html" %}
+      <!-- Your week: the status in large text; its colour shows how much changed (never red) -->
+      {% set tone = {"A few changes": "few", "Several changes": "several"}.get(patterns.status, "steady") %}
+      <section class="card week-card week-{{ tone }}">
+        <h2>Your week</h2>
+        <p class="week-status">{{ icon("leaf") }} {{ patterns.status }}</p>
+      </section>
+
+      <!-- What Pair noticed: one row per change with its icon, usual and recent values;
+           on a steady week (or while still learning) a short reassuring line instead -->
+      {% set icons = {"sleep_min": "moon", "steps": "footprints", "late_screen_min": "phone",
+                      "unlocks": "phone", "time_out_min": "door"} %}
+      <section class="card">
+        <h2>What Pair noticed</h2>
+        {% if patterns.status == "Still learning your usual" %}
+          <p>Pair is still learning your usual. This takes about 10 days.</p>
+        {% elif patterns.status == "Steady week" %}
+          <p>Your patterns look like your usual this week.</p>
+        {% else %}
+          <ul class="noticed">
+            {% for c in patterns.changes %}
+              <li>
+                {{ icon(icons[c.signal]) }}
+                <div>
+                  <strong>{{ c.words }}</strong><br>
+                  <span class="note">Usual {{ signal_value(c.signal, c.usual) }}. Last 5 days {{ signal_value(c.signal, c.recent) }}.</span>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </section>
+
+      <!-- Positive notes as soft cards -->
+      {% for note in patterns.positive_notes %}
+        <section class="card soft-card">
+          <p class="icon-line">{{ icon("footprints") }} {{ note }}</p>
+        </section>
+      {% endfor %}
+
+      <!-- Routine notes as soft cards (for now only laundry), with a button for the laundry picture steps -->
+      {% for note in patterns.routine_notes %}
+        <section class="card soft-card">
+          <p class="icon-line">{{ icon("calendar") }} {{ note }}</p>
+          {% if laundry_index is not none %}
+            <a class="btn-secondary" href="{{ url_for('task_steps', index=laundry_index) }}">Show me the steps</a>
+          {% endif %}
+        </section>
+      {% endfor %}
+
+      <!-- One gentle step: for now, the first thing that helps this person feel calm -->
+      {% if person.calms %}
+        <section class="card">
+          <h2>One gentle step</h2>
+          <p class="icon-line">{{ icon("heart") }} Try: {{ person.calms[0] }}</p>
+        </section>
+      {% endif %}
+
+      <!-- Two buttons: check in, or share with the trust circle (Circle page for now) -->
+      <div class="actions">
+        <a class="btn-primary" href="{{ url_for('checkin') }}">Check in now</a>
+        <a class="btn-secondary" href="{{ url_for('circle') }}">Share with my circle</a>
+      </div>
+
+      <!-- What Pair is and is not -->
+      <p class="note">Pair describes changes. It does not diagnose. You decide what to do.</p>
     </div>
 
     <!-- Right column (laptops only) -->
     <aside class="desktop-only">
-      <!-- My body today: small heart rate line, last night's sleep and today's steps -->
-      <section class="card chart-small">
-        <h2>My body today</h2>
-        {% include "partials/heart_chart.html" %}
-        <p>Average {{ chart.average }} bpm (usual {{ chart.usual }})<br>
-           Slept {{ last_day.sleep_min | hours }} · {{ "{:,}".format(last_day.steps) }} steps</p>
-        <a class="text-link" href="{{ url_for('body') }}">See more</a>
-      </section>
-
       <!-- My trust circle: initials of each person and a message button -->
       <section class="card">
         <h2>My trust circle</h2>

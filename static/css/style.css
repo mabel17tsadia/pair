@@ -223,6 +223,74 @@ main {
   color: var(--secondary);
 }
 
+/* ===== Today: Your week card ===== */
+/* The left border and status text use one theme colour: secondary (steady), primary (a few), alert (several) */
+.week-steady { --tone: var(--secondary); }
+.week-few { --tone: var(--primary); }
+.week-several { --tone: var(--alert); }
+
+.week-card {
+  border-left: 6px solid var(--tone);
+}
+
+.week-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  color: var(--tone);
+  font-family: "Lexend", system-ui, sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.week-status .icon {
+  width: 36px;
+  height: 36px;
+}
+
+/* What Pair noticed: one roomy row per change, icon on the left */
+.noticed {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.noticed li {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.noticed li:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.noticed .icon {
+  margin-top: 0.2rem;
+  color: var(--primary);
+}
+
+/* Soft cards for positive and routine notes */
+.soft-card {
+  background: var(--secondary-soft);
+  border-color: transparent;
+}
+
+/* A line of text with an icon in front */
+.icon-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0;
+}
+
+.icon-line .icon {
+  color: var(--secondary);
+}
+
 /* ===== Today: gentle alert card (amber, never red) ===== */
 .alert-card {
   border-left: 6px solid var(--alert);

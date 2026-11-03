@@ -44,16 +44,6 @@ def add_settings():
             "show_banner": session.get("banner", True)}
 
 
-# "Good morning", "Good afternoon" or "Good evening", from the computer's clock
-def greeting():
-    hour = datetime.now().hour
-    if hour < 12:
-        return "Good morning"
-    if hour < 18:
-        return "Good afternoon"
-    return "Good evening"
-
-
 # Morning, Afternoon or Evening for a time like "13:30" (no time counts as Morning)
 def part_of_day(time):
     if not time or time < "12:00":
@@ -139,37 +129,22 @@ def choose_person(person_id):
     return redirect(url_for("choose"))
 
 
-# Today screen: pace, alert, inbox and plan on phones; on laptops also a dashboard
-# column with body, circle and last check in
+# Today screen: greeting, "Your week", what Pair noticed, notes, one gentle step and two buttons;
+# on laptops also the trust circle and last check in
 @app.route("/today")
 def today():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
     pid = person["id"]
-    daily, heart, source_note = body_data(person)
-    # The demo "today" is the newest date in the data, shown like "Wednesday 28 October"
-    d = date.fromisoformat(daily[-1]["date"])
-    pace = get_pace(person, daily, heart)
-    tasks = tasks_for(person)
+    # The demo "today" is the latest date in signals.csv, shown like "Wednesday 4 November"
+    d = date.fromisoformat(data.get_today())
     checkins = [c for c in session.get("checkins", []) if c["person_id"] == pid]
-
-    # Gentle alert: on a Gentle day, warn about the first Heavy task (unless "Keep my plan" was picked)
-    alert = None
-    heavy = next((t for t in tasks if t["load"] == "Heavy"), None)
-    if pace["level"] == "Gentle" and heavy and pid not in session.get("alert_kept", []):
-        key = (pid, heavy["title"])
-        if key not in ALERT_CACHE:
-            ALERT_CACHE[key] = write_alert(person, heavy)
-        alert = {"task": heavy, "message": ALERT_CACHE[key]}
-
+    # The laundry picture steps, opened from the "No laundry" note (None if this person has none)
+    laundry = next((i for i, t in enumerate(tasks_for(person)) if t["title"] == "Laundry"), None)
     return render_template("today.html", title="Today", person=person,
-                           day=f"{d:%A} {d.day} {d:%B}", greeting=greeting(),
-                           pace=pace, alert=alert, source_note=source_note,
-                           tasks=tasks,
-                           chart=heart_chart(heart, person["usual_resting_hr"]),
-                           last_day=daily[-1],
-                           circle=data.get_circle(pid),
+                           day=f"{d:%A} {d.day} {d:%B}", patterns=get_patterns(pid),
+                           laundry_index=laundry, circle=data.get_circle(pid),
                            last_checkin=checkins[-1] if checkins else None)
 
 
