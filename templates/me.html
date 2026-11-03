@@ -26,7 +26,7 @@
   <!-- Setting: show or hide the greeting banner at the top of Today on laptops -->
   <form method="post" action="{{ url_for('toggle_banner') }}" class="card">
     <h2>Greeting banner</h2>
-    <p>Shows a greeting and a sunset picture at the top of Today on larger screens. It is <strong>{{ "on" if show_banner else "off" }}</strong>.</p>
+    <p>Shows a greeting and a mountain picture at the top of Today on larger screens. It is <strong>{{ "on" if show_banner else "off" }}</strong>.</p>
     <button type="submit" class="btn-secondary">{{ "Turn it off" if show_banner else "Turn it on" }}</button>
   </form>
 

@@ -1,45 +1,39 @@
 /* ===== Themes: each one sets the same color names; data-theme on <body> picks one ===== */
 /* (Any element can use data-theme, which is how Settings previews each theme.) */
-/* Alerts use amber/brown, never red. --on-primary is the text color on primary buttons. */
+/* Alerts use amber, never red. --on-primary is the text color on primary buttons.
+   --celebrate (gold) is only for small accents like the flag on Today, never for text. */
 
-/* Calm: soft blue-grey */
+/* Calm (default): soft blue-grey with green */
 [data-theme="calm"] {
-  --bg: #F3F5F7; --surface: #FFFFFF; --surface2: #E3E8ED;
-  --text: #26323C; --muted: #55626E; --border: #DCE2E8;
-  --primary: #3E5C76; --primary-soft: #E2EAF1;
-  --secondary: #3F6F6A; --secondary-soft: #DDEDEA;
-  --alert: #7A5410; --alert-soft: #F6EBD3;
-  --on-primary: #FFFFFF;
-}
-
-/* Colorful: warm cream with purple and teal */
-[data-theme="colorful"] {
-  --bg: #FFF7EC; --surface: #FFFFFF; --surface2: #F5E3C8;
-  --text: #231F3A; --muted: #5A5570; --border: #F0DFC6;
-  --primary: #5B3FD0; --primary-soft: #ECE6FF;
-  --secondary: #08706E; --secondary-soft: #D9F3F0;
-  --alert: #8A4B00; --alert-soft: #FFE9B8;
+  --bg: #F4F7FA; --surface: #FFFFFF; --surface2: #E4EBF2;
+  --text: #1C2A3A; --muted: #536273; --border: #D5DEE8;
+  --primary: #2E4A6B; --primary-soft: #E1E9F3;
+  --secondary: #3F7D4E; --secondary-soft: #E0EFE3;
+  --alert: #8A5A00; --alert-soft: #FBEFD5;
+  --celebrate: #E0A526;
   --on-primary: #FFFFFF;
 }
 
 /* Bright: white with strong blue */
 [data-theme="bright"] {
-  --bg: #FFFFFF; --surface: #F3F6F9; --surface2: #DCE4EC;
-  --text: #0B1220; --muted: #3E4A57; --border: #C8D2DC;
-  --primary: #0A58CA; --primary-soft: #E5EFFF;
-  --secondary: #00695C; --secondary-soft: #DDF2EE;
-  --alert: #7A4A00; --alert-soft: #FFEFC7;
+  --bg: #FFFFFF; --surface: #F2F6FB; --surface2: #DCE6F2;
+  --text: #0E1B2C; --muted: #3D4B5C; --border: #C7D3E0;
+  --primary: #1F5FAE; --primary-soft: #E3EEFB;
+  --secondary: #2E8540; --secondary-soft: #DDF1E2;
+  --alert: #8A4B00; --alert-soft: #FFEBC2;
+  --celebrate: #F2B33D;
   --on-primary: #FFFFFF;
 }
 
-/* Dark: dark grey with soft green */
+/* Dark: deep blue-grey with soft blue and green */
 [data-theme="dark"] {
-  --bg: #15191C; --surface: #1F2529; --surface2: #323A40;
-  --text: #ECEFF1; --muted: #A7B2B8; --border: #323A40;
-  --primary: #8CC2A3; --primary-soft: #24352C;
-  --secondary: #9EB9D4; --secondary-soft: #23303D;
-  --alert: #E6C46C; --alert-soft: #3A3221;
-  --on-primary: #10181A;
+  --bg: #121A24; --surface: #1B2633; --surface2: #2A3747;
+  --text: #EAF0F6; --muted: #A9B6C4; --border: #2A3747;
+  --primary: #8DB4E2; --primary-soft: #22324A;
+  --secondary: #8CCB98; --secondary-soft: #1F3326;
+  --alert: #E8C46A; --alert-soft: #3A3120;
+  --celebrate: #F2C14E;
+  --on-primary: #121A24;
 }
 
 /* ===== Basic page look ===== */
@@ -551,10 +545,10 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
 }
 
 /* ===== Settings ===== */
-/* Theme options, each drawn in its own theme colors */
+/* How Pair looks: three large preview cards, each drawn in its own theme colors */
 .theme-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
 }
 
@@ -582,9 +576,33 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
 }
 
 .swatches span {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
+}
+
+/* A small card inside the preview, with sample text and a sample button */
+.theme-sample {
+  display: block;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-weight: 400;
+}
+
+.theme-sample .sample-text {
+  display: block;
+  margin: 0 0 0.5rem;
+}
+
+.theme-sample .sample-button {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 700;
 }
 
 /* Demo controls: a closed section with a tappable title */
@@ -785,12 +803,13 @@ a:focus-visible, button:focus-visible {
 }
 
 /* ===== Today on laptops: greeting banner and dashboard pieces ===== */
-/* Greeting banner: text over a flat sunset drawn with theme colors */
+/* Greeting banner: text over a simple mountain scene drawn with theme colors */
 .banner {
   position: relative;
   overflow: hidden;
   margin-bottom: 1.5rem;
   padding: 2rem;
+  border: 1px solid var(--border);
   border-radius: 12px;
 }
 
@@ -801,10 +820,12 @@ a:focus-visible, button:focus-visible {
   height: 100%;
 }
 
-.banner-art .sky { fill: var(--alert-soft); }
-.banner-art .sun { fill: var(--alert); opacity: 0.35; }
-.banner-art .hill-back { fill: var(--secondary-soft); }
-.banner-art .hill-front { fill: var(--primary-soft); }
+.banner-art .sky { fill: var(--surface); }
+.banner-art .far { fill: var(--primary-soft); }
+.banner-art .near { fill: var(--primary); }
+.banner-art .snow { fill: #FFFFFF; }
+.banner-art .pole { stroke: var(--muted); stroke-width: 3; }
+.banner-art .flag { fill: var(--celebrate); }
 
 /* Text sits above the picture */
 .banner-text {
@@ -860,29 +881,6 @@ a:focus-visible, button:focus-visible {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1rem;
-}
-
-/* Theme switcher links in the top bar; the current one is bold with a border */
-.theme-switcher {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.theme-switcher a {
-  display: flex;
-  align-items: center;
-  min-height: 48px;
-  padding: 0 0.75rem;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  color: var(--muted);
-  text-decoration: none;
-}
-
-.theme-switcher a[aria-current] {
-  border-color: var(--primary);
-  color: var(--primary);
-  font-weight: 700;
 }
 
 /* ===== Show some things only on phones, others only on laptops ===== */

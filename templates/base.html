@@ -44,13 +44,6 @@
           <span>Me</span>
         </a>
       </nav>
-
-      <!-- Theme switcher (laptop top bar only) -->
-      <nav class="theme-switcher desktop-only" aria-label="Theme">
-        {% for t in themes %}
-          <a href="{{ url_for('set_theme', name=t) }}" {% if t == theme %}aria-current="true"{% endif %}>{{ t | capitalize }}</a>
-        {% endfor %}
-      </nav>
     </div>
   </header>
 

@@ -19,7 +19,7 @@ app.secret_key = os.getenv("SECRET_KEY")
 app.register_blueprint(google_health.google)
 
 # The themes a user can pick from
-THEMES = ["calm", "colorful", "bright", "dark"]
+THEMES = ["calm", "bright", "dark"]
 
 # The five feelings on the Check in page
 FEELINGS = ["Calm", "Okay", "Tired", "Worried", "Overwhelmed"]
@@ -33,7 +33,8 @@ SOURCES = {"sample": "Sample data", "google": "Google Health"}
 @app.context_processor
 def add_settings():
     return {"themes": THEMES,
-            "theme": session.get("theme", "calm"),
+            # An old or unknown theme (for example "colorful") shows as Calm
+            "theme": session.get("theme") if session.get("theme") in THEMES else "calm",
             "data_source": session.get("data_source", "sample"),
             "show_banner": session.get("banner", True),
             "show_streak": session.get("streak", True)}

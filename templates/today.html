@@ -4,14 +4,17 @@
 {% block main_class %}dashboard{% endblock %}
 
 {% block content %}
-  <!-- Greeting banner (laptops only, can be turned off on Me): "Hi Jordan" and the date over a flat sunset -->
+  <!-- Greeting banner (laptops only, can be turned off on Me): "Hi Jordan" and the date over a
+       simple mountain scene: a far range, a near peak with a snow cap, and a small gold flag on top -->
   {% if show_banner %}
     <section class="banner desktop-only">
       <svg class="banner-art" viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
         <rect class="sky" width="1200" height="200"/>
-        <circle class="sun" cx="900" cy="150" r="70"/>
-        <path class="hill-back" d="M0 140 Q300 80 600 130 T1200 120 V200 H0 Z"/>
-        <path class="hill-front" d="M0 170 Q400 120 800 165 T1200 160 V200 H0 Z"/>
+        <path class="far" d="M0 200 V170 L250 150 L420 162 L640 105 L760 135 L880 95 L1040 140 L1200 110 V200 Z"/>
+        <path class="near" d="M600 200 L780 130 L840 150 L960 75 L1200 200 Z"/>
+        <path class="snow" d="M960 75 L933 92 L948 89 L961 97 L974 89 L994 92 Z"/>
+        <line class="pole" x1="960" y1="75" x2="960" y2="45"/>
+        <path class="flag" d="M960 45 L988 52 L960 59 Z"/>
       </svg>
       <div class="banner-text">
         <p class="banner-greeting">Hi {{ person.first_name }}</p>
