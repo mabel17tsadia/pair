@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+
+{% block content %}
+  <!-- Page title and a short note that these goals are personal -->
+  <h1>My climb this week</h1>
+  <p class="note">Your own goals, just for you. Each goal you reach is a flag on the way up.</p>
+
+  <!-- The mountain, the encouraging message and how many flags are reached.
+       At the summit the card glows (unless Celebrations is Off). -->
+  <section class="card climb-card{{ ' summit-glow' if climb.summit and celebrations != 'off' }}">
+    {% include "partials/climb_mountain.html" %}
+    <p class="climb-message">{{ message }}</p>
+    <p class="note">{{ climb.reached }} of {{ climb.total }} flags</p>
+  </section>
+
+  <!-- The goals, in the same order as the flags: progress, who added it, and how to reach it -->
+  {% set units = {"steps_usual": "day", "late_screen_under_30": "night", "sleep_usual": "night",
+                  "laundry": "load", "checkins": "check in"} %}
+  <section class="card">
+    <h2>My goals</h2>
+    <ul class="goal-list">
+      {% for g in climb.flags %}
+        <li>
+          <div>
+            <strong class="icon-line">{% if g.done %}{{ icon("check") }}{% endif %}{{ g.goal }}</strong>
+            <span class="note">
+              {% if g.rule in units %}{{ g.progress }} of {{ g.target }} {{ units[g.rule] }}{{ "s" if g.target != 1 }}{% else %}{{ "Done" if g.done else "Not done yet" }}{% endif %}
+              · Added by {{ "you" if g.added_by == "me" else g.added_by }}
+            </span>
+          </div>
+          {% if g.rule == "done" and not g.done %}
+            <form method="post" action="{{ url_for('climb_done') }}">
+              <input type="hidden" name="goal" value="{{ g.goal }}">
+              <button type="submit" class="btn-secondary">Done</button>
+            </form>
+          {% elif g.rule == "checkins" and not g.done %}
+            <a class="btn-secondary" href="{{ url_for('checkin') }}">Check in</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <!-- My badges: one for each week the summit was reached (personal only, never compared) -->
+  <section class="card">
+    <h2>My badges</h2>
+    {% if badges %}
+      <ul class="badge-list">{% for b in badges %}<li class="badge">{{ icon("flag") }} {{ b }}</li>{% endfor %}</ul>
+    {% else %}
+      <p>Your summit badges will show here.</p>
+    {% endif %}
+  </section>
+
+  <!-- Confetti, only the moment the summit is first reached and only if Celebrations is Big -->
+  {% if new_badge and celebrations == "big" %}
+    <script src="{{ url_for('static', filename='js/confetti.js') }}"></script>
+  {% endif %}
+{% endblock %}

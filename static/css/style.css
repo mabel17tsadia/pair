@@ -972,6 +972,159 @@ a:focus-visible, button:focus-visible {
   }
 }
 
+/* ===== My climb ===== */
+/* The mountain: soft fill with a primary outline, and a dotted path up the slope */
+.climb-art {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.climb-mountain {
+  fill: var(--primary-soft);
+  stroke: var(--primary);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.climb-path {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 3;
+  stroke-dasharray: 1 9;
+  stroke-linecap: round;
+}
+
+/* Flags: open ones are outlined, reached ones filled green with a check; the summit flag is gold */
+.flag-pole {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.flag.open .flag-cloth {
+  fill: var(--surface);
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+
+.flag.reached .flag-cloth {
+  fill: var(--secondary);
+  stroke: var(--secondary);
+  stroke-width: 2;
+}
+
+.flag.summit .flag-cloth {
+  stroke: var(--celebrate);
+  stroke-width: 3;
+}
+
+.flag.summit.reached .flag-cloth {
+  fill: var(--celebrate);
+}
+
+.flag-check {
+  fill: none;
+  stroke: var(--secondary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* "You are here": a round marker on the highest reached flag */
+.climb-marker {
+  fill: var(--primary);
+  stroke: var(--surface);
+  stroke-width: 3;
+}
+
+.climb-message {
+  margin: 1rem 0 0;
+  font-family: "Lexend", system-ui, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.climb-card .note {
+  text-align: center;
+}
+
+/* Summit, Calm or Big celebration: a soft gold glow around the card, with no movement */
+.summit-glow {
+  border-color: var(--celebrate);
+  box-shadow: 0 0 0 3px var(--celebrate), 0 0 28px var(--celebrate);
+}
+
+/* Big celebration: the confetti canvas covers the screen but never blocks taps */
+.confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* Goal list: one roomy row per goal, with its button on the right */
+.goal-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goal-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.goal-list li:first-child {
+  border-top: none;
+}
+
+.goal-list .icon-line {
+  margin: 0;
+}
+
+/* My badges: small rounded tags with a flag icon */
+.badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--celebrate);
+  border-radius: 999px;
+  background: var(--surface);
+  font-weight: 700;
+}
+
+/* Today: the compact My climb card (a small mountain next to the count) is one big link */
+.climb-mini {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.climb-mini .climb-art {
+  max-width: 120px;
+  margin: 0;
+}
+
 /* ===== Doctor visit summary: print view ===== */
 /* Shown only on paper (for example the typed questions as plain text) */
 .print-only {

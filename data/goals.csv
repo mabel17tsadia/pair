@@ -1,0 +1,14 @@
+person_id,goal,kind,rule,target,added_by
+p1,Reach my usual steps,auto,steps_usual,4,me
+p1,Do one load of laundry,auto,laundry,1,me
+p1,Phone down before midnight,auto,late_screen_under_30,4,Dana
+p1,Check in,manual,checkins,3,me
+p1,Clean the kitchen,manual,routine,1,Mom
+p3,Reach my usual steps,auto,steps_usual,4,me
+p3,Do one load of laundry,auto,laundry,1,me
+p3,Sleep close to my usual,auto,sleep_usual,4,Coach Ben
+p3,Check in,manual,checkins,3,me
+p3,Draw something,manual,done,1,me
+p2,Reach my usual steps,auto,steps_usual,3,me
+p2,Phone down before midnight,auto,late_screen_under_30,3,me
+p2,Check in,manual,checkins,3,me

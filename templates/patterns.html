@@ -1,21 +1,9 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon %}
 
 {% block content %}
   <!-- Page title and how to read the charts -->
   <h1>Patterns</h1>
   <p>Your last 21 days. The shaded band is your usual range. The last 5 days are highlighted.</p>
-
-  <!-- Movement streak: days in a row at or above the person's own usual steps (personal only;
-       hidden when steps are not paired or the setting is off) -->
-  {% if streak is not none %}
-    <section class="card soft-card">
-      <h2>Movement streak</h2>
-      <p class="icon-line">{{ icon("footprints") }}
-        {% if streak >= 1 %}You have reached your usual movement {{ streak }} day{{ "s" if streak != 1 }} in a row.
-        {% else %}A new streak can start any day.{% endif %}</p>
-    </section>
-  {% endif %}
 
   <!-- One card per signal from a paired device: a plain sentence, then its chart -->
   {% for t in trends %}

@@ -27,12 +27,19 @@
     </div>
   </section>
 
-  <!-- Setting: show or hide the movement streak card on Patterns (on by default) -->
-  <form method="post" action="{{ url_for('toggle_streak') }}" class="card">
-    <h2>Show movement streak</h2>
-    <p>Shows how many days in a row you reached your own usual movement, on the Patterns page.
-      It is <strong>{{ "on" if show_streak else "off" }}</strong>.</p>
-    <button type="submit" class="btn-secondary">{{ "Turn it off" if show_streak else "Turn it on" }}</button>
+  <!-- Celebrations: how big the summit celebration on My climb is (always calm if the device asks for less motion) -->
+  <form method="post" action="{{ url_for('set_celebrations') }}" class="card">
+    <fieldset class="choices">
+      <legend>Celebrations</legend>
+      {% for key, label, meaning in [("big", "Big", "Confetti"), ("calm", "Calm", "A soft glow, no movement"), ("off", "Off", "Message only")] %}
+        <label class="choice">
+          <input type="radio" name="celebrations" value="{{ key }}" class="visually-hidden"
+                 {% if key == celebrations %}checked{% endif %}>
+          <span class="choice-box">{{ label }}<br><span class="note">{{ meaning }}</span></span>
+        </label>
+      {% endfor %}
+    </fieldset>
+    <button type="submit" class="btn-primary">Save</button>
   </form>
 
   <!-- Link to Paired devices -->

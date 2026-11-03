@@ -1,0 +1,16 @@
+<!-- Climb mountain (expects "climb" from climb_for() in app.py): a dotted path up the slope with one flag
+     per goal. Reached flags are filled with a check mark, the others outlined; the summit flag is gold;
+     a small round marker sits on the highest reached flag. -->
+<svg class="climb-art" viewBox="0 0 400 300" role="img"
+     aria-label="Mountain with {{ climb.total }} flags. {{ climb.reached }} of {{ climb.total }} reached.">
+  <path class="climb-mountain" d="M20 280 L200 30 L380 280 Z"/>
+  <polyline class="climb-path" points="{{ climb.path }}"/>
+  {% for f in climb.flags %}
+    <g class="flag {{ 'reached' if f.done else 'open' }}{{ ' summit' if loop.last }}">
+      <line class="flag-pole" x1="{{ f.x }}" y1="{{ f.y }}" x2="{{ f.x }}" y2="{{ f.y - 26 }}"/>
+      <path class="flag-cloth" d="M{{ f.x }} {{ f.y - 26 }} L{{ f.x + 20 }} {{ f.y - 20 }} L{{ f.x }} {{ f.y - 14 }} Z"/>
+      {% if f.done %}<path class="flag-check" d="M{{ f.x - 18 }} {{ f.y - 6 }} l4 4 l8 -9"/>{% endif %}
+    </g>
+  {% endfor %}
+  {% if climb.marker %}<circle class="climb-marker" cx="{{ climb.marker.x }}" cy="{{ climb.marker.y }}" r="7"/>{% endif %}
+</svg>

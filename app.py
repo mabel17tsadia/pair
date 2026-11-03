@@ -3,7 +3,8 @@ from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, render_template_string, session, redirect, request, url_for, abort, flash
 import data
-from patterns import get_patterns, get_trends, movement_streak, feeling_counts, RECENT_DAYS
+from patterns import get_patterns, get_trends, feeling_counts, RECENT_DAYS
+from goals import get_goals, days_left, week_name
 from pace import format_minutes
 from ai import explain_week, explain_for_doctor
 import google_health
@@ -24,12 +25,18 @@ THEMES = ["calm", "bright", "dark"]
 # The five feelings on the Check in page
 FEELINGS = ["Calm", "Okay", "Tired", "Worried", "Overwhelmed"]
 
+# How the summit is celebrated on My climb (Calm is the default)
+CELEBRATIONS = {"big": "Big", "calm": "Calm", "off": "Off"}
+
+# Two earlier summit badges for Theo, so the demo badge collection is not empty
+SAMPLE_BADGES = {"p3": ["Summit · Week of 19 October", "Summit · Week of 26 October"]}
+
 # Data sources in the hidden Demo controls
 SOURCES = {"sample": "Sample data", "google": "Google Health"}
 
 
 # Give every template the theme list and the user's settings
-# (calm theme, sample data, greeting banner and movement streak on, if nothing picked yet)
+# (calm theme, sample data, greeting banner on and calm celebrations, if nothing picked yet)
 @app.context_processor
 def add_settings():
     return {"themes": THEMES,
@@ -37,7 +44,7 @@ def add_settings():
             "theme": session.get("theme") if session.get("theme") in THEMES else "calm",
             "data_source": session.get("data_source", "sample"),
             "show_banner": session.get("banner", True),
-            "show_streak": session.get("streak", True)}
+            "celebrations": session.get("celebrations", "calm")}
 
 
 # Template filter: minutes as "6 h 40 min"
@@ -161,6 +168,46 @@ def week_text(person, patterns):
     return daily_cache("week", person, lambda: explain_week(person, patterns))
 
 
+# ===== My climb =====
+# Flag positions on the climb mountain (400 x 300, peak at 200,30): goals go from the bottom
+# (first) to the summit (last), zig-zagging up the slope, and the dotted path joins them
+def climb_flags(goals):
+    flags = []
+    for i, g in enumerate(goals):
+        y = 255 - i * 210 / max(len(goals) - 1, 1)
+        half_width = (y - 30) / 250 * 180
+        x = 200 if i == len(goals) - 1 else 200 + (-1 if i % 2 == 0 else 1) * half_width * 0.45
+        flags.append({**g, "x": round(x), "y": round(y)})
+    return flags
+
+
+# This week's climb for a person: goals with progress (reached goals first, so the climb fills
+# from the bottom), flag positions, the dotted path, and how many flags are reached
+def climb_for(person):
+    done = session.get("goals_done", {}).get(person["id"], [])
+    today_checkins = sum(c["person_id"] == person["id"] for c in session.get("checkins", []))
+    goals = sorted(get_goals(person["id"], done, today_checkins), key=lambda g: not g["done"])
+    flags = climb_flags(goals)
+    reached = sum(g["done"] for g in goals)
+    return {"flags": flags, "reached": reached, "total": len(goals),
+            "summit": bool(goals) and reached == len(goals),
+            "path": " ".join(["200,280"] + [f"{f['x']},{f['y']}" for f in flags]),
+            "marker": flags[reached - 1] if reached else None}
+
+
+# One encouraging line for the climb (never "failed" or "missed")
+def climb_message(climb):
+    left = climb["total"] - climb["reached"]
+    if climb["summit"]:
+        return "You reached the summit this week!"
+    if climb["reached"] * 2 >= climb["total"]:
+        return f"Nice climbing. {left} more flag{'s' if left != 1 else ''} to the summit."
+    days = days_left()
+    if days:
+        return f"Every step counts. You have {days} day{'s' if days != 1 else ''} left."
+    return "Every step counts. A new week starts tomorrow."
+
+
 # ===== Trust circle =====
 # The four access levels: a short name and what that person sees, in plain words
 LEVELS = {
@@ -252,7 +299,7 @@ def today():
     # The laundry picture steps, opened from the "No laundry" note (None if this person has none)
     laundry = next((i for i, t in enumerate(tasks_for(person)) if t["title"] == "Laundry"), None)
     patterns = get_patterns(pid, devices_for(person))
-    return render_template("today.html", title="Today", person=person,
+    return render_template("today.html", title="Today", person=person, climb=climb_for(person),
                            day=f"{d:%A} {d.day} {d:%B}", patterns=patterns,
                            week=week_text(person, patterns),
                            laundry_index=laundry, circle=circle_for(person),
@@ -295,18 +342,15 @@ def checkin():
     return render_template("checkin.html", title="Check in", feelings=FEELINGS, checkins=mine)
 
 
-# Patterns: a movement streak card (if steps come from a paired device and the setting is on), then
-# a 21 day line chart for each signal from a paired device, with the usual range shaded, the last
-# 5 days highlighted and one plain sentence above it
+# Patterns: a 21 day line chart for each signal from a paired device, with the usual range
+# shaded, the last 5 days highlighted and one plain sentence above it
 @app.route("/patterns")
 def patterns():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
     trends = get_trends(person["id"], devices_for(person))
-    steps = next((t for t in trends if t["signal"] == "steps"), None)
-    streak = movement_streak(steps, data.get_today()) if steps and session.get("streak", True) else None
-    return render_template("patterns.html", title="Patterns", streak=streak,
+    return render_template("patterns.html", title="Patterns",
                            trends=[{**t, "chart": trend_chart(t["values"], t["usual"])} for t in trends])
 
 
@@ -437,6 +481,41 @@ def doctor_send():
     return redirect(url_for("doctor"))
 
 
+# My climb this week: the mountain with one flag per goal, the goal list, the summit message and
+# My badges. The first time the summit is reached this week, a badge is added and celebrated.
+@app.route("/climb")
+def climb():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    pid = person["id"]
+    climb = climb_for(person)
+    all_badges = session.get("badges", {})
+    badge = f"Summit · {week_name()}"
+    new_badge = climb["summit"] and badge not in all_badges.get(pid, [])
+    if new_badge:
+        all_badges[pid] = all_badges.get(pid, []) + [badge]
+        session["badges"] = all_badges
+    return render_template("climb.html", title="My climb this week", climb=climb,
+                           message=climb_message(climb), new_badge=new_badge,
+                           badges=SAMPLE_BADGES.get(pid, []) + all_badges.get(pid, []))
+
+
+# Done button for a manual "done" goal (saved in the session for this person)
+@app.route("/climb/done", methods=["POST"])
+def climb_done():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    name = request.form.get("goal")
+    if any(g["goal"] == name and g["rule"] == "done" for g in data.get_goals(person["id"])):
+        all_done = session.get("goals_done", {})
+        all_done[person["id"]] = list(set(all_done.get(person["id"], []) + [name]))
+        session["goals_done"] = all_done
+        flash(f"{name}: done. Nice work.")
+    return redirect(url_for("climb"))
+
+
 # Me: the person, what drains and calms them, and links to My body today and Settings
 @app.route("/me")
 def me():
@@ -544,11 +623,12 @@ def debug(person_id):
     return "<br>".join(lines + [f"get_today: {data.get_today()}"])
 
 
-# Settings: turn the movement streak on the Patterns page on or off
-@app.route("/streak", methods=["POST"])
-def toggle_streak():
-    session["streak"] = not session.get("streak", True)
-    flash("Movement streak turned " + ("on." if session["streak"] else "off."))
+# Settings: how big the summit celebration is (Big = confetti, Calm = soft glow, Off = message only)
+@app.route("/celebrations", methods=["POST"])
+def set_celebrations():
+    if request.form.get("celebrations") in CELEBRATIONS:
+        session["celebrations"] = request.form["celebrations"]
+        flash(f"Celebrations set to {CELEBRATIONS[session['celebrations']]}.")
     return redirect(url_for("settings"))
 
 

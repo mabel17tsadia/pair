@@ -91,3 +91,8 @@ def get_checkins(person_id):
 # The latest date in signals.csv; the app treats it as "today" so the demo works on any day
 def get_today():
     return read_csv("signals.csv")["date"].max()
+
+
+# A person's weekly goals (goal, kind, rule, target, added_by) in the order they were added
+def get_goals(person_id):
+    return rows_for("goals.csv", person_id)
