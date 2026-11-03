@@ -112,6 +112,11 @@ def read_days(token):
             for d in sorted(set(sleep) | set(steps))]
 
 
+# True if this browser is signed in to Google Health
+def is_connected():
+    return session.get("google_key") in TOKENS
+
+
 # The signed-in person's recent days, or an empty list if not signed in or anything fails
 def recent_days():
     token = TOKENS.get(session.get("google_key"))
@@ -132,31 +137,33 @@ def login():
 
 
 # Sign-in, step 2: Google sends the person back here with a one-time code
-# (or with an error, for example if they said no)
+# (or with an error, for example if they said no). Then go back to Settings, or to
+# Paired devices if sign-in started there.
 @google.route("/callback")
 def callback():
+    back = url_for("devices" if session.pop("google_from_devices", False) else "settings")
     if request.args.get("state") != session.pop("google_state", None) or "code" not in request.args:
         flash("Google sign-in did not finish. Showing sample data.")
-        return redirect(url_for("settings"))
+        return redirect(back)
     try:
         token = exchange_code(request.args["code"])
     except Exception as error:
         log_error("Google sign-in", error)
         flash("Google sign-in did not work. Showing sample data.")
-        return redirect(url_for("settings"))
+        return redirect(back)
     # Keep the token in server memory; the browser only gets a random key that points to it
     session["google_key"] = secrets.token_hex(16)
     TOKENS[session["google_key"]] = token
     flash("Connected to Google Health.")
-    return redirect(url_for("settings"))
+    return redirect(back)
 
 
-# Disconnect: delete the token from server memory
+# Disconnect: delete the token from server memory, then go back to the page the button was on
 @google.route("/disconnect", methods=["POST"])
 def disconnect():
     TOKENS.pop(session.pop("google_key", None), None)
     flash("Disconnected from Google Health. Showing sample data.")
-    return redirect(url_for("settings"))
+    return redirect(url_for("devices" if request.form.get("back") == "devices" else "settings"))
 
 
 # Test page: only how many days of sleep and steps came back, never the data itself
@@ -164,6 +171,6 @@ def disconnect():
 def test():
     days = recent_days()
     return render_template("google_test.html", title="Google Health test",
-                           connected=session.get("google_key") in TOKENS,
+                           connected=is_connected(),
                            sleep_days=sum(1 for d in days if d["sleep_min"]),
                            step_days=sum(1 for d in days if d["steps"]))

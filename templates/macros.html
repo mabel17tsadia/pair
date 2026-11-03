@@ -12,6 +12,9 @@
   {% elif name == "footprints" %}<ellipse cx="8" cy="8" rx="2.5" ry="4"/><ellipse cx="16" cy="13" rx="2.5" ry="4"/><path d="M7 15h2M15 20h2"/>
   {% elif name == "phone" %}<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18h2"/>
   {% elif name == "door" %}<path d="M4 21h16M7 21V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v17M14 12h.01"/>
+  {# Device kinds for Paired devices ("phone" is above) #}
+  {% elif name == "home" %}<path d="M3 11l9-7 9 7M5 9.5V20h14V9.5M10 20v-5h4v5"/>
+  {% elif name == "wearable" %}<rect x="7" y="7" width="10" height="10" rx="3"/><path d="M9 7l1-4h4l1 4M9 17l1 4h4l1-4"/>
   {% elif name == "leaf" %}<path d="M5 19C5 10 10 5 20 4c0 10-5 15-14 15M5 19l7-7"/>
   {# Feeling faces for Check in #}
   {% elif name == "face-calm" %}<circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M8.5 14.5a4 4 0 0 0 7 0"/>

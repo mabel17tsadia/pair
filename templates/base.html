@@ -39,7 +39,7 @@
           <span>Circle</span>
         </a>
         <!-- Me link (person icon) -->
-        <a href="{{ url_for('me') }}" {% if request.endpoint in ['me', 'body', 'settings'] %}aria-current="page"{% endif %}>
+        <a href="{{ url_for('me') }}" {% if request.endpoint in ['me', 'body', 'settings', 'devices', 'pair_device'] %}aria-current="page"{% endif %}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
           <span>Me</span>
         </a>

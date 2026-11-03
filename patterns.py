@@ -22,8 +22,9 @@ def about(minutes):
     return f"{round(minutes)} minutes"
 
 
-# Compare a person's recent days with their usual days and describe what changed
-def get_patterns(person_id):
+# Compare a person's recent days with their usual days and describe what changed.
+# "devices" are the person's current pairing choices; if not given, the CSV is used.
+def get_patterns(person_id, devices=None):
     rows = data.get_signals(person_id)
     result = {"status": "Still learning your usual", "change_count": 0, "changes": [],
               "positive_notes": [], "routine_notes": [],
@@ -39,7 +40,8 @@ def get_patterns(person_id):
 
     # Signals the person's paired devices provide (only these are checked).
     # "time out of home" only comes from the "Time away from home" device.
-    signals = {s for d in data.get_devices(person_id) if d["paired"] for s in d["signals"]}
+    devices = devices if devices is not None else data.get_devices(person_id)
+    signals = {s for d in devices if d["paired"] for s in d["signals"]}
 
     # Add one change with its plain words, usual value and recent value
     def change(col, words):

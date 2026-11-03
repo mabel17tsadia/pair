@@ -59,6 +59,12 @@ def hours_filter(minutes):
     return format_minutes(minutes)
 
 
+# Template filter: a list as plain words, like "sleep, steps and unlocks"
+@app.template_filter("words")
+def words_filter(items):
+    return " and ".join([", ".join(items[:-1]), items[-1]]) if len(items) > 1 else "".join(items)
+
+
 # Template filter: "2026-10-28" as "Wed 28"
 @app.template_filter("day")
 def day_filter(text):
@@ -102,6 +108,35 @@ def tasks_for(person):
     return sorted(tasks, key=lambda t: t["time"] or "99:99")
 
 
+# Paired devices. A real product would connect through each maker's official app or account.
+# Here all device data is simulated from the CSV files; only the optional Google Health card
+# is a real sign in (see google_health.py), and its data is not used for patterns yet.
+GOOGLE_DEVICE = "Google Health (Fitbit, Pixel Watch)"
+
+
+# A person's devices with their current pairing choices from the session (the CSV never changes)
+def devices_for(person):
+    choices = session.get("paired", {}).get(person["id"], {})
+    devices = data.get_devices(person["id"])
+    for d in devices:
+        d["paired"] = choices.get(d["device"], d["paired"])
+    return devices
+
+
+# The devices above plus the Google Health card, paired when this browser is signed in to Google
+def device_cards(person):
+    google = {"device": GOOGLE_DEVICE, "kind": "wearable", "signals": ["sleep", "steps"],
+              "connects_through": "Your Google account", "paired": google_health.is_connected()}
+    return devices_for(person) + [google]
+
+
+# Save one pairing choice for this person in the session
+def set_paired(person, name, paired):
+    choices = session.get("paired", {})
+    choices.setdefault(person["id"], {})[name] = paired
+    session["paired"] = choices
+
+
 # Daily rows (date, sleep_min, steps), heart readings and a short note about the source.
 # Uses only Google Health days when Demo controls say so and Google returned at least one day;
 # otherwise only sample data (never a mix). Heart rate always comes from the sample data.
@@ -143,7 +178,7 @@ def today():
     # The laundry picture steps, opened from the "No laundry" note (None if this person has none)
     laundry = next((i for i, t in enumerate(tasks_for(person)) if t["title"] == "Laundry"), None)
     return render_template("today.html", title="Today", person=person,
-                           day=f"{d:%A} {d.day} {d:%B}", patterns=get_patterns(pid),
+                           day=f"{d:%A} {d.day} {d:%B}", patterns=get_patterns(pid, devices_for(person)),
                            laundry_index=laundry, circle=data.get_circle(pid),
                            last_checkin=checkins[-1] if checkins else None)
 
@@ -295,7 +330,51 @@ def settings():
         flash(f"Data source set to {SOURCES[request.form['source']]}.")
         return redirect(url_for("settings"))
     return render_template("settings.html", title="Settings", sources=SOURCES,
-                           google_connected=session.get("google_key") in google_health.TOKENS)
+                           google_connected=google_health.is_connected())
+
+
+# Paired devices: the person's devices in two groups, Paired and Available to pair
+@app.route("/devices")
+def devices():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    cards = device_cards(person)
+    return render_template("devices.html", title="Paired devices", google_name=GOOGLE_DEVICE,
+                           paired=[d for d in cards if d["paired"]],
+                           available=[d for d in cards if not d["paired"]])
+
+
+# Consent page for pairing one device: what Pair reads, never reads, and who can see it.
+# "Pair" saves the choice (or, for Google Health, goes to the Google sign in).
+@app.route("/devices/pair/<name>", methods=["GET", "POST"])
+def pair_device(name):
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    device = next((d for d in device_cards(person) if d["device"] == name), None)
+    if not device:
+        abort(404)
+    if request.method == "POST":
+        if name == GOOGLE_DEVICE:
+            session["google_from_devices"] = True
+            return redirect(url_for("google.login"))
+        set_paired(person, name, True)
+        flash(f"{name} is paired.")
+        return redirect(url_for("devices"))
+    return render_template("pair.html", title=f"Pair {name}", device=device)
+
+
+# Stop pairing one device (Google Health uses its own Disconnect button instead)
+@app.route("/devices/stop/<name>", methods=["POST"])
+def stop_pairing(name):
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    if any(d["device"] == name for d in devices_for(person)):
+        set_paired(person, name, False)
+        flash(f"Stopped pairing {name}. Pair no longer reads it.")
+    return redirect(url_for("devices"))
 
 
 # Temporary check (Stage P3): the patterns result for every demo person, in plain text

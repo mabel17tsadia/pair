@@ -22,6 +22,11 @@
     </div>
   </section>
 
+  <!-- Link to Paired devices -->
+  <nav class="card link-list" aria-label="Devices">
+    <a href="{{ url_for('devices') }}">Paired devices <span aria-hidden="true">›</span></a>
+  </nav>
+
   <!-- Demo controls: closed unless Google Health is chosen; switch the data source for testing -->
   <details class="card demo-controls" {% if data_source == "google" %}open{% endif %}>
     <summary>Demo controls</summary>
