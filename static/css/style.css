@@ -611,14 +611,7 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   fill: var(--primary);
 }
 
-/* Dashed line for the usual resting heart rate */
-.chart-usual {
-  stroke: var(--secondary);
-  stroke-width: 2;
-  stroke-dasharray: 6 6;
-}
-
-/* The heart rate line itself */
+/* The chart line itself */
 .chart-line {
   fill: none;
   stroke: var(--primary);
@@ -1038,11 +1031,6 @@ a:focus-visible, button:focus-visible {
   gap: 0.5rem;
   min-height: 48px;
   color: var(--text);
-}
-
-/* Small heart chart in the side column: hide its tiny labels (the text below says the numbers) */
-.chart-small .chart text {
-  display: none;
 }
 
 /* Coach view: week cards side by side, as many as fit (one column on phones) */

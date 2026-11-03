@@ -123,7 +123,7 @@ def get_trends(person_id, devices=None):
 
 
 # How often each mood and each body feeling came up in some check ins, most common first,
-# for example {"moods": [("Low", 2)], "body": [("Tired", 4), ("Headache", 2)]} ("none" is left out)
+# for example {"moods": [("Worried", 2)], "body": [("Tired", 4), ("Headache", 2)]} ("none" is left out)
 def feeling_counts(checkins):
     moods = Counter(c["mood"].capitalize() for c in checkins if c["mood"])
     body = Counter(b.capitalize() for c in checkins for b in c["body"] if b != "none")

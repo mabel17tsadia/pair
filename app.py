@@ -5,6 +5,7 @@ from flask import Flask, render_template, render_template_string, session, redir
 import data
 from patterns import get_patterns, get_trends, feeling_counts, RECENT_DAYS
 from goals import get_goals, days_left, week_name
+from vitals import get_body_signals
 from pace import format_minutes
 from ai import explain_week, explain_for_doctor, respond_to_checkin, suggest_questions, suggest_steps
 import google_health
@@ -90,20 +91,6 @@ def day_filter(text):
     return f"{d:%a} {d.day}"
 
 
-# Turn heart rate readings into points for a simple SVG line chart (600 x 240).
-# Values run from y=200 (lowest) up to y=20 (highest); time runs from x=50 to x=570.
-def heart_chart(heart, usual):
-    bpms = [h["bpm"] for h in heart]
-    low, high = min(bpms + [usual]) - 5, max(bpms + [usual]) + 5
-    to_y = lambda bpm: round(200 - (bpm - low) / (high - low) * 180)
-    step = 520 / (len(bpms) - 1)
-    points = " ".join(f"{round(50 + i * step)},{to_y(b)}" for i, b in enumerate(bpms))
-    return {"points": points, "usual": usual, "usual_y": to_y(usual), "low": low, "high": high,
-            "min": min(bpms), "max": max(bpms), "average": round(sum(bpms) / len(bpms)),
-            "first": heart[0]["time"][-5:], "middle": heart[len(heart) // 2]["time"][-5:],
-            "last": heart[-1]["time"][-5:]}
-
-
 # Points for one Patterns line chart (600 x 200): values run from y=170 (lowest) up to y=20
 # (highest) and days from x=50 to x=580. Also the usual band (usual average plus or minus 10%)
 # and where the highlighted last 5 days start.
@@ -119,16 +106,10 @@ def trend_chart(values, usual):
 
 
 # The person picked on the home page (a demo person, or someone who signed up), or None.
-# For now it also adds two values the old pace rule, heart chart and Body page need:
-# usual sleep (average sleep_min in signals.csv) and a fixed usual heart rate of 68.
-# Both go away when patterns.py replaces the pace rule.
 def current_person():
     pid = session.get("person_id")
     person = dict(session["new_person"]) if pid == NEW_ID and session.get("new_person") else data.get_person(pid)
     if person:
-        sleep = [s["sleep_min"] for s in data.get_signals(person["id"])]
-        person["usual_sleep_min"] = round(sum(sleep) / len(sleep)) if sleep else 0
-        person["usual_resting_hr"] = 68
         # Drains and calms the person edited on Me (kept in the session)
         person.update(saved("profile", person["id"], {}))
     return person
@@ -302,18 +283,6 @@ def shared_view(access, patterns, celebrations):
     return lines + celebrations
 
 
-# Daily rows (date, sleep_min, steps), heart readings and a short note about the source.
-# Uses only Google Health days when Demo controls say so and Google returned at least one day;
-# otherwise only sample data (never a mix). Heart rate always comes from the sample data.
-def body_data(person):
-    heart = data.get_heart(person["id"])
-    if session.get("data_source") == "google":
-        days = google_health.recent_days()
-        if days:
-            return days, heart, "From Google Health"
-    return data.get_daily(person["id"]), heart, "Showing sample data"
-
-
 # Home page: choose which demo person to use
 @app.route("/")
 def choose():
@@ -410,6 +379,7 @@ def today():
     return render_template("today.html", title="Today", person=person, climb=climb_for(person),
                            day=f"{d:%A} {d.day} {d:%B}", patterns=patterns,
                            week=week_text(person, patterns),
+                           body_signals=get_body_signals(pid, devices_for(person)),
                            laundry_index=laundry, circle=circle_for(person),
                            last_checkin=checkins[-1] if checkins else None)
 
@@ -832,23 +802,16 @@ def me_edit():
     return redirect(url_for("me"))
 
 
-# My body today: heart rate line chart, plus sleep and steps for the last 7 days
+# My body signals: one card per paired vital (resting heart rate, glucose) with a 21 day line
+# (the same chart as Patterns), a plain sentence and where it comes from. Read only.
 @app.route("/body")
 def body():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
-    daily, heart, source_note = body_data(person)
-    if not daily or not heart:
-        flash("No body data yet. Pair needs about 10 days to learn your usual.")
-        return redirect(url_for("patterns"))
-    week = daily[-7:]
-    # Bar lengths are relative to the biggest day (at least 1, so we never divide by 0)
-    return render_template("body.html", title="My body today", person=person,
-                           chart=heart_chart(heart, person["usual_resting_hr"]),
-                           daily=week, source_note=source_note,
-                           max_sleep=max(d["sleep_min"] for d in week) or 1,
-                           max_steps=max(d["steps"] for d in week) or 1)
+    signals = get_body_signals(person["id"], devices_for(person))
+    return render_template("body.html", title="My body signals",
+                           signals=[{**v, "chart": trend_chart(v["values"], v["usual"])} for v in signals])
 
 
 # Settings: theme choice, plus hidden Demo controls for the data source

@@ -13,7 +13,7 @@
     {% if device.device == "Time away from home" %}
       <p>Pair only counts minutes away from home. It never stores or shows a map.</p>
     {% endif %}
-    {% if device.kind == "wearable" %}
+    {% if device.kind in ["wearable", "health device"] %}
       <p>Optional. Pair works without it.</p>
     {% endif %}
 

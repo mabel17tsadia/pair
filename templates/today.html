@@ -73,6 +73,18 @@
         <a class="text-link" href="{{ url_for('patterns') }}">See my patterns</a>
       </section>
 
+      <!-- Body signals (only if a ring, watch or glucose monitor is paired): one sentence each and a
+           link to My body signals. They never change the week status. -->
+      {% if body_signals %}
+        <section class="card">
+          <h2>Body signals</h2>
+          <ul class="noticed">
+            {% for v in body_signals %}<li>{{ icon("heart" if v.signal == "resting_hr" else "health device") }} {{ v.sentence }}</li>{% endfor %}
+          </ul>
+          <a class="text-link" href="{{ url_for('body') }}">See my body signals</a>
+        </section>
+      {% endif %}
+
       <!-- Positive notes as soft cards -->
       {% for note in patterns.positive_notes %}
         <section class="card soft-card">

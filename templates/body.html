@@ -3,32 +3,28 @@
 {% block content %}
   <!-- Link back to Me and page title -->
   <a class="text-link" href="{{ url_for('me') }}">‹ Me</a>
-  <h1>My body today</h1>
+  <h1>My body signals</h1>
 
-  <!-- Heart rate today (always sample data): a simple SVG line chart with a dashed line for the usual resting rate -->
-  <section class="card">
-    <h2>Heart rate today</h2>
-    <p class="note">Sample data</p>
-    {% include "partials/heart_chart.html" %}
-    <p>Average today: <strong>{{ chart.average }} bpm</strong>. Your usual resting heart rate is {{ chart.usual }} bpm.</p>
-  </section>
+  {% if signals %}
+    <p>Your last 21 days. The shaded band is your usual range. The last 5 days are highlighted.</p>
 
-  <!-- Last 7 days: where the data came from, then sleep and steps as words, with a small bar for each -->
-  <section class="card">
-    <h2>Last 7 days</h2>
-    <p class="note">{{ source_note }}</p>
-    <table class="week">
-      <thead><tr><th>Day</th><th>Sleep</th><th>Steps</th></tr></thead>
-      <tbody>
-        {% for d in daily %}
-          <tr>
-            <td>{{ d.date | day }}</td>
-            <td>{{ d.sleep_min | hours }}<span class="bar" aria-hidden="true"><span style="width: {{ (d.sleep_min / max_sleep * 100) | round }}%"></span></span></td>
-            <td>{{ "{:,}".format(d.steps) }}<span class="bar" aria-hidden="true"><span style="width: {{ (d.steps / max_steps * 100) | round }}%"></span></span></td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <p class="note">Your usual sleep is {{ person.usual_sleep_min | hours }}.</p>
-  </section>
+    <!-- One card per paired vital: a plain sentence, its 21 day line (same chart as Patterns) and the source -->
+    {% for t in signals %}
+      <section class="card">
+        <h2>{{ t.name }}</h2>
+        <p>{{ t.sentence }}</p>
+        {% include "partials/trend_chart.html" %}
+        <p class="note">From: {{ t.source }}</p>
+      </section>
+    {% endfor %}
+
+    <!-- Read only: readings from devices can never be changed here -->
+    <p class="note">These readings come straight from your paired devices and cannot be edited.</p>
+  {% else %}
+    <!-- Nothing paired that reads body signals -->
+    <section class="card">
+      <p>No body signals paired. Pair works fine without them.</p>
+      <a class="text-link" href="{{ url_for('devices') }}">Paired devices</a>
+    </section>
+  {% endif %}
 {% endblock %}
