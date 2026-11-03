@@ -1,9 +1,9 @@
-person_id,name,relationship,access
-p1,Mom,Family,summary
-p1,Dana,Life skills coach,wellness
-p1,Sam,Friend,checkins
-p1,Dr. Patel,Doctor,health
-p2,Dad,Family,summary
-p2,Lee,Friend,checkins
-p3,Aunt Rose,Family,summary
-p3,Coach Ben,Fitness coach,wellness
+person_id,name,relationship,access,routines
+p1,Mom,Family,summary,yes
+p1,Dana,Life skills coach,wellness,no
+p1,Sam,Friend,celebrations,no
+p1,Dr. Patel,Doctor,health,no
+p2,Dad,Family,summary,no
+p2,Lee,Friend,celebrations,no
+p3,Aunt Rose,Family,summary,no
+p3,Coach Ben,Fitness coach,wellness,no

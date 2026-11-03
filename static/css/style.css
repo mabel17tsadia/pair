@@ -438,9 +438,56 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   font-size: 1.1rem;
 }
 
-/* Opened message box under a circle person */
-.message-box[open] summary {
-  margin-bottom: 1rem;
+/* Circle: one clean list; each row (initials, name, relationship, level chip) opens an edit panel */
+.circle-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.circle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.circle-row::-webkit-details-marker {
+  display: none;
+}
+
+.circle-name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+/* The level as a small rounded chip */
+.chip {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.edit-panel {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* "What each level means": a tappable title like Demo controls */
+.levels-help summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 /* Me: list of links to more screens, each a full-width row */

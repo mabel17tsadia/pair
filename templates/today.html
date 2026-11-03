@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, signal_value, week_card %}
+{% from "macros.html" import icon, signal_value, week_card, initials %}
 
 {% block main_class %}dashboard{% endblock %}
 
@@ -104,15 +104,14 @@
 
     <!-- Right column (laptops only) -->
     <aside class="desktop-only">
-      <!-- My trust circle: initials of each person and a message button -->
+      <!-- My trust circle: initials of each person and a link to the Circle page -->
       <section class="card">
         <h2>My trust circle</h2>
         <div class="initials-row">
-          {% for c in circle %}
-            <span class="initials initials-small" title="{{ c.name }}">{{ c.name.split()[0][0] }}{{ c.name.split()[-1][0] }}</span>
-          {% endfor %}
+          {% for c in circle %}{{ initials(c.name) }}{% endfor %}
+          <span class="visually-hidden">{{ circle | map(attribute="name") | join(", ") }}</span>
         </div>
-        <a class="btn-secondary" href="{{ url_for('circle') }}">Message someone I trust</a>
+        <a class="btn-secondary" href="{{ url_for('circle') }}">Open my circle</a>
       </section>
 
       <!-- Last check in: the newest one saved, or a link to check in -->

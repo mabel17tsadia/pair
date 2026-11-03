@@ -227,12 +227,14 @@ def climb_message(climb):
 
 
 # ===== Trust circle =====
-# The four access levels: a short name and what that person sees, in plain words
+# The five levels, in dropdown order: a short name and what that person sees, in plain words.
+# Someone new starts at "Just in my circle", which shows them nothing.
 LEVELS = {
-    "checkins": ("Check ins", "Sees the mood check ins you choose to share."),
-    "summary": ("Weekly summary", "Sees your week status and summary in words, no numbers."),
-    "wellness": ("Wellness details", "Sees the summary plus your signal trends (for a coach or 360 wellness staff)."),
-    "health": ("Health summary", "Sees the doctor visit summary only when you send it."),
+    "none": ("Just in my circle", "Sees nothing."),
+    "celebrations": ("Cheers me on", "Sees my celebrations and badges only."),
+    "summary": ("Weekly summary", "Sees my week status and summary in words, no numbers, plus celebrations."),
+    "wellness": ("Wellness details", "Sees the summary, signal trends and celebrations (for a coach or 360 wellness staff)."),
+    "health": ("Health summary", "Sees the doctor visit summary only when I send it."),
 }
 
 # Each change in words with no numbers, for the Weekly summary level.
@@ -245,25 +247,27 @@ SHARE_WORDS = {"sleep_min": "Sleeping less than usual", "steps": "Walking less t
 SHARE_UNITS = {"sleep_min": "min", "steps": "steps", "late_screen_min": "min", "unlocks": "unlocks"}
 
 
-# A person's circle: people from circle.csv plus anyone added, with any level changes
-# from the session (the CSV never changes)
+# A person's circle. After the first change it is kept whole in the session (the CSV never changes).
 def circle_for(person):
-    added = session.get("circle_added", {}).get(person["id"], [])
-    levels = session.get("circle_levels", {}).get(person["id"], {})
-    members = [dict(m) for m in data.get_circle(person["id"]) + added]
-    for m in members:
-        m["access"] = levels.get(m["name"], m["access"])
-    return members
+    return [dict(m) for m in saved("circle", person["id"], None) or data.get_circle(person["id"])]
+
+
+# Celebrations a circle member may see: the summit this week (if reached) and the badges
+def celebrations_for(person):
+    climb = climb_for(person)
+    lines = ["Reached the summit this week"] if climb["summit"] else []
+    badges = SAMPLE_BADGES.get(person["id"], []) + saved("badges", person["id"], [])
+    return lines + [f"Badge: {b}" for b in badges]
 
 
 # Exactly what one member would see at their level, as a list of short lines.
-# Health summary sees nothing here (only a doctor visit summary the person sends).
-# Check in notes and time away from home are never included.
-def shared_view(access, patterns):
-    if access == "health":
+# "Just in my circle" and Health summary see nothing here (Health summary only gets a doctor
+# visit summary the person sends). Check in notes and time away from home are never included.
+def shared_view(access, patterns, celebrations):
+    if access in ["none", "health"]:
         return []
-    if access == "checkins":
-        return [f"{day_filter(c['date'])}: feeling {c['mood']}" for c in patterns["recent_checkins"]]
+    if access == "celebrations":
+        return celebrations
     lines = [f"Week: {patterns['status']}"]
     for c in patterns["changes"]:
         if c["signal"] not in SHARE_WORDS:
@@ -273,7 +277,7 @@ def shared_view(access, patterns):
             unit = SHARE_UNITS[c["signal"]]
             words += f" (usual {c['usual']:,} {unit}, last 5 days {c['recent']:,} {unit})"
         lines.append(words)
-    return lines
+    return lines + celebrations
 
 
 # Daily rows (date, sleep_min, steps), heart readings and a short note about the source.
@@ -391,12 +395,13 @@ def coach():
         if any(m["access"] == "wellness" for m in circle_for(p)):
             patterns = get_patterns(p["id"], devices_for(p))
             residents.append({"first_name": p["first_name"], "status": patterns["status"],
-                              "summary": shared_view("summary", patterns)[1:]})
+                              "summary": shared_view("summary", patterns, [])[1:],
+                              "celebrations": celebrations_for(p)})
     return render_template("coach.html", title="Coach view", residents=residents)
 
 
-# Trust circle: each person's name, relationship and access level, with a "Change" option,
-# a ready-made message to copy, and a form to add someone
+# Trust circle: one clean list (initials, name, relationship, level chip). Tapping a row opens an
+# edit panel; a form at the bottom adds someone new.
 @app.route("/circle")
 def circle():
     person = current_person()
@@ -405,38 +410,52 @@ def circle():
     return render_template("circle.html", title="Circle", circle=circle_for(person), levels=LEVELS)
 
 
-# Change one member's access level (saved in the session)
-@app.route("/circle/level", methods=["POST"])
-def circle_level():
+# Save one member's level, relationship and "Can add routines" (the whole circle goes in the session)
+@app.route("/circle/save", methods=["POST"])
+def circle_save():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
-    name, access = request.form.get("name"), request.form.get("access")
-    if access in LEVELS and any(m["name"] == name for m in circle_for(person)):
-        all_levels = session.get("circle_levels", {})
-        all_levels.setdefault(person["id"], {})[name] = access
-        session["circle_levels"] = all_levels
-        flash(f"{name} now has {LEVELS[access][0]}.")
+    members = circle_for(person)
+    member = next((m for m in members if m["name"] == request.form.get("name")), None)
+    if member and request.form.get("access") in LEVELS:
+        member.update(access=request.form["access"], routines="routines" in request.form,
+                      relationship=request.form.get("relationship", "").strip()[:40])
+        save("circle", person["id"], members)
+        flash(f"Saved. {member['name']}: {LEVELS[member['access']][0]}.")
     return redirect(url_for("circle"))
 
 
-# Add someone I trust: name, relationship and level (saved in the session)
+# Remove one member from the circle
+@app.route("/circle/remove", methods=["POST"])
+def circle_remove():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    name = request.form.get("name")
+    save("circle", person["id"], [m for m in circle_for(person) if m["name"] != name])
+    flash(f"{name} removed from your circle.")
+    return redirect(url_for("circle"))
+
+
+# Add someone I trust: only the name is needed; relationship and level are optional
+# (a new person starts at "Just in my circle")
 @app.route("/circle/add", methods=["POST"])
 def circle_add():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
+    members = circle_for(person)
     name = request.form.get("name", "").strip()[:40]
-    relationship = request.form.get("relationship", "").strip()[:40]
-    access = request.form.get("access")
-    if not name or not relationship or access not in LEVELS:
-        flash("Please add a name, a relationship and a level.")
-    elif any(m["name"] == name for m in circle_for(person)):
+    access = request.form.get("access") if request.form.get("access") in LEVELS else "none"
+    if not name:
+        flash("Please add a name.")
+    elif any(m["name"] == name for m in members):
         flash(f"{name} is already in your circle.")
     else:
-        added = session.get("circle_added", {})
-        added.setdefault(person["id"], []).append({"name": name, "relationship": relationship, "access": access})
-        session["circle_added"] = added
+        members.append({"name": name, "relationship": request.form.get("relationship", "").strip()[:40],
+                        "access": access, "routines": False})
+        save("circle", person["id"], members)
         flash(f"{name} added to your circle.")
     return redirect(url_for("circle"))
 
@@ -451,15 +470,16 @@ def share():
     members = circle_for(person)
     if request.method == "POST":
         names = [m["name"] for m in members
-                 if m["name"] in request.form.getlist("share") and m["access"] != "health"]
+                 if m["name"] in request.form.getlist("share") and m["access"] not in ["none", "health"]]
         if names:
             flash(f"Prototype: nothing was really sent. In the real app, {words_filter(names)} would now see their view.")
         else:
             flash("No one was ticked, so nothing was shared.")
         return redirect(url_for("today"))
     patterns = get_patterns(person["id"], devices_for(person))
+    celebrations = celebrations_for(person)
     return render_template("share.html", title="Share with my circle", levels=LEVELS,
-                           members=[{**m, "view": shared_view(m["access"], patterns)} for m in members])
+                           members=[{**m, "view": shared_view(m["access"], patterns, celebrations)} for m in members])
 
 
 # Prepare for a doctor visit: a one page summary of the last 14 days that the person reviews,

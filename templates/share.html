@@ -13,13 +13,16 @@
         {% if m.access == "health" %}
           <p><strong>{{ m.name }}</strong> · {{ levels[m.access][0] }}</p>
           <p class="note">Nothing to share here. {{ m.name }} only sees a doctor visit summary when you send one.</p>
+        {% elif m.access == "none" %}
+          <p><strong>{{ m.name }}</strong> · {{ levels[m.access][0] }}</p>
+          <p class="note">{{ m.name }} sees nothing. You can change this on the Circle page.</p>
         {% else %}
           <label class="share-pick">
             <input type="checkbox" name="share" value="{{ m.name }}">
             {{ m.name }} · {{ levels[m.access][0] }}
           </label>
           <ul>
-            {% for line in m.view %}<li>{{ line }}</li>{% else %}<li>Nothing to share yet.</li>{% endfor %}
+            {% for line in m.view %}<li>{{ line }}</li>{% else %}<li>Nothing to celebrate yet this week.</li>{% endfor %}
           </ul>
         {% endif %}
       </section>

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "macros.html" import initials %}
 
-{# A dropdown of the four access levels, with the current one picked #}
+{# A dropdown of the five levels, with the current one picked #}
 {% macro level_select(id, current) %}
 <select id="{{ id }}" name="access">
   {% for key, (label, meaning) in levels.items() %}
@@ -10,13 +11,13 @@
 {% endmacro %}
 
 {% block content %}
-  <!-- Page title and short intro -->
+  <!-- Page title and the one rule that matters -->
   <h1>Circle</h1>
-  <p>People you trust. You always see everything first. Nothing is shared automatically.</p>
+  <p>You choose what each person sees. Nothing is shared without you.</p>
 
-  <!-- The four access levels in plain words -->
-  <section class="card">
-    <h2>What each level sees</h2>
+  <!-- What each level means, folded away until needed -->
+  <details class="card levels-help">
+    <summary>What each level means</summary>
     <dl class="levels">
       {% for key, (label, meaning) in levels.items() %}
         <dt>{{ label }}</dt>
@@ -24,57 +25,57 @@
       {% endfor %}
     </dl>
     <p class="note">Time away from home and check in notes are never shared, at any level.</p>
-  </section>
+  </details>
 
-  <!-- One card per trusted person: name, relationship and level, a "Change" option and a message to copy -->
-  {% for c in circle %}
-    {% set first = c.name.split()[0] %}
-    <section class="card">
-      <div class="person-row">
-        <span class="initials initials-small" aria-hidden="true">{{ c.name.split()[0][0] }}{{ c.name.split()[-1][0] }}</span>
-        <div>
-          <strong>{{ c.name }}</strong><br>
-          <span class="note">{{ c.relationship }} · {{ levels[c.access][0] }}</span>
-        </div>
-      </div>
-      <div class="actions">
-        <!-- Change: pick a new level and save it -->
-        <details class="message-box">
-          <summary class="btn-secondary">Change</summary>
-          <form method="post" action="{{ url_for('circle_level') }}">
+  <!-- One clean list: each row shows initials, name, relationship and a level chip.
+       Tapping a row opens its edit panel (level, relationship, "Can add routines", Save and Remove). -->
+  <ul class="circle-list">
+    {% for c in circle %}
+      <li class="card">
+        <details>
+          <summary class="circle-row">
+            {{ initials(c.name) }}
+            <span class="circle-name">
+              <strong>{{ c.name }}</strong>
+              {% if c.relationship %}<span class="note">{{ c.relationship }}</span>{% endif %}
+            </span>
+            <span class="chip">{{ levels[c.access][0] }}</span>
+          </summary>
+          <form method="post" action="{{ url_for('circle_save') }}" class="edit-panel">
             <input type="hidden" name="name" value="{{ c.name }}">
-            <label for="level-{{ loop.index }}">What {{ first }} can see</label>
+            <label for="level-{{ loop.index }}">What {{ c.name }} sees</label>
             {{ level_select("level-" ~ loop.index, c.access) }}
-            <button type="submit" class="btn-primary">Save</button>
+            <label for="rel-{{ loop.index }}">Relationship <span class="note">(optional)</span></label>
+            <input type="text" id="rel-{{ loop.index }}" name="relationship" maxlength="40" value="{{ c.relationship }}">
+            <label class="share-pick">
+              <input type="checkbox" name="routines" {% if c.routines %}checked{% endif %}> Can add routines for me
+            </label>
+            <div class="actions">
+              <button type="submit" class="btn-primary">Save</button>
+              <button type="submit" class="btn-secondary" formaction="{{ url_for('circle_remove') }}">Remove</button>
+            </div>
           </form>
         </details>
-        <!-- Message: a ready-made message to copy and send yourself -->
-        <details class="message-box">
-          <summary class="btn-secondary">Message {{ first }}</summary>
-          <label for="msg-{{ loop.index }}">Ready-made message (you can change it)</label>
-          <textarea id="msg-{{ loop.index }}" rows="3">Hi {{ first }}, today is a low-energy day for me. Could you check in with me later?</textarea>
-          <button type="button" class="btn-primary" data-copy="msg-{{ loop.index }}">Copy message</button>
-        </details>
-      </div>
-    </section>
-  {% else %}
-    <p class="card">No one in your circle yet.</p>
-  {% endfor %}
+      </li>
+    {% else %}
+      <li class="card">No one in your circle yet.</li>
+    {% endfor %}
+  </ul>
 
-  <!-- Add someone I trust: name, relationship and level -->
+  <!-- Add someone I trust: only a name is needed -->
   <form method="post" action="{{ url_for('circle_add') }}" class="card">
     <h2>Add someone I trust</h2>
     <label for="new-name">Name</label>
     <input type="text" id="new-name" name="name" maxlength="40" required>
-    <label for="new-relationship">Relationship</label>
-    <input type="text" id="new-relationship" name="relationship" maxlength="40" placeholder="For example: Friend" required>
-    <label for="new-level">What they can see</label>
-    {{ level_select("new-level", "checkins") }}
+    <details>
+      <summary class="text-link">Add a relationship or level (optional)</summary>
+      <label for="new-relationship">Relationship</label>
+      <input type="text" id="new-relationship" name="relationship" maxlength="40" placeholder="For example: Friend">
+      <label for="new-level">What they see</label>
+      {{ level_select("new-level", "none") }}
+    </details>
     <button type="submit" class="btn-primary">Add</button>
   </form>
-
-  <!-- Reminder that Pair never sends messages itself -->
-  <p class="note">Pair does not send messages. Copy the text and send it the way you usually would.</p>
 
   <!-- Emergency line -->
   <p class="emergency"><strong>In an emergency, call 911.</strong>

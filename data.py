@@ -61,9 +61,12 @@ def get_inbox(person_id):
     return rows_for("inbox.csv", person_id)
 
 
-# A person's trust circle: name, relationship and what they are allowed to see (access)
+# A person's trust circle: name, relationship, level (access) and whether they can add routines
 def get_circle(person_id):
-    return rows_for("circle.csv", person_id)
+    circle = rows_for("circle.csv", person_id)
+    for c in circle:
+        c["routines"] = c["routines"] == "yes"
+    return circle
 
 
 # A person's daily signals (sleep, steps, screen time, unlocks, time out, laundry), oldest first

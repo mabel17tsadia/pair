@@ -18,6 +18,9 @@
         {% else %}
           <p>Patterns look like their usual this week.</p>
         {% endif %}
+        {% if r.celebrations %}
+          <ul class="badge-list">{% for line in r.celebrations %}<li class="badge">{{ line }}</li>{% endfor %}</ul>
+        {% endif %}
       {% endcall %}
     {% else %}
       <p class="card">No residents have shared their wellness details with you yet.</p>
