@@ -6,11 +6,13 @@
   <h1>My climb this week</h1>
   <p class="note">Your own goals, just for you. Each goal you reach is a flag on the way up.</p>
 
-  <!-- The mountain, the encouraging message and how many flags are reached.
-       At the summit the card glows (unless Celebrations is Off). -->
-  <section class="card climb-card{{ ' summit-glow' if climb.summit and celebrations != 'off' }}">
+  <!-- The mountain, the message and how many flags are reached. The card glows softly for a new
+       flag and in gold at the summit (unless Celebrations is Off); a celebration message is announced
+       to screen readers. -->
+  {% set glow = ' summit-glow' if climb.summit else ' flag-glow' if new_flag else '' %}
+  <section class="card climb-card{{ glow if celebrations != 'off' }}">
     {% include "partials/climb_mountain.html" %}
-    <p class="climb-message">{{ message }}</p>
+    <p class="climb-message" {% if new_flag or new_badge %}role="status"{% endif %}>{{ message }}</p>
     <p class="note">{{ climb.reached }} of {{ climb.total }} flags</p>
   </section>
 
@@ -62,8 +64,9 @@
     {% endif %}
   </section>
 
-  <!-- Confetti, only the moment the summit is first reached and only if Celebrations is Big -->
-  {% if new_badge and celebrations == "big" %}
-    <script src="{{ url_for('static', filename='js/confetti.js') }}"></script>
+  <!-- Confetti only if Celebrations is Big: a small burst for a new flag, the full one when the summit
+       is first reached (confetti.js skips it if the device asks for reduced motion) -->
+  {% if celebrations == "big" and (new_badge or new_flag) %}
+    <script src="{{ url_for('static', filename='js/confetti.js') }}" data-size="{{ 'full' if new_badge else 'small' }}"></script>
   {% endif %}
 {% endblock %}

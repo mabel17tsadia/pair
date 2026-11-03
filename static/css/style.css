@@ -1044,6 +1044,12 @@ a:focus-visible, button:focus-visible {
   text-align: center;
 }
 
+/* New flag, Calm or Big celebration: a soft green glow around the card, with no movement */
+.flag-glow {
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px var(--secondary), 0 0 18px var(--secondary);
+}
+
 /* Summit, Calm or Big celebration: a soft gold glow around the card, with no movement */
 .summit-glow {
   border-color: var(--celebrate);

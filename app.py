@@ -205,6 +205,16 @@ def climb_for(person):
             "marker": flags[reached - 1] if reached else None}
 
 
+# Short cheers for each new flag, picked in turn so the message changes a little each time
+FLAG_CHEERS = ["Flag reached!", "Nice work!", "One step higher!"]
+
+
+# The message when a new flag is reached (not the summit), for example "Nice work! 2 of 5. Keep climbing."
+def flag_message(climb):
+    cheer = FLAG_CHEERS[climb["reached"] % len(FLAG_CHEERS)]
+    return f"{cheer} {climb['reached']} of {climb['total']}. Keep climbing."
+
+
 # One encouraging line for the climb (never "failed" or "missed")
 def climb_message(climb):
     left = climb["total"] - climb["reached"]
@@ -671,8 +681,10 @@ def visit_not_sure():
                            urgent=urgent, result=result, visits=VISITS)
 
 
-# My climb this week: the mountain with one flag per goal, the goal list, the summit message and
-# My badges. The first time the summit is reached this week, a badge is added and celebrated.
+# My climb this week: the mountain with one flag per goal, the goal list, the message and My badges.
+# A small celebration when more flags are reached than at the last visit (after Done, a finished
+# routine or a check in); the first time the summit is reached this week, a badge is added and the
+# full celebration plays instead. With only one goal, that goal is the summit.
 @app.route("/climb")
 def climb():
     person = current_person()
@@ -686,9 +698,12 @@ def climb():
     if new_badge:
         all_badges[pid] = all_badges.get(pid, []) + [badge]
         session["badges"] = all_badges
+    new_flag = climb["reached"] > saved("climb_seen", pid, climb["reached"]) and not climb["summit"]
+    save("climb_seen", pid, climb["reached"])
     routine_index = {r["routine"]: i for i, r in enumerate(routines_for(person))}
     return render_template("climb.html", title="My climb this week", climb=climb, routine_index=routine_index,
-                           message=climb_message(climb), new_badge=new_badge,
+                           message=flag_message(climb) if new_flag else climb_message(climb),
+                           new_badge=new_badge, new_flag=new_flag,
                            badges=SAMPLE_BADGES.get(pid, []) + all_badges.get(pid, []))
 
 
@@ -704,7 +719,6 @@ def climb_done():
         all_done = session.get("goals_done", {})
         all_done[person["id"]] = list(set(all_done.get(person["id"], []) + [name]))
         session["goals_done"] = all_done
-        flash(f"{name}: done. Nice work.")
     return redirect(url_for("climb"))
 
 
