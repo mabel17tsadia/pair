@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "macros.html" import week_card %}
+
+{% block main_class %}dashboard{% endblock %}
+
+{% block content %}
+  <!-- Page title and why the coach can see this -->
+  <h1>Coach view</h1>
+  <p>You see this because these residents chose to share it with you.</p>
+
+  <!-- One week card per resident: first name, status, number of changes and the summary in words -->
+  <div class="card-grid">
+    {% for r in residents %}
+      {% call week_card(r.first_name, r.status) %}
+        <p class="note">{{ r.summary | length }} change{{ "s" if r.summary | length != 1 }} this week</p>
+        {% if r.summary %}
+          <ul>{% for line in r.summary %}<li>{{ line }}</li>{% endfor %}</ul>
+        {% else %}
+          <p>Patterns look like their usual this week.</p>
+        {% endif %}
+      {% endcall %}
+    {% else %}
+      <p class="card">No residents have shared their wellness details with you yet.</p>
+    {% endfor %}
+  </div>
+
+  <!-- Reminder of what a coach never sees -->
+  <p class="note">Time away from home, check in notes and doctor visit summaries are never shown here.</p>
+{% endblock %}

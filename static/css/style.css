@@ -490,6 +490,22 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   stroke-width: 2;
 }
 
+/* Patterns charts: the highlighted last 5 days, the shaded usual range, and a dot per recent day */
+.chart-recent {
+  fill: var(--primary-soft);
+}
+
+.chart-band {
+  fill: var(--secondary-soft);
+  stroke: var(--secondary);
+  stroke-dasharray: 4 4;
+  opacity: 0.9;
+}
+
+.chart-dot {
+  fill: var(--primary);
+}
+
 /* Dashed line for the usual resting heart rate */
 .chart-usual {
   stroke: var(--secondary);
@@ -830,6 +846,13 @@ a:focus-visible, button:focus-visible {
 /* Small heart chart in the side column: hide its tiny labels (the text below says the numbers) */
 .chart-small .chart text {
   display: none;
+}
+
+/* Coach view: week cards side by side, as many as fit (one column on phones) */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0 1.5rem;
 }
 
 /* Trust circle initials in a row */

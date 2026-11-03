@@ -1,13 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <!-- Page title -->
+  <!-- Page title and how to read the charts -->
   <h1>Patterns</h1>
+  <p>Your last 21 days. The shaded band is your usual range. The last 5 days are highlighted.</p>
 
-  <!-- Placeholder until the Patterns screen is built -->
-  <section class="card">
-    <p>Coming soon. Pair will learn your usual patterns and tell you first when several of them change together.</p>
-  </section>
+  <!-- One card per signal from a paired device: a plain sentence, then its chart -->
+  {% for t in trends %}
+    <section class="card">
+      <h2>{{ t.sentence }}</h2>
+      {% include "partials/trend_chart.html" %}
+    </section>
+  {% else %}
+    <p class="card">No patterns to show yet. Pair needs a paired device and about 10 days of data.</p>
+  {% endfor %}
 
   <!-- Link to the doctor visit summary -->
   <nav class="card link-list" aria-label="More">

@@ -81,6 +81,47 @@ def get_patterns(person_id, devices=None):
     return result
 
 
+# The signals shown on the Patterns page: column -> (name, the device signal that provides it,
+# and whether the number is minutes or a count). Laundry is left out: it is a routine note instead.
+SIGNALS = {
+    "sleep_min": ("Sleep", "sleep", "minutes"),
+    "steps": ("Steps", "steps", "count"),
+    "late_screen_min": ("Phone time late at night", "late screen time", "minutes"),
+    "unlocks": ("Phone pickups", "unlocks", "count"),
+    "time_out_min": ("Time away from home", "time out of home", "minutes"),
+}
+
+
+# Each signal from a paired device for the Patterns page: its daily values, usual and recent
+# averages, and one plain sentence ("Sleep: about 1 hour less than usual over the last 5 days")
+def get_trends(person_id, devices=None):
+    rows = data.get_signals(person_id)
+    if len(rows) < MIN_DAYS:
+        return []
+    devices = devices if devices is not None else data.get_devices(person_id)
+    paired = {s for d in devices if d["paired"] for s in d["signals"]}
+    patterns = get_patterns(person_id, devices)
+    noticed = {c["signal"] for c in patterns["changes"]}
+    trends = []
+    for col, (name, source, kind) in SIGNALS.items():
+        if source not in paired:
+            continue
+        values = [r[col] for r in rows]
+        usual = sum(values[:-RECENT_DAYS]) / (len(values) - RECENT_DAYS)
+        recent = sum(values[-RECENT_DAYS:]) / RECENT_DAYS
+        diff, pct = recent - usual, (recent - usual) / usual * 100
+        # Describe the difference only if it counted as a change (or as moving more than usual)
+        if col in noticed or (col == "steps" and pct >= STEPS_UP_PCT):
+            amount = about(abs(diff)) if kind == "minutes" else f"{round(abs(pct))}%"
+            more = "more" if diff > 0 else "fewer" if kind == "count" else "less"
+            sentence = f"{name}: about {amount} {more} than usual over the last 5 days"
+        else:
+            sentence = f"{name}: close to your usual"
+        trends.append({"signal": col, "name": name, "dates": [r["date"] for r in rows],
+                       "values": values, "usual": usual, "recent": recent, "sentence": sentence})
+    return trends
+
+
 # How often each mood and each body feeling came up in some check ins, most common first,
 # for example {"moods": [("Low", 2)], "body": [("Tired", 4), ("Headache", 2)]} ("none" is left out)
 def feeling_counts(checkins):

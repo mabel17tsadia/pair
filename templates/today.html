@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, signal_value %}
+{% from "macros.html" import icon, signal_value, week_card %}
 
 {% block main_class %}dashboard{% endblock %}
 
@@ -30,11 +30,7 @@
     <!-- Left column (all of Today on phones) -->
     <div>
       <!-- Your week: the status in large text; its colour shows how much changed (never red) -->
-      {% set tone = {"A few changes": "few", "Several changes": "several"}.get(patterns.status, "steady") %}
-      <section class="card week-card week-{{ tone }}">
-        <h2>Your week</h2>
-        <p class="week-status">{{ icon("leaf") }} {{ patterns.status }}</p>
-      </section>
+      {{ week_card("Your week", patterns.status) }}
 
       <!-- What Pair noticed: a short summary (AI or rules, with a tiny label saying which), then
            one row per change with its icon, usual and recent values (no rows on a steady week) -->

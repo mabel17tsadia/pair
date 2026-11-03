@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, render_template_string, session, redirect, request, url_for, abort, flash
 import data
-from patterns import get_patterns, feeling_counts
+from patterns import get_patterns, get_trends, feeling_counts, RECENT_DAYS
 from pace import format_minutes
 from ai import explain_week, explain_for_doctor
 import google_health
@@ -50,6 +50,13 @@ def words_filter(items):
     return " and ".join([", ".join(items[:-1]), items[-1]]) if len(items) > 1 else "".join(items)
 
 
+# Template filter: "2026-10-28" as "28 October" (used where the month matters, e.g. chart labels)
+@app.template_filter("long_day")
+def long_day_filter(text):
+    d = date.fromisoformat(text)
+    return f"{d.day} {d:%B}"
+
+
 # Template filter: "2026-10-28" as "Wed 28"
 @app.template_filter("day")
 def day_filter(text):
@@ -69,6 +76,20 @@ def heart_chart(heart, usual):
             "min": min(bpms), "max": max(bpms), "average": round(sum(bpms) / len(bpms)),
             "first": heart[0]["time"][-5:], "middle": heart[len(heart) // 2]["time"][-5:],
             "last": heart[-1]["time"][-5:]}
+
+
+# Points for one Patterns line chart (600 x 200): values run from y=170 (lowest) up to y=20
+# (highest) and days from x=50 to x=580. Also the usual band (usual average plus or minus 10%)
+# and where the highlighted last 5 days start.
+def trend_chart(values, usual):
+    low, high = min(values + [usual * 0.9]), max(values + [usual * 1.1])
+    to_y = lambda v: round(170 - (v - low) / ((high - low) or 1) * 150)
+    step = 530 / (len(values) - 1)
+    xs = [round(50 + i * step) for i in range(len(values))]
+    return {"points": " ".join(f"{x},{to_y(v)}" for x, v in zip(xs, values)),
+            "band_top": to_y(usual * 1.1), "band_bottom": to_y(usual * 0.9),
+            "recent_x": round(xs[-RECENT_DAYS] - step / 2),
+            "recent_dots": [(x, to_y(v)) for x, v in zip(xs[-RECENT_DAYS:], values[-RECENT_DAYS:])]}
 
 
 # The person picked on the home page, or None if nobody is picked yet.
@@ -272,12 +293,30 @@ def checkin():
     return render_template("checkin.html", title="Check in", feelings=FEELINGS, checkins=mine)
 
 
-# Patterns: placeholder for now; later shows when several of the person's patterns change together
+# Patterns: a 21 day line chart for each signal from a paired device, with the usual range
+# shaded, the last 5 days highlighted and one plain sentence above it
 @app.route("/patterns")
 def patterns():
-    if not current_person():
+    person = current_person()
+    if not person:
         return redirect(url_for("choose"))
-    return render_template("patterns.html", title="Patterns")
+    trends = get_trends(person["id"], devices_for(person))
+    return render_template("patterns.html", title="Patterns",
+                           trends=[{**t, "chart": trend_chart(t["values"], t["usual"])} for t in trends])
+
+
+# Coach view (demo): residents who gave someone in their circle the Wellness details level, with
+# their week status, number of changes and weekly summary in words (the same view the Weekly
+# summary level gets). Time away from home, check in notes and the doctor summary are never shown.
+@app.route("/coach")
+def coach():
+    residents = []
+    for p in data.get_people():
+        if any(m["access"] == "wellness" for m in circle_for(p)):
+            patterns = get_patterns(p["id"], devices_for(p))
+            residents.append({"first_name": p["first_name"], "status": patterns["status"],
+                              "summary": shared_view("summary", patterns)[1:]})
+    return render_template("coach.html", title="Coach view", residents=residents)
 
 
 # Trust circle: each person's name, relationship and access level, with a "Change" option,

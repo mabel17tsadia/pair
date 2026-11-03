@@ -27,6 +27,18 @@
 </svg>
 {% endmacro %}
 
+{# Week card: a title and the week status in large text with a calm leaf icon. The colour shows how
+   much changed: secondary (steady), primary (a few), alert (several), never red. Anything inside
+   a {% call %} block is added under the status (used by the coach view). #}
+{% macro week_card(title, status) %}
+{% set tone = {"A few changes": "few", "Several changes": "several"}.get(status, "steady") %}
+<section class="card week-card week-{{ tone }}">
+  <h2>{{ title }}</h2>
+  <p class="week-status">{{ icon("leaf") }} {{ status }}</p>
+  {% if caller is defined %}{{ caller() }}{% endif %}
+</section>
+{% endmacro %}
+
 {# One signal's daily average in plain words: "7 h 28 min", "21 min", "6,011 steps" or "70 unlocks" #}
 {% macro signal_value(signal, value) %}
 {%- if signal == "steps" %}{{ "{:,}".format(value) }} steps
