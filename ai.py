@@ -2,6 +2,7 @@ import json
 import os
 import anthropic
 from dotenv import load_dotenv
+from patterns import feeling_counts
 
 # Load ANTHROPIC_API_KEY from the .env file (the Anthropic client reads it from there)
 load_dotenv()
@@ -78,3 +79,54 @@ def explain_week(person, patterns):
     except Exception as error:
         print("AI week summary failed, using rule based summary:", type(error).__name__)
         return week_backup(person, patterns)
+
+
+# Instructions for Claude when writing the doctor visit paragraph
+DOCTOR_SYSTEM = """You write a short, neutral paragraph that a doctor can scan in 30 seconds.
+It describes a person's daily pattern changes (the last 5 days compared with their usual) and how
+often they reported moods and body feelings in their own check ins (the last 14 days). Keep these two
+time spans correct. Write in third person using only their first name
+(repeat the name instead of using he, she or they). Under 80 words, plain text, no lists.
+Only describe what was recorded. Never suggest a diagnosis, a cause, or any treatment or advice."""
+
+
+# "Tired: 4 times, Headache: 2 times" from a list like [("Tired", 4), ("Headache", 2)]
+def count_words(counts):
+    return ", ".join(f"{name}: {n} time{'s' if n != 1 else ''}" for name, n in counts)
+
+
+# Rule based backup for the doctor paragraph: the same facts in fixed sentences
+def doctor_backup(person, patterns, counts):
+    name = person["first_name"]
+    changes = [c["words"][0].lower() + c["words"][1:] for c in patterns["changes"]]
+    if changes:
+        text = f"Over the last 5 days, compared with {name}'s usual, Pair noticed: " + "; ".join(changes) + "."
+    else:
+        text = f"Pair noticed no large changes in {name}'s daily patterns over the last 5 days."
+    if counts["moods"]:
+        text += f" Moods in {name}'s check ins over 14 days: {count_words(counts['moods'])}."
+    if counts["body"]:
+        text += f" Body feelings mentioned: {count_words(counts['body'])}."
+    return {"text": text, "source": "rules"}
+
+
+# Ask Claude for a short, neutral paragraph for a doctor; use the rule based backup if there is
+# no API key or anything goes wrong. Sends only the first name, the change sentences and the
+# mood and body counts (never check in notes, last names or device names).
+def explain_for_doctor(person, patterns, checkins):
+    counts = feeling_counts(checkins)
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        print("No API key found, using rule based doctor summary")
+        return doctor_backup(person, patterns, counts)
+    details = json.dumps({"first_name": person["first_name"],
+                          "changes": [c["words"] for c in patterns["changes"]],
+                          "mood_counts": dict(counts["moods"]), "body_counts": dict(counts["body"])})
+    try:
+        text = ask_claude(DOCTOR_SYSTEM, details).strip()
+        if not text:
+            raise ValueError("Empty answer")
+        return {"text": text, "source": "ai"}
+    # Any error at all uses the backup instead of crashing
+    except Exception as error:
+        print("AI doctor summary failed, using rule based summary:", type(error).__name__)
+        return doctor_backup(person, patterns, counts)

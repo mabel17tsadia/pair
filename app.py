@@ -1,11 +1,11 @@
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, render_template_string, session, redirect, request, url_for, abort, flash
 import data
-from patterns import get_patterns
+from patterns import get_patterns, feeling_counts
 from pace import format_minutes
-from ai import explain_week
+from ai import explain_week, explain_for_doctor
 import google_health
 
 # Load settings like SECRET_KEY from the .env file
@@ -116,20 +116,26 @@ def set_paired(person, name, paired):
     choices = session.get("paired", {})
     choices.setdefault(person["id"], {})[name] = paired
     session["paired"] = choices
-    # Devices changed, so the saved week summary is out of date
+    # Devices changed, so the saved week and doctor summaries are out of date
     session.get("week", {}).pop(person["id"], None)
+    session.get("doctor", {}).pop(person["id"], None)
     session.modified = True
 
 
-# The AI (or rule based) week summary and gentle step, saved in the session so Claude is
-# asked only once per person per day (cleared when their paired devices change)
-def week_text(person, patterns):
-    saved = session.get("week", {})
+# Run make() at most once per person per day and keep its answer in the session under "key",
+# so Claude is not asked again on every visit (cleared when paired devices change)
+def daily_cache(key, person, make):
+    saved = session.get(key, {})
     today_text = date.today().isoformat()
     if saved.get(person["id"], {}).get("day") != today_text:
-        saved[person["id"]] = {**explain_week(person, patterns), "day": today_text}
-        session["week"] = saved
+        saved[person["id"]] = {**make(), "day": today_text}
+        session[key] = saved
     return saved[person["id"]]
+
+
+# The AI (or rule based) week summary and gentle step for Today
+def week_text(person, patterns):
+    return daily_cache("week", person, lambda: explain_week(person, patterns))
 
 
 # ===== Trust circle =====
@@ -339,6 +345,52 @@ def share():
     patterns = get_patterns(person["id"], devices_for(person))
     return render_template("share.html", title="Share with my circle", levels=LEVELS,
                            members=[{**m, "view": shared_view(m["access"], patterns)} for m in members])
+
+
+# Prepare for a doctor visit: a one page summary of the last 14 days that the person reviews,
+# then prints or sends to a Health summary member. Questions they type are kept in the session.
+@app.route("/doctor", methods=["GET", "POST"])
+def doctor():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    pid = person["id"]
+    if request.method == "POST":
+        questions = session.get("doctor_questions", {})
+        questions[pid] = request.form.get("questions", "").strip()[:1000]
+        session["doctor_questions"] = questions
+        flash("Your questions are saved.")
+        return redirect(url_for("doctor"))
+
+    # The last 14 days, counting back from the demo "today"
+    end = date.fromisoformat(data.get_today())
+    start = end - timedelta(days=13)
+    checkins = [c for c in data.get_checkins(pid) if c["date"] >= start.isoformat()]
+    devices = devices_for(person)
+    patterns = get_patterns(pid, devices)
+    return render_template("doctor.html", title="Prepare for a doctor visit", person=person,
+                           period=f"{start.day} {start:%B} to {end.day} {end:%B %Y}",
+                           patterns=patterns, counts=feeling_counts(checkins),
+                           summary=daily_cache("doctor", person, lambda: explain_for_doctor(person, patterns, checkins)),
+                           questions=session.get("doctor_questions", {}).get(pid, ""),
+                           sources=[d["device"] for d in devices if d["paired"]] + ["My own check ins"],
+                           contacts=[m["name"] for m in circle_for(person) if m["access"] == "health"])
+
+
+# Send to my health contact: only ticked Health summary members; a confirmation only,
+# nothing is really sent in the prototype
+@app.route("/doctor/send", methods=["POST"])
+def doctor_send():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    names = [m["name"] for m in circle_for(person)
+             if m["access"] == "health" and m["name"] in request.form.getlist("send")]
+    if names:
+        flash(f"Prototype: nothing was really sent. In the real app, {words_filter(names)} would get this summary.")
+    else:
+        flash("No one was ticked, so nothing was sent.")
+    return redirect(url_for("doctor"))
 
 
 # Me: the person, what drains and calms them, and links to My body today and Settings

@@ -950,3 +950,52 @@ a:focus-visible, button:focus-visible {
     flex-wrap: wrap;
   }
 }
+
+/* ===== Doctor visit summary: print view ===== */
+/* Shown only on paper (for example the typed questions as plain text) */
+.print-only {
+  display: none;
+}
+
+/* Printing: black on white, no navigation, buttons or messages, small enough for one page */
+@media print {
+  @page { margin: 1.5cm; }
+
+  body {
+    background: #FFFFFF;
+    color: #000000;
+    font-size: 11pt;
+    line-height: 1.35;
+  }
+
+  .site-header, .no-print, .flash {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+  }
+
+  h1 { margin: 0 0 0.25rem; font-size: 18pt; }
+  h2 { margin: 0 0 0.25rem; font-size: 12pt; }
+
+  .doctor-section {
+    margin: 0 0 0.6rem;
+    padding: 0;
+    border: none;
+    break-inside: avoid;
+  }
+
+  .doctor-section p, .doctor-section ul {
+    margin: 0.2rem 0;
+  }
+
+  .note {
+    color: #333333;
+  }
+}

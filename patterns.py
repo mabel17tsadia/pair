@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import date
 import pandas as pd
 import data
@@ -78,3 +79,11 @@ def get_patterns(person_id, devices=None):
             if gap >= LAUNDRY_GAP_DAYS:
                 result["routine_notes"].append(f"No laundry in {gap} days")
     return result
+
+
+# How often each mood and each body feeling came up in some check ins, most common first,
+# for example {"moods": [("Low", 2)], "body": [("Tired", 4), ("Headache", 2)]} ("none" is left out)
+def feeling_counts(checkins):
+    moods = Counter(c["mood"].capitalize() for c in checkins if c["mood"])
+    body = Counter(b.capitalize() for c in checkins for b in c["body"] if b != "none")
+    return {"moods": moods.most_common(), "body": body.most_common()}

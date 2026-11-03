@@ -1,3 +1,8 @@
+// Print buttons: open the browser's print window (which can also save as PDF)
+document.querySelectorAll("[data-print]").forEach((button) => {
+  button.onclick = () => window.print();
+});
+
 // Copy buttons: copy the text box named in data-copy, then say "Copied"
 document.querySelectorAll("[data-copy]").forEach((button) => {
   button.onclick = () => {
