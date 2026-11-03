@@ -15,8 +15,9 @@ AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 API_URL = "https://health.googleapis.com/v4/users/me/dataTypes"
 
-# Must match the redirect URI saved in Google Cloud exactly
-REDIRECT_URI = "http://127.0.0.1:5000/google/callback"
+# Must match the redirect URI saved in Google Cloud exactly. On Render, set GOOGLE_REDIRECT_URI to
+# https://<your-app>.onrender.com/google/callback; on a laptop the default below is used.
+REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://127.0.0.1:5000/google/callback")
 
 # Read-only permissions: sleep, and activity (which includes steps)
 SCOPES = [

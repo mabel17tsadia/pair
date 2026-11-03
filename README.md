@@ -128,6 +128,17 @@ GOOGLE_CLIENT_SECRET=your-web-client-secret
 In Google Cloud, add `http://127.0.0.1:5000/google/callback` as an authorized redirect URI and add
 each tester's email as a test user.
 
+## Deploy on Render (free web service)
+
+- **Build command:** `pip install -r requirements.txt`
+- **Start command:** `gunicorn app:app` (gunicorn is the production web server; `python app.py`
+  is only for a laptop)
+- **Environment variables:** `SECRET_KEY` (required), `ANTHROPIC_API_KEY` (optional; without it
+  the rule based backups are used). For Google Health also `GOOGLE_CLIENT_ID`,
+  `GOOGLE_CLIENT_SECRET` and `GOOGLE_REDIRECT_URI=https://<your-app>.onrender.com/google/callback`.
+- A free service sleeps after about 15 minutes without visits; the first visit then takes up to
+  a minute.
+
 ## How we used AI to build this
 
 We built Pair one stage at a time with Claude Code as a coding assistant, following the rules in

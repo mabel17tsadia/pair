@@ -11,12 +11,16 @@ from ai import (explain_week, explain_for_doctor, respond_to_checkin, suggest_qu
 from visits import VISITS, things_to_tell
 import google_health
 
-# Load settings like SECRET_KEY from the .env file
+# Load settings from the .env file on a laptop. On Render there is no .env file: SECRET_KEY,
+# ANTHROPIC_API_KEY and the optional Google keys are set as environment variables instead.
 load_dotenv()
 
-# Create the Flask app; the secret key lets it remember each user's theme
+# Create the Flask app; the secret key signs the session cookie that remembers each person's choices.
+# Without it nothing can be remembered, so stop with a clear message instead of failing later.
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
+if not app.secret_key:
+    raise RuntimeError("SECRET_KEY is missing. Add it to .env on your laptop, or as an environment variable on Render.")
 
 # Google sign-in routes (/google/login, /callback, /disconnect, /test) live in google_health.py
 app.register_blueprint(google_health.google)
