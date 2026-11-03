@@ -24,6 +24,16 @@ themeInputs.forEach((input) => {
 // Coming back with the browser's Back button (or a refresh that kept the old choice) shows the saved theme
 window.addEventListener("pageshow", () => themeInputs.length && previewTheme(savedTheme));
 
+// Celebrations in Settings: if the device asks for less motion and the person has not chosen a
+// setting yet, show Calm as picked (confetti never moves on such a device anyway)
+const celebrationsForm = document.getElementById("celebrations-form");
+if (celebrationsForm && celebrationsForm.dataset.chosen === "no" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  celebrationsForm.querySelector("input[value='calm']").checked = true;
+  const note = document.getElementById("confetti-note");
+  if (note) note.textContent = "Your device asks for less motion, so Pair uses Calm. You can change this at any time.";
+}
+
 // Print buttons: open the browser's print window (which can also save as PDF)
 document.querySelectorAll("[data-print]").forEach((button) => {
   button.onclick = () => window.print();

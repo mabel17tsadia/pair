@@ -1,7 +1,8 @@
 // Confetti in the theme's colours. Two sizes, set on the script tag with data-size:
 // "full" (the summit) = 80 pieces falling from above for 3 seconds,
 // "small" (a new flag) = 30 pieces already on screen for about 1 second.
-// Skipped when the device asks for reduced motion (the soft glow and the message still show).
+// Silent (no sound). Skipped when the device asks for reduced motion, so Big then works like Calm
+// (the soft glow and the message still show).
 (() => {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const small = document.currentScript.dataset.size === "small";

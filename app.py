@@ -45,7 +45,8 @@ SIGNUP_SIGNALS = [
     ("time out of home", "Time away from home", "Only the minutes you are away from home. Never a map.", False),
 ]
 
-# How the summit is celebrated on My climb (Calm is the default)
+# How flags and the summit are celebrated on My climb. Big (silent confetti) is the default; on a
+# device that asks for less motion, confetti.js never moves, so Big then looks like Calm.
 CELEBRATIONS = {"big": "Big", "calm": "Calm", "off": "Off"}
 
 # Two earlier summit badges for Theo, so the demo badge collection is not empty
@@ -56,14 +57,16 @@ SOURCES = {"sample": "Sample data", "google": "Google Health"}
 
 
 # Give every template the theme list and the user's settings
-# (calm theme, sample data and calm celebrations, if nothing picked yet)
+# (calm theme, sample data and Big celebrations, if nothing picked yet). "celebrations_chosen" is
+# True once the person saved a Celebrations setting themselves; their choice is always kept.
 @app.context_processor
 def add_settings():
     return {"themes": THEMES,
             # An old or unknown theme (for example "colorful") shows as Calm
             "theme": session.get("theme") if session.get("theme") in THEMES else "calm",
             "data_source": session.get("data_source", "sample"),
-            "celebrations": session.get("celebrations", "calm")}
+            "celebrations": session.get("celebrations", "big"),
+            "celebrations_chosen": "celebrations" in session}
 
 
 # Template filter: minutes as "6 h 40 min"

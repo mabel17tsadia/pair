@@ -13,8 +13,10 @@
     <button type="submit" class="btn-primary">Save</button>
   </form>
 
-  <!-- Celebrations: how big the summit celebration on My climb is (always calm if the device asks for less motion) -->
-  <form method="post" action="{{ url_for('set_celebrations') }}" class="card">
+  <!-- Celebrations: Big (silent confetti, the default), Calm or Off. If the device asks for less motion
+       and the person has not chosen yet, main.js shows Calm picked and swaps the line below. -->
+  <form method="post" action="{{ url_for('set_celebrations') }}" class="card" id="celebrations-form"
+        data-chosen="{{ 'yes' if celebrations_chosen else 'no' }}">
     <fieldset class="choices">
       <legend>Celebrations</legend>
       {% for key, label, meaning in [("big", "Big", "Confetti"), ("calm", "Calm", "A soft glow, no movement"), ("off", "Off", "Message only")] %}
@@ -25,6 +27,9 @@
         </label>
       {% endfor %}
     </fieldset>
+    {% if celebrations == "big" %}
+      <p class="note" id="confetti-note">Confetti is on. You can switch to Calm or Off at any time.</p>
+    {% endif %}
     <button type="submit" class="btn-primary">Save</button>
   </form>
 
