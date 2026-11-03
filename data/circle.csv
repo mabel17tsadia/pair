@@ -1,8 +1,9 @@
-person_id,name,relationship,best_way
-p1,Ana Reyes,Sister,Text
-p1,Ravi Patel,Job coach,Email
-p1,Sam Torres,Friend,Text
-p2,Priya Shah,Roommate,Text
-p2,Lena Alvarez,Student services advisor,Email
-p3,Kemi Okafor,Mom,Call
-p3,Dani Brooks,Friend,Text
+person_id,name,relationship,access
+p1,Mom,Family,summary
+p1,Dana,Life skills coach,wellness
+p1,Sam,Friend,checkins
+p1,Dr. Patel,Doctor,health
+p2,Dad,Family,summary
+p2,Lee,Friend,checkins
+p3,Aunt Rose,Family,summary
+p3,Coach Ben,Fitness coach,wellness

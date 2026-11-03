@@ -1,21 +1,22 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <!-- Link back to Me, page title and data source -->
+  <!-- Link back to Me and page title -->
   <a class="text-link" href="{{ url_for('me') }}">‹ Me</a>
   <h1>My body today</h1>
-  <p class="note">{{ source_note }}</p>
 
-  <!-- Heart rate today: a simple SVG line chart with a dashed line for the usual resting rate -->
+  <!-- Heart rate today (always sample data): a simple SVG line chart with a dashed line for the usual resting rate -->
   <section class="card">
     <h2>Heart rate today</h2>
+    <p class="note">Sample data</p>
     {% include "partials/heart_chart.html" %}
     <p>Average today: <strong>{{ chart.average }} bpm</strong>. Your usual resting heart rate is {{ chart.usual }} bpm.</p>
   </section>
 
-  <!-- Last 7 days: sleep and steps as words, with a small bar for each -->
+  <!-- Last 7 days: where the data came from, then sleep and steps as words, with a small bar for each -->
   <section class="card">
     <h2>Last 7 days</h2>
+    <p class="note">{{ source_note }}</p>
     <table class="week">
       <thead><tr><th>Day</th><th>Sleep</th><th>Steps</th></tr></thead>
       <tbody>

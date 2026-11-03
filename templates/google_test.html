@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Link back to Settings and page title -->
+  <a class="text-link" href="{{ url_for('settings') }}">‹ Settings</a>
+  <h1>Google Health test</h1>
+
+  <!-- Result: only counts of days, never the health data itself -->
+  <section class="card">
+    {% if not connected %}
+      <p>Not signed in to Google Health. Showing sample data.</p>
+    {% elif sleep_days or step_days %}
+      <p>From Google Health, last 21 days:</p>
+      <p>Days with sleep: <strong>{{ sleep_days }}</strong></p>
+      <p>Days with steps: <strong>{{ step_days }}</strong></p>
+    {% else %}
+      <p>Google Health returned no days (or the request failed). Showing sample data.</p>
+    {% endif %}
+  </section>
+{% endblock %}

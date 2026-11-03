@@ -1,0 +1,11 @@
+person_id,device,kind,signals,paired,connects_through
+p1,My phone,phone,sleep|steps|late screen time|unlocks,yes,Phone sensors and screen time
+p1,Time away from home,phone,time out of home,yes,"Phone location, shown only as minutes"
+p1,Smart washing machine,home,laundry runs,yes,Washer maker app
+p1,Mattress sleep sensor,home,sleep,no,Sensor maker app
+p2,My phone,phone,sleep|steps|late screen time|unlocks,yes,Phone sensors and screen time
+p2,Time away from home,phone,time out of home,no,"Phone location, shown only as minutes"
+p2,Smart ring,wearable,sleep|resting heart rate,no,Ring maker app
+p3,My phone,phone,sleep|steps|late screen time|unlocks,yes,Phone sensors and screen time
+p3,Time away from home,phone,time out of home,yes,"Phone location, shown only as minutes"
+p3,Smart washing machine,home,laundry runs,yes,Washer maker app
