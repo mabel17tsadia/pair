@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% from "macros.html" import icon %}
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -17,33 +18,34 @@
   <header class="site-header">
     <div class="header-inner">
       <a class="brand" href="{{ url_for('today') }}">Pair</a>
-      <nav class="main-nav" aria-label="Main">
-        <!-- Today link (sun icon) -->
-        <a href="{{ url_for('today') }}" {% if request.endpoint == 'today' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-          <span>Today</span>
-        </a>
-        <!-- Climb link (mountain with a flag icon) -->
-        <a href="{{ url_for('climb') }}" {% if request.endpoint == 'climb' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20L9 8l4 6 2-3 7 9z"/><path d="M15 11V4l4 1.5-4 1.5"/></svg>
-          <span>Climb</span>
-        </a>
-        <!-- Check in link (check mark icon) -->
-        <a href="{{ url_for('checkin') }}" {% if request.endpoint == 'checkin' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
-          <span>Check in</span>
-        </a>
-        <!-- Circle link (two people icon) -->
-        <a href="{{ url_for('circle') }}" {% if request.endpoint == 'circle' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 14.5c2.8 0 5 2.2 5 5.5"/></svg>
-          <span>Circle</span>
-        </a>
-        <!-- Me link (person icon) -->
-        <a href="{{ url_for('me') }}" {% if request.endpoint in ['me', 'body', 'settings', 'devices', 'pair_device', 'patterns', 'routines', 'visit_start', 'visit_page', 'visit_not_sure'] %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-          <span>Me</span>
-        </a>
+      <!-- The selected demo role changes navigation labels only; it does not grant access. -->
+      <nav class="main-nav" aria-label="{{ demo_roles[demo_role] }} navigation">
+        {% for label, endpoint, icon_name, active_endpoints in role_navigation %}
+          {% if endpoint %}
+            <a href="{{ url_for(endpoint) }}" {% if request.endpoint in active_endpoints %}aria-current="page"{% endif %}>
+              {{ icon(icon_name) }}<span>{{ label }}</span>
+            </a>
+          {% else %}
+            <span class="nav-unavailable">
+              {{ icon(icon_name) }}<span>{{ label }}</span>
+              <span class="visually-hidden">Not available in this demo.</span>
+            </span>
+          {% endif %}
+        {% endfor %}
       </nav>
+
+      <!-- A preview control for trying each role's navigation in the demo. -->
+      <form class="role-preview" method="post" action="{{ url_for('set_demo_role') }}">
+        <label for="demo-role">Demo role</label>
+        <select id="demo-role" name="role">
+          {% for key, label in demo_roles.items() %}
+            <option value="{{ key }}" {% if key == demo_role %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit" class="btn-secondary">Preview</button>
+        <p class="role-preview-note">Navigation preview only; this does not grant data access or change permissions.</p>
+      </form>
     </div>
   </header>
 

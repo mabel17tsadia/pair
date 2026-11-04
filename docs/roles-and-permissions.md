@@ -20,6 +20,8 @@ For each invited person, the member can review, change, revoke, and time-limit p
 
 The existing app is a single-browser demo with demo-person selection, not account authentication. Its circle levels control sample previews and the coach demo; they do not establish real identities or secure external access. The `/share` and appointment send actions show confirmation text but do not transmit information. The coach view is built from sample data. These behaviors must not be described as production authorization or delivery.
 
+The shell's demo role selector changes navigation labels only. It does not authenticate a role, protect routes, or change permissions.
+
 ## Access review questions for implementation
 
 Before adding a role workflow, identify the authenticated person, the member whose information is involved, the exact permission granted, the content allowed, the expiration, and the revocation path. Deny access by default when any required authorization is missing.

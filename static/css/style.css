@@ -837,6 +837,33 @@ input::placeholder, textarea::placeholder {
   background: var(--primary-soft);
 }
 
+/* The shell role picker is a demo control, not a sign-in or permission control. */
+.role-preview {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+}
+
+.role-preview label { font-size: var(--font-small); }
+
+.role-preview select {
+  width: 100%;
+  min-height: var(--target-min);
+  margin: 0;
+  padding: 0 var(--space-2);
+}
+
+.role-preview button { padding: 0 var(--space-3); }
+
+.role-preview-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
 /* ===== Phones (default): navigation is a bar fixed to the bottom ===== */
 .brand {
   display: none;
@@ -852,17 +879,23 @@ input::placeholder, textarea::placeholder {
   border-top: 1px solid var(--border);
 }
 
-/* Each nav link: icon above label, fills an equal share of the bar */
-.main-nav a {
+/* Each nav item gets an equal touch-sized area; unavailable destinations stay non-interactive. */
+.main-nav a, .main-nav .nav-unavailable {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 56px;
+  min-height: 60px;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   text-decoration: none;
+  text-align: center;
+}
+
+.main-nav .nav-unavailable {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 /* The link for the page you're on */
@@ -984,13 +1017,18 @@ input::placeholder, textarea::placeholder {
     border-top: none;
   }
 
-  .main-nav a {
+  .main-nav a, .main-nav .nav-unavailable {
     flex-direction: row;
     gap: 0.5rem;
     min-height: 48px;
     padding: 0 1rem;
     border-radius: 8px;
     font-size: 1rem;
+  }
+
+  .role-preview {
+    flex: 0 1 390px;
+    padding: 0;
   }
 
   main {

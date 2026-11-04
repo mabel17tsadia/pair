@@ -30,6 +30,42 @@ THEMES = ["ocean", "garden", "twilight"]
 # Keep saved theme choices from older browser sessions working
 OLD_THEMES = {"calm": "ocean", "bright": "garden", "dark": "twilight"}
 
+# These role choices change only which navigation links the demo shows.
+DEMO_ROLES = {"member": "Pair member", "coach": "Coach or educator",
+              "healthcare": "Healthcare professional", "trusted": "Trusted person",
+              "admin": "Organization administrator"}
+ROLE_NAVIGATION = {
+    "member": [
+        ("Home", "today", "sun", ["today"]),
+        ("My Plan", None, "calendar", []),
+        ("Check In", "checkin", "check", ["checkin"]),
+        ("Health", None, "heart", []),
+        ("My Circle", "circle", "people", ["circle"]),
+        ("Me", "me", "user", ["me", "body", "settings", "devices", "pair_device", "climb",
+                                "climb_done", "climb_add",
+                                "patterns", "routines", "routine_steps", "routine_edit",
+                                "visit_start", "visit_page", "visit_not_sure"]),
+    ],
+    "coach": [
+        ("Overview", "coach", "wave", ["coach"]), ("Learners", None, "people", []),
+        ("Activity Library", None, "book", []), ("Coach Settings", None, "gear", []),
+    ],
+    "healthcare": [
+        ("Packets", None, "clipboard", []), ("Packet Detail", None, "clipboard", []),
+        ("Preferences", None, "gear", []), ("Next Steps", None, "flag", []),
+        ("Professional Settings", None, "gear", []),
+    ],
+    "trusted": [
+        ("Shared with Me", None, "heart", []), ("Accomplishments", None, "flag", []),
+        ("Support Requests", None, "people", []), ("Settings", None, "gear", []),
+    ],
+    "admin": [
+        ("Accounts", None, "people", []), ("Verify Roles", None, "check", []),
+        ("Invitations", None, "clipboard", []), ("Org Settings", None, "home", []),
+        ("Access Logs", None, "wave", []), ("Templates", None, "book", []),
+    ],
+}
+
 # The five moods on the Check in page, each with its emoji (the one place for the whole app;
 # templates use it through the mood_emoji macro)
 MOODS = {"Calm": "😌", "Okay": "🙂", "Tired": "😴", "Worried": "😟", "Overwhelmed": "😣"}
@@ -64,9 +100,14 @@ SOURCES = {"sample": "Sample data", "google": "Google Health"}
 @app.context_processor
 def add_settings():
     theme = OLD_THEMES.get(session.get("theme"), session.get("theme", "ocean"))
+    demo_role = session.get("demo_role", "member")
+    if demo_role not in DEMO_ROLES:
+        demo_role = "member"
     return {"themes": THEMES,
             # Old saved theme names are mapped to their closest new theme
             "theme": theme if theme in THEMES else "ocean",
+            "demo_role": demo_role, "demo_roles": DEMO_ROLES,
+            "role_navigation": ROLE_NAVIGATION[demo_role],
             "data_source": session.get("data_source", "sample"),
             "celebrations": session.get("celebrations", "big"),
             "celebrations_chosen": "celebrations" in session}
@@ -309,6 +350,20 @@ def choose_person(person_id):
         session["person_id"] = person_id
         return redirect(url_for("today"))
     return redirect(url_for("choose"))
+
+
+# Change only the demo navigation preview; this does not authenticate anyone or grant permissions.
+@app.route("/demo/role", methods=["POST"])
+def set_demo_role():
+    role = request.form.get("role")
+    if role in DEMO_ROLES:
+        session["demo_role"] = role
+        flash(f"Navigation preview: {DEMO_ROLES[role]}. No access permissions changed.")
+    next_page = request.form.get("next", "")
+    if (not next_page.startswith("/") or next_page.startswith("//") or
+            "\\" in next_page or any(char in next_page for char in "\r\n")):
+        next_page = url_for("today")
+    return redirect(next_page)
 
 
 # "New to Pair? Get started": always begin at step 1, so every step has its own address
