@@ -1,39 +1,52 @@
-/* ===== Themes: each one sets the same color names; data-theme on <body> picks one ===== */
-/* (Any element can use data-theme, which is how Settings previews each theme.) */
-/* Alerts use amber, never red. --on-primary is the text color on primary buttons.
-   --celebrate (gold) is only for small accents like the flag on Today, never for text. */
-
-/* Calm (default): soft blue-grey with green */
-[data-theme="calm"] {
-  --bg: #F4F7FA; --surface: #FFFFFF; --surface2: #E4EBF2;
-  --text: #1C2A3A; --muted: #536273; --border: #D5DEE8;
-  --primary: #2E4A6B; --primary-soft: #E1E9F3;
-  --secondary: #3F7D4E; --secondary-soft: #E0EFE3;
-  --alert: #8A5A00; --alert-soft: #FBEFD5;
-  --celebrate: #E0A526;
-  --on-primary: #FFFFFF;
+/* Shared tokens keep spacing, type, borders and controls consistent across screens. */
+:root {
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem;
+  --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem;
+  --space-7: 2rem; --space-8: 2.5rem;
+  --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-heading: "Lexend", system-ui, sans-serif;
+  --font-small: 0.9rem; --font-body-size: 1rem;
+  --font-heading-size: clamp(1.5rem, 3vw, 2rem);
+  --line-height: 1.55;
+  --border-width: 1px; --border-strong: 2px;
+  --radius-card: 1rem; --radius-control: 0.75rem; --radius-pill: 999px;
+  --card-padding: var(--space-5); --card-radius: var(--radius-card);
+  --button-height: 48px; --button-radius: var(--radius-control);
+  --button-padding: var(--space-5); --button-border: var(--border-strong);
+  --target-min: 48px; --focus-color: var(--primary); --focus-width: 3px; --focus-gap: 3px;
+  --content-width: 60rem; --wide-content-width: 80rem;
+  --card-shadow: 0 2px 8px rgb(20 40 50 / 6%);
+  --motion-fast: 160ms;
 }
 
-/* Bright: white with strong blue */
-[data-theme="bright"] {
-  --bg: #FFFFFF; --surface: #F2F6FB; --surface2: #DCE6F2;
-  --text: #0E1B2C; --muted: #3D4B5C; --border: #C7D3E0;
-  --primary: #1F5FAE; --primary-soft: #E3EEFB;
-  --secondary: #2E8540; --secondary-soft: #DDF1E2;
-  --alert: #8A4B00; --alert-soft: #FFEBC2;
-  --celebrate: #F2B33D;
-  --on-primary: #FFFFFF;
+/* Ocean: blue-green surfaces and warm gold accents. */
+[data-theme="ocean"] {
+  --bg: #F3F8F7; --surface: #FFFFFF; --surface2: #E3EFED;
+  --text: #1C3338; --muted: #40585C; --border: #748B8A;
+  --primary: #155E63; --primary-soft: #DCECE9;
+  --secondary: #2E624A; --secondary-soft: #E0EEE5;
+  --alert: #765100; --alert-soft: #F5E9C4;
+  --celebrate: #8D6500; --on-primary: #FFFFFF;
 }
 
-/* Dark: deep blue-grey with soft blue and green */
-[data-theme="dark"] {
-  --bg: #121A24; --surface: #1B2633; --surface2: #2A3747;
-  --text: #EAF0F6; --muted: #A9B6C4; --border: #2A3747;
-  --primary: #8DB4E2; --primary-soft: #22324A;
-  --secondary: #8CCB98; --secondary-soft: #1F3326;
-  --alert: #E8C46A; --alert-soft: #3A3120;
-  --celebrate: #F2C14E;
-  --on-primary: #121A24;
+/* Garden: soft greens and warm clay accents. */
+[data-theme="garden"] {
+  --bg: #F7F5F1; --surface: #FFFEFC; --surface2: #EAE6DD;
+  --text: #302E28; --muted: #5A554A; --border: #8D8375;
+  --primary: #345C43; --primary-soft: #E4EEE6;
+  --secondary: #73472F; --secondary-soft: #F1E5D9;
+  --alert: #755100; --alert-soft: #F5E9C5;
+  --celebrate: #855C38; --on-primary: #FFFFFF;
+}
+
+/* Twilight: dark blue surfaces with soft blue and violet accents. */
+[data-theme="twilight"] {
+  --bg: #111923; --surface: #1B2733; --surface2: #293848;
+  --text: #F3F5F8; --muted: #C5CFDA; --border: #66778B;
+  --primary: #ACCAE8; --primary-soft: #283C51;
+  --secondary: #C4B4F0; --secondary-soft: #322C48;
+  --alert: #F0D28C; --alert-soft: #44391F;
+  --celebrate: #C4B4F0; --on-primary: #172333;
 }
 
 /* ===== Basic page look ===== */
@@ -41,41 +54,51 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
-  line-height: 1.5;
+  font-family: var(--font-body);
+  font-size: var(--font-body-size);
+  line-height: var(--line-height);
 }
 
 /* Headings use Lexend */
 h1, h2, h3 {
-  font-family: "Lexend", system-ui, sans-serif;
+  font-family: var(--font-heading);
 }
+
+h1 { font-size: var(--font-heading-size); line-height: 1.2; }
 
 /* Page content area; extra bottom space so the nav bar never covers it */
 main {
-  max-width: 960px;
+  max-width: var(--content-width);
   margin: 0 auto;
-  padding: 1.5rem 1rem 9rem;
+  padding: var(--space-6) var(--space-4) 9rem;
 }
 
 /* Buttons, at least 48px tall for easy tapping */
 .btn-primary, .btn-secondary {
-  min-height: 48px;
-  padding: 0 1.25rem;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--button-height);
+  padding: 0 var(--button-padding);
+  border-radius: var(--button-radius);
   font: inherit;
   font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
 }
 
 /* Main button: filled with the primary color */
 .btn-primary {
-  border: none;
+  border: var(--button-border) solid var(--primary);
   background: var(--primary);
   color: var(--on-primary);
 }
 
 /* Second button: outlined */
 .btn-secondary {
-  border: 2px solid var(--border);
+  border: var(--button-border) solid var(--border);
   background: var(--surface);
   color: var(--text);
 }
@@ -90,11 +113,19 @@ main {
 
 /* Card: a box that groups related content */
 .card {
-  margin-bottom: 1rem;
-  padding: 1.25rem;
+  margin-bottom: var(--space-4);
+  padding: var(--card-padding);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+/* Link and theme cards share the same border and corner system as content cards. */
+.person-card, .theme-option {
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--card-shadow);
 }
 
 .card h2 {
@@ -105,14 +136,14 @@ main {
 /* Small grey note text */
 .note {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: var(--font-small);
 }
 
 /* Plain text link, tall enough to tap easily */
 .text-link {
   display: inline-flex;
   align-items: center;
-  min-height: 48px;
+  min-height: var(--target-min);
   color: var(--primary);
   font-weight: 700;
 }
@@ -128,10 +159,8 @@ main {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1.25rem;
+  padding: var(--space-5);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
   color: var(--text);
   text-decoration: none;
 }
@@ -151,7 +180,7 @@ main {
   border-radius: 50%;
   background: var(--primary-soft);
   color: var(--primary);
-  font-family: "Lexend", system-ui, sans-serif;
+  font-family: var(--font-heading);
   font-size: 1.5rem;
   font-weight: 700;
 }
@@ -177,7 +206,7 @@ main {
   gap: 0.75rem;
   margin: 0;
   color: var(--tone);
-  font-family: "Lexend", system-ui, sans-serif;
+  font-family: var(--font-heading);
   font-size: 2rem;
   font-weight: 700;
 }
@@ -510,9 +539,8 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 1rem;
-  border: 2px solid var(--border);
-  border-radius: 12px;
+  padding: var(--space-4);
+  border-width: var(--border-strong);
   background: var(--bg);
   color: var(--text);
   font-weight: 700;
@@ -531,6 +559,11 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   border-radius: 50%;
 }
 
+.swatch-primary { background: var(--primary); }
+.swatch-secondary { background: var(--secondary); }
+.swatch-alert { background: var(--alert); }
+.swatch-celebrate { background: var(--celebrate); }
+
 /* Previewing a theme: colours fade for 0.2 seconds (not at all if the device asks for less motion) */
 .theme-fade, .theme-fade * {
   transition: background-color 0.2s, color 0.2s, border-color 0.2s, fill 0.2s, stroke 0.2s;
@@ -544,12 +577,8 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
 
 /* The theme cards are choices: the picked one gets the thick border */
 .theme-option:has(input:checked) {
-  border: 4px solid var(--primary);
-}
-
-.theme-option:has(input:focus-visible) {
-  outline: 3px solid var(--primary);
-  outline-offset: 2px;
+  border-width: 4px;
+  border-color: var(--primary);
 }
 
 fieldset.theme-list {
@@ -640,8 +669,8 @@ fieldset.theme-list legend {
   cursor: pointer;
 }
 
-/* Panels that get focus from the script don't need an outline */
-section[tabindex="-1"]:focus {
+/* Script-focused panels skip a ring only when keyboard focus is not involved. */
+section[tabindex="-1"]:focus:not(:focus-visible) {
   outline: none;
 }
 
@@ -658,7 +687,7 @@ section[tabindex="-1"]:focus {
 
 .choices legend {
   margin-bottom: 0.75rem;
-  font-family: "Lexend", system-ui, sans-serif;
+  font-family: var(--font-heading);
   font-size: 1.1rem;
   font-weight: 700;
 }
@@ -716,14 +745,19 @@ input[type="text"], input[type="time"], textarea, select {
   display: block;
   box-sizing: border-box;
   width: 100%;
-  min-height: 48px;
+  min-height: var(--target-min);
   margin: 0.5rem 0 1rem;
   padding: 0.75rem;
-  border: 2px solid var(--border);
-  border-radius: 8px;
+  border: var(--border-strong) solid var(--border);
+  border-radius: var(--radius-control);
   background: var(--bg);
   color: var(--text);
   font: inherit;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 
 /* Circle: the four access levels, each name in bold with its meaning underneath */
@@ -785,9 +819,22 @@ input[type="text"], input[type="time"], textarea, select {
 }
 
 /* Clear outline when moving around with the keyboard */
-a:focus-visible, button:focus-visible {
-  outline: 3px solid var(--primary);
-  outline-offset: 2px;
+:focus-visible {
+  outline: var(--focus-width) solid var(--focus-color);
+  outline-offset: var(--focus-gap);
+}
+
+.visually-hidden:focus-visible + .choice-box,
+.theme-option:has(input:focus-visible) {
+  outline: var(--focus-width) solid var(--focus-color);
+  outline-offset: var(--focus-gap);
+}
+
+.btn-primary:hover { filter: brightness(0.94); }
+
+.btn-secondary:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 
 /* ===== Phones (default): navigation is a bar fixed to the bottom ===== */
@@ -873,7 +920,7 @@ a:focus-visible, button:focus-visible {
 }
 
 .banner-greeting {
-  font-family: "Lexend", system-ui, sans-serif;
+  font-family: var(--font-heading);
   font-size: 2rem;
   font-weight: 700;
 }
@@ -914,7 +961,7 @@ a:focus-visible, button:focus-visible {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    max-width: 1280px;
+    max-width: var(--wide-content-width);
     margin: 0 auto;
     padding: 0.5rem 2rem;
   }
@@ -924,7 +971,7 @@ a:focus-visible, button:focus-visible {
     align-items: center;
     min-height: 48px;
     color: var(--primary);
-    font-family: "Lexend", system-ui, sans-serif;
+    font-family: var(--font-heading);
     font-size: 1.5rem;
     font-weight: 700;
     text-decoration: none;
@@ -952,7 +999,7 @@ a:focus-visible, button:focus-visible {
 
   /* Today becomes a dashboard: wider container, wide left column and narrow right column */
   main.dashboard {
-    max-width: 1280px;
+    max-width: var(--wide-content-width);
     padding-left: 2rem;
     padding-right: 2rem;
   }
@@ -1034,7 +1081,7 @@ a:focus-visible, button:focus-visible {
 
 .climb-message {
   margin: 1rem 0 0;
-  font-family: "Lexend", system-ui, sans-serif;
+  font-family: var(--font-heading);
   font-size: 1.25rem;
   font-weight: 700;
   text-align: center;
@@ -1195,5 +1242,23 @@ a:focus-visible, button:focus-visible {
 
   .note {
     color: #333333;
+  }
+}
+
+/* Small phones keep content and actions inside the viewport. */
+@media (max-width: 380px) {
+  main { padding-left: var(--space-3); padding-right: var(--space-3); }
+  .card, .person-card { padding: var(--space-4); }
+  .person-list, .card-grid { grid-template-columns: 1fr; }
+  .actions > * { flex: 1 1 100%; }
+}
+
+/* Reduced-motion settings apply to all transitions and animations. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

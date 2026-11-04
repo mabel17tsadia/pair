@@ -26,7 +26,9 @@ if not app.secret_key:
 app.register_blueprint(google_health.google)
 
 # The themes a user can pick from
-THEMES = ["calm", "bright", "dark"]
+THEMES = ["ocean", "garden", "twilight"]
+# Keep saved theme choices from older browser sessions working
+OLD_THEMES = {"calm": "ocean", "bright": "garden", "dark": "twilight"}
 
 # The five moods on the Check in page, each with its emoji (the one place for the whole app;
 # templates use it through the mood_emoji macro)
@@ -57,13 +59,14 @@ SOURCES = {"sample": "Sample data", "google": "Google Health"}
 
 
 # Give every template the theme list and the user's settings
-# (calm theme, sample data and Big celebrations, if nothing picked yet). "celebrations_chosen" is
+# (Ocean theme, sample data and Big celebrations, if nothing picked yet). "celebrations_chosen" is
 # True once the person saved a Celebrations setting themselves; their choice is always kept.
 @app.context_processor
 def add_settings():
+    theme = OLD_THEMES.get(session.get("theme"), session.get("theme", "ocean"))
     return {"themes": THEMES,
-            # An old or unknown theme (for example "colorful") shows as Calm
-            "theme": session.get("theme") if session.get("theme") in THEMES else "calm",
+            # Old saved theme names are mapped to their closest new theme
+            "theme": theme if theme in THEMES else "ocean",
             "data_source": session.get("data_source", "sample"),
             "celebrations": session.get("celebrations", "big"),
             "celebrations_chosen": "celebrations" in session}

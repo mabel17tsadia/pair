@@ -24,7 +24,7 @@ This document summarizes the visual and interaction rules in [master-design-prom
 
 Theme selection changes appearance only. It must not change permissions, data, or available features. Theme colors need contrast checks during implementation; names and descriptions alone do not establish accessible contrast.
 
-The current prototype offers Calm, Bright, and Dark themes. Ocean, Garden, and Twilight are the target design names; updating theme names or colors is a later application change, not part of this documentation step.
+The current prototype now uses Ocean, Garden, and Twilight as its selectable themes. Older saved Calm, Bright, and Dark values map to the closest new theme so existing browser sessions still render.
 
 ## Layout and interaction
 
