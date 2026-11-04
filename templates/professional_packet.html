@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Packet Detail shows only the packet submitted to this professional while it is authorized. -->
+  <a class="text-link" href="{{ url_for('professional_packets') }}">‹ Shared Appointment Packets</a>
+  <h1>Packet Detail</h1>
+  <p class="note">{{ packet.appointment_type }} · {{ packet.appointment_on[:10] | long_day }} · Shared by {{ member.name }}</p>
+
+  <!-- The authorization window and member's communication preferences are part of this packet. -->
+  <section class="card">
+    <h2>Authorization period</h2>
+    <p>{{ packet.authorization_starts_on | long_day }} through {{ packet.access_expires_on | long_day }}</p>
+    <p class="note">Packet access is limited to this period and the submitted information below.</p>
+  </section>
+  <section class="card">
+    <h2>Communication preferences</h2>
+    <p><strong>Preferred channel:</strong> {{ packet.communication_preferences.preferred_channel }}</p>
+    <p><strong>Contact boundary:</strong> {{ packet.communication_preferences.contact_boundary }}</p>
+  </section>
+
+  <!-- Only member-selected items in this packet are displayed, each with its source. -->
+  <section class="card" aria-labelledby="submitted-items-title">
+    <h2 id="submitted-items-title">Information shared in this packet</h2>
+    {% for item in packet.selected_items %}
+      <article class="packet-item">
+        <h3>{{ item.label }}</h3>
+        <p class="note">Source: {{ item.source }}</p>
+      </article>
+    {% else %}<p>No information was selected for this packet.</p>{% endfor %}
+  </section>
+  <p class="note">This demo does not provide access to other health records, check-ins, or device data.</p>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Proposed Next Steps shows professional submissions tied to currently authorized packets. -->
+  <h1>Proposed Next Steps</h1>
+  <p class="note">Suggestions stay in Health until the member accepts them. An accepted action is the only kind that can enter My Plan.</p>
+
+  <!-- Every action identifies its submitter and keeps supporting detail available. -->
+  <section aria-labelledby="professional-actions-title">
+    <h2 id="professional-actions-title">Steps connected to active packets</h2>
+    {% for action in actions %}
+      <article class="card health-record-card">
+        <div class="health-record-heading">
+          <h3>{{ action.instruction }}</h3>
+          <span class="chip">{{ action.status.replace("_", " ").capitalize() }}</span>
+        </div>
+        <p><strong>Type:</strong> {{ action.action_type_label }} · <strong>Submitted by:</strong> {{ action.source_name }}</p>
+        <p><strong>Due:</strong> {% if action.due_on %}{{ action.due_on | long_day }}{% else %}No due date set{% endif %}</p>
+        <details><summary>Supporting details</summary><p>{{ action.supporting_detail }}</p></details>
+      </article>
+    {% else %}<p class="card">No next steps are linked to active packets.</p>{% endfor %}
+  </section>
+
+  <!-- A professional can propose a plain-language action only for a currently authorized packet. -->
+  <section class="card">
+    <h2>Propose a next step</h2>
+    {% if packets %}
+      <form method="post">
+        <label for="packet-id">Appointment packet</label>
+        <select id="packet-id" name="packet_id" required>
+          {% for packet in packets %}<option value="{{ packet.id }}">{{ packet.appointment_type }} · {{ packet.appointment_on[:10] }}</option>{% endfor %}
+        </select>
+        <label for="action-type">Type</label>
+        <select id="action-type" name="action_type" required>
+          <option value="prescription_pickup">Prescription pickup</option>
+          <option value="test">Test</option>
+          <option value="referral">Referral</option>
+          <option value="follow_up_appointment">Follow-up appointment</option>
+          <option value="other_instruction">Other instruction</option>
+        </select>
+        <label for="instruction">Plain-language instructions</label>
+        <textarea id="instruction" name="instruction" rows="3" maxlength="240" placeholder="For example, Call the clinic to ask about your test." required></textarea>
+        <label for="due-on">Optional due date</label>
+        <input id="due-on" type="date" name="due_on">
+        <label for="supporting-detail">Supporting details</label>
+        <textarea id="supporting-detail" name="supporting_detail" rows="3" maxlength="500" required></textarea>
+        <button type="submit" class="btn-primary">Save proposed step</button>
+      </form>
+    {% else %}<p>No active member authorization is available for a new proposal.</p>{% endif %}
+  </section>
+{% endblock %}

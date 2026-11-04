@@ -366,7 +366,12 @@
       "status": "upcoming",
       "recipient_id": "health-priya",
       "review_status": "member_reviewed_demo_only",
+      "authorization_starts_on": "2026-11-03",
       "access_expires_on": "2026-11-13",
+      "communication_preferences": {
+        "preferred_channel": "Discuss questions during the appointment",
+        "contact_boundary": "Ask Jordan before contacting anyone outside the clinic"
+      },
       "selected_items": [
         {
           "label": "Sleep pattern summary",
@@ -386,7 +391,12 @@
       "status": "completed",
       "recipient_id": "health-priya",
       "review_status": "completed_demo_only",
+      "authorization_starts_on": "2026-10-20",
       "access_expires_on": "2026-10-21",
+      "communication_preferences": {
+        "preferred_channel": "Discuss questions during the appointment",
+        "contact_boundary": "Ask Jordan before contacting anyone outside the clinic"
+      },
       "selected_items": [
         {
           "label": "Questions about daily routines",

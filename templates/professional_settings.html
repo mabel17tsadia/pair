@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Professional Settings contains only local demo preferences and identity information. -->
+  <h1>Professional Settings</h1>
+  <p class="note">Demo profile: Dr. Priya Patel. The role selector does not verify a professional identity or grant packet access.</p>
+
+  <!-- Reminder preference is stored in this browser session and does not alter member authorization. -->
+  <section class="card">
+    <form method="post">
+      <fieldset>
+        <legend>Packet review reminder</legend>
+        <label class="share-pick"><input type="radio" name="review_reminders" value="daily" {% if settings.review_reminders == "daily" %}checked{% endif %}> Daily</label>
+        <label class="share-pick"><input type="radio" name="review_reminders" value="weekly" {% if settings.review_reminders == "weekly" %}checked{% endif %}> Weekly</label>
+        <label class="share-pick"><input type="radio" name="review_reminders" value="off" {% if settings.review_reminders == "off" %}checked{% endif %}> Off</label>
+      </fieldset>
+      <button type="submit" class="btn-primary">Save Professional Settings</button>
+    </form>
+  </section>
+{% endblock %}

@@ -56,9 +56,10 @@ ROLE_NAVIGATION = {
         ("Coach Settings", "coach_settings", "gear", ["coach_settings"]),
     ],
     "healthcare": [
-        ("Packets", None, "clipboard", []), ("Packet Detail", None, "clipboard", []),
-        ("Preferences", None, "gear", []), ("Next Steps", None, "flag", []),
-        ("Professional Settings", None, "gear", []),
+        ("Shared Appointment Packets", "professional_packets", "clipboard",
+         ["professional_packets", "professional_packet"]),
+        ("Proposed Next Steps", "professional_next_steps", "flag", ["professional_next_steps"]),
+        ("Professional Settings", "professional_settings", "gear", ["professional_settings"]),
     ],
     "trusted": [
         ("Shared with Me", None, "heart", []), ("Accomplishments", None, "flag", []),
@@ -203,6 +204,7 @@ SOURCE_DETAILS = {
 # Here all device data is simulated from the CSV files; only the optional Google Health card
 # is a real sign in (see google_health.py), and its data is not used for patterns yet.
 GOOGLE_DEVICE = "Google Health (Fitbit, Pixel Watch)"
+DEMO_HEALTHCARE_PROFESSIONAL_ID = "health-priya"
 
 
 # A person's devices with their current pairing choices from the session (the CSV never changes)
@@ -542,11 +544,13 @@ def health_follow_ups_for(person, records=None):
     if not records:
         return []
     saved_states = session.get("health_action_states", {}).get(person["id"], {})
+    proposals = session.get("professional_proposals", {}).get(person["id"], [])
+    actions = records["health_follow_ups"] + proposals
     return [{**action,
              "status": saved_states.get(action["id"], {}).get("status", action["status"]),
              "member_question": saved_states.get(action["id"], {}).get("question", ""),
              "action_type_label": action.get("action_type", "other_instruction").replace("_", " ").capitalize()}
-            for action in records["health_follow_ups"]]
+            for action in actions]
 
 
 # Health overview: summarize appointments, follow-ups, patterns and connected sources.
@@ -602,6 +606,99 @@ def health_packet(packet_id):
                            recipient=recipient, person=person)
 
 
+# Return only member-reviewed packets sent to this demo professional within their authorization period.
+def professional_authorized_packets():
+    records = load_demo_data()
+    today = data.get_today()
+    return [packet for packet in records["appointment_packets"]
+            if packet["member_id"] == records["member"]["id"]
+            and packet["recipient_id"] == DEMO_HEALTHCARE_PROFESSIONAL_ID
+            and packet["review_status"] == "member_reviewed_demo_only"
+            and packet.get("authorization_starts_on", "0000-00-00") <= today <= packet["access_expires_on"]]
+
+
+# List new member-shared packets that are still inside their authorization period.
+@app.route("/professional/packets")
+def professional_packets():
+    records = load_demo_data()
+    packets = professional_authorized_packets()
+    professional = next((item for item in records["professionals"]
+                         if item["id"] == DEMO_HEALTHCARE_PROFESSIONAL_ID), None)
+    return render_template("professional_packets.html", title="Shared Appointment Packets",
+                           packets=packets, member=records["member"], professional=professional,
+                           today=data.get_today())
+
+
+# Show only the contents and preferences included in one currently authorized packet.
+@app.route("/professional/packets/<packet_id>")
+def professional_packet(packet_id):
+    packet = next((item for item in professional_authorized_packets() if item["id"] == packet_id), None)
+    if not packet:
+        abort(404)
+    records = load_demo_data()
+    member = records["member"]
+    professional = next((item for item in records["professionals"]
+                         if item["id"] == DEMO_HEALTHCARE_PROFESSIONAL_ID), None)
+    return render_template("professional_packet.html", title="Packet Detail", packet=packet,
+                           member=member, professional=professional, today=data.get_today())
+
+
+# Show actions tied to currently authorized packets and accept new professional proposals.
+@app.route("/professional/next-steps", methods=["GET", "POST"])
+def professional_next_steps():
+    packets = professional_authorized_packets()
+    packet_ids = {packet["id"] for packet in packets}
+    records = load_demo_data()
+    member = data.get_person(records["member"]["application_person_id"])
+    if request.method == "POST":
+        packet_id = request.form.get("packet_id", "")
+        packet = next((item for item in packets if item["id"] == packet_id), None)
+        action_type = request.form.get("action_type", "")
+        instruction = request.form.get("instruction", "").strip()[:240]
+        supporting_detail = request.form.get("supporting_detail", "").strip()[:500]
+        due_on = request.form.get("due_on", "").strip()
+        try:
+            if due_on:
+                date.fromisoformat(due_on)
+        except ValueError:
+            due_on = "invalid"
+        if not packet or action_type not in ["prescription_pickup", "test", "referral",
+                                             "follow_up_appointment", "other_instruction"]:
+            abort(403)
+        if not instruction or not supporting_detail or due_on == "invalid":
+            flash("Add clear instructions and supporting details. The due date is optional.")
+            return redirect(url_for("professional_next_steps"))
+        proposals = session.get("professional_proposals", {})
+        member_proposals = proposals.get(member["id"], [])
+        step = {"id": f"professional-step-{len(member_proposals) + 1}", "packet_id": packet_id,
+                "member_id": packet["member_id"], "source_id": DEMO_HEALTHCARE_PROFESSIONAL_ID,
+                "source_name": "Dr. Priya Patel", "action_type": action_type,
+                "instruction": instruction, "due_on": due_on, "status": "proposed",
+                "supporting_detail": supporting_detail, "estimated_minutes": 10}
+        proposals[member["id"]] = member_proposals + [step]
+        session["professional_proposals"] = proposals
+        flash("Proposed next step saved in the demo. The member can review it in Health.")
+        return redirect(url_for("professional_next_steps"))
+    actions = [item for item in health_follow_ups_for(member, records)
+               if item.get("packet_id") in packet_ids]
+    return render_template("professional_next_steps.html", title="Proposed Next Steps",
+                           packets=packets, actions=actions)
+
+
+# Save professional display preferences without changing any packet authorization.
+@app.route("/professional/settings", methods=["GET", "POST"])
+def professional_settings():
+    settings = session.get("professional_settings", {"review_reminders": "weekly"})
+    if request.method == "POST":
+        reminders = request.form.get("review_reminders")
+        if reminders in ["daily", "weekly", "off"]:
+            settings["review_reminders"] = reminders
+            session["professional_settings"] = settings
+            flash("Professional settings saved in this demo.")
+        return redirect(url_for("professional_settings"))
+    return render_template("professional_settings.html", title="Professional Settings", settings=settings)
+
+
 # Let the member accept, question, or decline one of their own proposed Health actions.
 @app.route("/health/next-steps/<action_id>", methods=["POST"])
 def health_follow_up_action(action_id):
@@ -609,7 +706,8 @@ def health_follow_up_action(action_id):
     if not person:
         return redirect(url_for("choose"))
     records = health_demo_records(person)
-    action = next((item for item in records["health_follow_ups"] if item["id"] == action_id), None) if records else None
+    action = next((item for item in health_follow_ups_for(person, records)
+                   if item["id"] == action_id), None) if records else None
     if not action:
         abort(404)
     states = session.get("health_action_states", {}).get(person["id"], {})

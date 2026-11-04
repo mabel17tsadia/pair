@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Shared Appointment Packets lists only packets addressed to this demo professional. -->
+  <h1>Shared Appointment Packets</h1>
+  <p class="note">Demo preview only. Packet access depends on the member's recipient choice and authorization period; this screen does not verify identity.</p>
+
+  <!-- New appointment packets were shared by the member and are waiting for professional review. -->
+  <section aria-labelledby="new-appointment-packets-title">
+    <h2 id="new-appointment-packets-title">New appointment packets</h2>
+    <p>Shared by members and awaiting your review.</p>
+    {% for packet in packets %}
+      <article class="card health-record-card">
+        <div class="health-record-heading">
+          <h3>{{ packet.appointment_type }}</h3>
+          <span class="chip">New</span>
+        </div>
+        <p><strong>Member:</strong> {{ member.name }} · {{ packet.appointment_on[:10] | long_day }}</p>
+        <p><strong>Recipient:</strong> {{ professional.name }}</p>
+        <p><strong>Authorized:</strong> {{ packet.authorization_starts_on | long_day }} – {{ packet.access_expires_on | long_day }}</p>
+        <a class="btn-secondary" href="{{ url_for('professional_packet', packet_id=packet.id) }}">Review packet</a>
+      </article>
+    {% else %}<p class="card">No new appointment packets are currently authorized for this demo professional.</p>{% endfor %}
+  </section>
+{% endblock %}
