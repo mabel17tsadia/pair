@@ -40,12 +40,14 @@ ROLE_NAVIGATION = {
         ("Home", "today", "sun", ["today"]),
         ("My Plan", "plan", "calendar", ["plan"]),
         ("Check In", "checkin", "check", ["checkin"]),
-        ("Health", "health", "heart", ["health"]),
+        ("Health", "health", "heart", ["health", "health_packets", "health_packet",
+                                            "health_next_steps", "patterns", "body", "devices",
+                                            "pair_device", "stop_pairing", "visit_start", "visit_page",
+                                            "visit_suggest", "visit_add_question", "visit_entry",
+                                            "visit_send", "visit_not_sure"]),
         ("My Circle", "circle", "people", ["circle"]),
-        ("Me", "me", "user", ["me", "body", "settings", "devices", "pair_device", "climb",
-                                "climb_done", "climb_add",
-                                "patterns", "routines", "routine_steps", "routine_edit",
-                                "visit_start", "visit_page", "visit_not_sure"]),
+        ("Me", "me", "user", ["me", "settings", "climb",
+                                "climb_done", "climb_add", "routines", "routine_steps", "routine_edit"]),
     ],
     "coach": [
         ("Overview", "coach", "wave", ["coach"]), ("Learners", None, "people", []),
@@ -65,6 +67,11 @@ ROLE_NAVIGATION = {
         ("Invitations", None, "clipboard", []), ("Org Settings", None, "home", []),
         ("Access Logs", None, "wave", []), ("Templates", None, "book", []),
     ],
+}
+HEALTH_ENDPOINTS = {
+    "health", "health_packets", "health_packet", "health_next_steps", "patterns", "body",
+    "devices", "pair_device", "stop_pairing", "visit_start", "visit_page", "visit_suggest",
+    "visit_add_question", "visit_entry", "visit_send", "visit_not_sure",
 }
 
 # The five moods on the Check in page, each with its emoji (the one place for the whole app;
@@ -120,6 +127,7 @@ def add_settings():
             "theme": theme if theme in THEMES else "ocean",
             "demo_role": demo_role, "demo_roles": DEMO_ROLES,
             "role_navigation": ROLE_NAVIGATION[demo_role],
+            "in_health_section": request.endpoint in HEALTH_ENDPOINTS,
             "data_source": session.get("data_source", "sample"),
             "celebrations": session.get("celebrations", "big"),
             "celebrations_chosen": "celebrations" in session}
@@ -492,24 +500,76 @@ def plan():
                            has_demo_records=is_demo_member)
 
 
-# Health: keep every proposed, questioned, or accepted follow-up visible with the appointment packets.
+# Return Health fixture records only when the active demo member owns the fixture profile.
+def health_demo_records(person):
+    """Return only Health records linked to the current sample member's stable app ID."""
+    records = load_demo_data()
+    return records if person["id"] == records["member"]["application_person_id"] else None
+
+
+# Health overview: summarize appointments, follow-ups, patterns and connected sources.
 @app.route("/health")
 def health():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
-    records = load_demo_data()
-    is_demo_member = f"{person['first_name']} {person['last_name']}".strip() == records["member"]["name"]
-    packets = records["appointment_packets"] if is_demo_member else []
+    records = health_demo_records(person)
+    if not records:
+        return render_template("health.html", title="Health", person=person,
+                               has_demo_records=False)
+    packets = records["appointment_packets"]
     for packet in packets:
         appointment = datetime.fromisoformat(packet["appointment_on"])
         packet["date_label"] = (f"{appointment:%A}, {appointment:%B} {appointment.day} · "
                                 f"{appointment:%I:%M %p}".replace(" 0", " "))
-    recipients = {item["id"]: item["name"] for item in records["professionals"]}
+    upcoming = next((packet for packet in packets if packet["status"] == "upcoming"), None)
     return render_template("health.html", title="Health", person=person,
-                           follow_ups=records["health_follow_ups"] if is_demo_member else [],
-                           packets=packets, recipients=recipients,
-                           has_demo_records=is_demo_member)
+                           upcoming=upcoming, next_steps=records["health_follow_ups"][:2],
+                           packet_count=len(packets), patterns=get_patterns(person["id"], devices_for(person)),
+                           connected_count=sum(device["paired"] for device in devices_for(person)),
+                           has_demo_records=True)
+
+
+# List the member's reviewed appointment packet records without exposing other members' packets.
+@app.route("/health/packets")
+def health_packets():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    records = health_demo_records(person)
+    return render_template("health_packets.html", title="My Shared Packets", person=person,
+                           packets=records["appointment_packets"] if records else [],
+                           has_demo_records=bool(records))
+
+
+# Show one packet only after confirming its member owner and member-reviewed demo state.
+@app.route("/health/packets/<packet_id>")
+def health_packet(packet_id):
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    records = health_demo_records(person)
+    packet = next((item for item in records["appointment_packets"]
+                   if item["id"] == packet_id and item["member_id"] == records["member"]["id"]
+                   and item["review_status"] in ["member_reviewed_demo_only", "completed_demo_only"]), None) if records else None
+    if not packet:
+        abort(404)
+    recipient = next((item["name"] for item in records["professionals"]
+                      if item["id"] == packet["recipient_id"]), "Healthcare professional")
+    return render_template("health_packet.html", title="Packet details", packet=packet,
+                           recipient=recipient, person=person)
+
+
+# Show all healthcare follow-up statuses in the Health section.
+@app.route("/health/next-steps")
+def health_next_steps():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    records = health_demo_records(person)
+    return render_template("health_next_steps.html", title="Next Steps", person=person,
+                           follow_ups=records["health_follow_ups"] if records else [],
+                           has_demo_records=bool(records))
 
 
 # Activity detail: keep step navigation, presentation choices, and feedback in this demo session.
@@ -661,7 +721,7 @@ def patterns():
     if not person:
         return redirect(url_for("choose"))
     trends = get_trends(person["id"], devices_for(person))
-    return render_template("patterns.html", title="Patterns",
+    return render_template("patterns.html", title="Health Patterns",
                            trends=[{**t, "chart": trend_chart(t["values"], t["usual"])} for t in trends])
 
 
@@ -1105,7 +1165,7 @@ def devices():
     if not person:
         return redirect(url_for("choose"))
     cards = device_cards(person)
-    return render_template("devices.html", title="Paired devices", google_name=GOOGLE_DEVICE,
+    return render_template("devices.html", title="Connected Health Sources", google_name=GOOGLE_DEVICE,
                            paired=[d for d in cards if d["paired"]],
                            available=[d for d in cards if not d["paired"]])
 

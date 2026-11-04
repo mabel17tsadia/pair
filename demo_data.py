@@ -68,7 +68,7 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
                 "due_on": follow_up["due_on"], "scheduled_for": "",
                 "estimated_minutes": follow_up.get("estimated_minutes", 10),
                 "status": "accepted", "next_action": "Review the details in Health",
-                "health_link": f"/health#{follow_up['id']}",
+                "health_link": f"/health/next-steps#{follow_up['id']}",
             })
 
     visible = []

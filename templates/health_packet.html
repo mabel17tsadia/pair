@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Packet detail reveals member-selected items only after the member opens this packet. -->
+  <a class="text-link" href="{{ url_for('health_packets') }}">‹ My Shared Packets</a>
+  <h1>{{ packet.appointment_type }}</h1>
+  <p class="note">{{ packet.appointment_on[:10] | long_day }} · With {{ recipient }} · {{ packet.status.capitalize() }}</p>
+
+  <!-- Each selected item keeps its source visible; other records and private check-ins stay out. -->
+  <section class="card" aria-labelledby="packet-items-title">
+    <h2 id="packet-items-title">Items selected by you</h2>
+    {% for item in packet.selected_items %}
+      <article class="packet-item">
+        <h3>{{ item.label }}</h3>
+        <p class="note">Source: {{ item.source }}</p>
+      </article>
+    {% else %}<p>No items were selected.</p>{% endfor %}
+  </section>
+
+  <!-- Review state and expiration make the demo access period visible. -->
+  <details class="card">
+    <summary>Packet access details</summary>
+    <p>Review state: {{ packet.review_status.replace("_", " ").capitalize() }}</p>
+    <p>Access expires: {{ packet.access_expires_on | long_day }}</p>
+    <p class="note">This demo does not verify recipients or deliver packet contents.</p>
+  </details>
+{% endblock %}

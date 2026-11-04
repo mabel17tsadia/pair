@@ -22,6 +22,8 @@ The existing app is a single-browser demo with demo-person selection, not accoun
 
 The shell's demo role selector changes navigation labels only. It does not authenticate a role, protect routes, or change permissions.
 
+Health demo screens are scoped to the active member's own sample profile. Packet detail also checks the packet's member ID and member-reviewed demo state before showing selected items. These checks protect the demo's record boundaries; they are not production authentication or recipient authorization.
+
 ## Access review questions for implementation
 
 Before adding a role workflow, identify the authenticated person, the member whose information is involved, the exact permission granted, the content allowed, the expiration, and the revocation path. Deny access by default when any required authorization is missing.

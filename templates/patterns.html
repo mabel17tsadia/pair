@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <!-- Page title and how to read the charts -->
-  <h1>Patterns</h1>
+  <!-- Link back to Health and explain the pattern charts -->
+  <a class="text-link" href="{{ url_for('health') }}">‹ Health</a>
+  <h1>Health Patterns</h1>
   <p>Your last 21 days. The shaded band is your usual range. The last 5 days are highlighted.</p>
 
   <!-- One card per signal from a paired device: a plain sentence, then its chart -->

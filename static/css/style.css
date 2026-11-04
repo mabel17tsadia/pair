@@ -412,6 +412,19 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
 .activity-next a { color: var(--primary); font-weight: 700; }
 .activity-open { margin-top: var(--space-2); }
 
+/* Health pages share one subnavigation and reveal longer records only on their own pages. */
+.health-nav { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-5); }
+.health-nav a { display: flex; flex: 1 1 150px; align-items: center; justify-content: center; min-height: var(--target-min); padding: 0 var(--space-3); border: var(--border-width) solid var(--border); border-radius: var(--radius-control); background: var(--surface); color: var(--text); text-align: center; text-decoration: none; font-weight: 700; }
+.health-nav a[aria-current="page"] { border: var(--border-strong) solid var(--primary); background: var(--primary-soft); color: var(--primary); }
+.health-overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 0 var(--space-4); }
+.health-overview-grid .card { min-width: 0; }
+.health-record-card { scroll-margin-top: var(--space-6); }
+.health-record-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.health-record-heading h2 { margin-top: 0; }
+.packet-item { padding: var(--space-3) 0; border-top: var(--border-width) solid var(--border); }
+.packet-item h3 { margin-bottom: 0; }
+.health-record-card summary, details.card summary { min-height: var(--target-min); color: var(--primary); font-weight: 700; cursor: pointer; }
+
 /* Activity detail keeps each instruction, presentation control and feedback choice easy to use. */
 .objective-card { border-left: 6px solid var(--secondary); }
 .objective-card h2, .objective-card p { margin-top: 0; }

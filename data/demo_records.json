@@ -3,7 +3,8 @@
     "id": "member-jordan",
     "name": "Jordan Reyes",
     "role": "member",
-    "fictional": true
+    "fictional": true,
+    "application_person_id": "p1"
   },
   "professionals": [
     {

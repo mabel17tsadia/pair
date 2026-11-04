@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Next Steps keeps proposed, questioned and accepted healthcare actions together in Health. -->
+  <h1>Next Steps</h1>
+  <p class="note">Appointments stay in Health. Only accepted follow-up actions also appear in My Plan.</p>
+  {% if has_demo_records %}
+    {% for action in follow_ups %}
+      <article class="card health-record-card" id="{{ action.id }}">
+        <div class="health-record-heading">
+          <h2>{{ action.instruction }}</h2>
+          <span class="chip">{{ action.status.replace("_", " ").capitalize() }}</span>
+        </div>
+        <p><strong>From {{ action.source_name }}</strong> · Due {{ action.due_on | long_day }}</p>
+        <details>
+          <summary>More about this next step</summary>
+          <p>{{ action.supporting_detail }}</p>
+          {% if action.packet_id %}<a class="text-link" href="{{ url_for('health_packet', packet_id=action.packet_id) }}">Open related packet</a>{% endif %}
+        </details>
+        {% if action.status == "accepted" %}<a class="text-link" href="{{ url_for('plan', time='later', source='health') }}">Find this accepted step in My Plan</a>{% endif %}
+      </article>
+    {% else %}<p class="card">No healthcare follow-up actions yet.</p>{% endfor %}
+  {% else %}
+    <p class="card">Health demo records are available for Jordan Reyes only.</p>
+  {% endif %}
+{% endblock %}

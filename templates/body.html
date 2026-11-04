@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <!-- Link back to Me and page title -->
-  <a class="text-link" href="{{ url_for('me') }}">‹ Me</a>
-  <h1>My body signals</h1>
+  <!-- Link back to Health and page title -->
+  <a class="text-link" href="{{ url_for('health') }}">‹ Health</a>
+  <h1>Health Patterns: Body Signals</h1>
 
   {% if signals %}
     <p>Your last 21 days. The shaded band is your usual range. The last 5 days are highlighted.</p>

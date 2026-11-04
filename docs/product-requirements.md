@@ -52,7 +52,7 @@ AI may adapt presentation, break activities into steps, suggest appointment ques
 
 ## Demonstration and current implementation
 
-Use fictional demonstration data only. The target demo data is described in [demo-data.md](demo-data.md). The current app is a Flask prototype with CSV sample data and session-only changes. It includes Today, patterns, check-in, climb goals, routines, circle and share previews, appointment preparation, settings, paired-device demo controls, and an optional Google Health test integration. The current app does not implement the complete My Plan, role-specific portals, durable accounts, real packet delivery, or healthcare follow-up workflow described above. Sharing forms currently show a prototype confirmation; they do not deliver information.
+Use fictional demonstration data only. The target demo data is described in [demo-data.md](demo-data.md). The current app is a Flask prototype with CSV and JSON sample data and session-only changes. It includes Today, My Plan, check-in, climb goals, routines, circle and share previews, a dedicated Health section for appointment preparation, packet previews, next steps, patterns and connected sources, settings, and an optional Google Health test integration. The app does not implement role-specific portals, durable accounts, production authorization, real packet delivery, or a durable healthcare follow-up workflow. Sharing forms show a prototype confirmation; they do not deliver information.
 
 The product-scope direction in this document supersedes the earlier statement that task lists and task planning are out of scope. Existing demo goals and routines remain distinct features and should not be removed as part of documentation work.
 

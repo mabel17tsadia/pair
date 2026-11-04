@@ -56,6 +56,18 @@
       <p class="flash" role="status">{{ message }}</p>
     {% endfor %}
 
+    {% if in_health_section %}
+      <!-- Health subnavigation groups appointments, packets, next steps, patterns and sources. -->
+      <nav class="health-nav" aria-label="Health section">
+        <a href="{{ url_for('health') }}" {% if request.endpoint == 'health' %}aria-current="page"{% endif %}>Overview</a>
+        <a href="{{ url_for('visit_start') }}" {% if request.endpoint in ['visit_start', 'visit_page', 'visit_not_sure'] %}aria-current="page"{% endif %}>Prepare for an Appointment</a>
+        <a href="{{ url_for('health_packets') }}" {% if request.endpoint in ['health_packets', 'health_packet'] %}aria-current="page"{% endif %}>My Shared Packets</a>
+        <a href="{{ url_for('health_next_steps') }}" {% if request.endpoint == 'health_next_steps' %}aria-current="page"{% endif %}>Next Steps</a>
+        <a href="{{ url_for('patterns') }}" {% if request.endpoint == 'patterns' or request.endpoint == 'body' %}aria-current="page"{% endif %}>Health Patterns</a>
+        <a href="{{ url_for('devices') }}" {% if request.endpoint in ['devices', 'pair_device', 'stop_pairing'] %}aria-current="page"{% endif %}>Connected Health Sources</a>
+      </nav>
+    {% endif %}
+
     {% block content %}{% endblock %}
   </main>
 

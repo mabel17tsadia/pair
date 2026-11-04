@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Packet list shows only a title, date and state before the member opens details. -->
+  <h1>My Shared Packets</h1>
+  <p class="note">Review what each simulated appointment packet contains. Packets are not delivered by this demo.</p>
+  {% if has_demo_records %}
+    {% for packet in packets %}
+      <article class="card health-record-card">
+        <div class="health-record-heading">
+          <h2>{{ packet.appointment_type }}</h2>
+          <span class="chip">{{ packet.status.capitalize() }}</span>
+        </div>
+        <p>{{ packet.appointment_on[:10] | long_day }} · {{ packet.selected_items | length }} selected item{{ "s" if packet.selected_items | length != 1 }}</p>
+        <a class="btn-secondary" href="{{ url_for('health_packet', packet_id=packet.id) }}">Review packet</a>
+      </article>
+    {% else %}<p class="card">No shared packets yet.</p>{% endfor %}
+  {% else %}
+    <p class="card">Health demo records are available for Jordan Reyes only.</p>
+  {% endif %}
+{% endblock %}
