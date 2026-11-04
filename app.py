@@ -69,8 +69,19 @@ ROLE_NAVIGATION = {
 
 # The five moods on the Check in page, each with its emoji (the one place for the whole app;
 # templates use it through the mood_emoji macro)
-MOODS = {"Calm": "😌", "Okay": "🙂", "Tired": "😴", "Worried": "😟", "Overwhelmed": "😣"}
+MOODS = {"Calm": "😌", "Okay": "🙂", "Tired": "😴", "Worried": "😟",
+         "Overwhelmed": "😣", "Another Feeling": "🤔"}
 app.jinja_env.globals["MOODS"] = MOODS
+CHECKIN_HELP = [
+    {"value": "quiet_break", "label": "Quiet Break", "icon": "🌿"},
+    {"value": "smaller_step", "label": "Smaller Step", "icon": "🪜"},
+    {"value": "message_someone", "label": "Message Someone", "icon": "💬"},
+    {"value": "read_aloud", "label": "Read Aloud", "icon": "🔊"},
+    {"value": "reduce_screen", "label": "Reduce Screen Content", "icon": "📱"},
+    {"value": "nothing_now", "label": "Nothing Right Now", "icon": "🌱"},
+]
+CHECKIN_DISPLAY = [("pictures_words", "Pictures and Words"), ("words_only", "Words Only"),
+                   ("pictures_first", "Pictures First")]
 
 # The id of a person who signed up at /start (kept in the session only, never in a file)
 NEW_ID = "new"
@@ -602,24 +613,44 @@ def checkin():
         return redirect(url_for("choose"))
     pid = person["id"]
     checkins = session.get("checkins", [])
+    displays = dict(session.get("checkin_display", {}))
+    display = displays.get(pid, "pictures_words")
+
+    if request.method == "POST" and request.form.get("action") == "display":
+        choice = request.form.get("display")
+        if choice in dict(CHECKIN_DISPLAY):
+            displays[pid] = choice
+            session["checkin_display"] = displays
+            flash("Check-in display preference saved.")
+        return redirect(url_for("checkin"))
 
     # Save: add the check in to the session (demo only, keeps the last 20; it counts toward the
     # weekly Check in goal), work out the response, then show it on this page
     if request.method == "POST" and request.form.get("feeling") in MOODS:
         feeling, note = request.form["feeling"], request.form.get("note", "").strip()[:200]
+        help_choice = request.form.get("help_choice", "")
+        if help_choice not in {choice["value"] for choice in CHECKIN_HELP}:
+            help_choice = ""
         checkins.append({"person_id": pid, "date": data.get_today(),
-                         "time": datetime.now().strftime("%H:%M"), "feeling": feeling, "note": note})
+                         "time": datetime.now().strftime("%H:%M"), "feeling": feeling,
+                         "help_choice": help_choice, "note": note})
         session["checkins"] = checkins[-20:]
         devices = devices_for(person)
         response = respond_to_checkin(person, feeling, get_patterns(pid, devices), get_body_signals(pid, devices), note)
-        save("checkin_response", pid, {**response, "mood": feeling})
+        selected_help = next((item for item in CHECKIN_HELP if item["value"] == help_choice), None)
+        save("checkin_response", pid, {**response, "mood": feeling,
+                                        "help_choice": selected_help})
         return redirect(url_for("checkin"))
 
     # Show the response once (if there is one), otherwise the form, plus earlier check ins
     response = session.get("checkin_response", {}).pop(pid, None)
     session.modified = True
     mine = [c for c in checkins if c["person_id"] == pid]
-    return render_template("checkin.html", title="Check in", feelings=MOODS, response=response, checkins=mine)
+    help_by_key = {item["value"]: item for item in CHECKIN_HELP}
+    return render_template("checkin.html", title="Check in", feelings=MOODS,
+                           help_choices=CHECKIN_HELP, help_by_key=help_by_key,
+                           display_options=CHECKIN_DISPLAY, display=display,
+                           response=response, checkins=mine)
 
 
 # Patterns: a 21 day line chart for each signal from a paired device, with the usual range

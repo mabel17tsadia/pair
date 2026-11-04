@@ -780,6 +780,18 @@ section[tabindex="-1"]:focus:not(:focus-visible) {
   cursor: pointer;
 }
 
+/* Check In keeps display choices and illustrated options comfortable to tap. */
+.display-preference { margin-bottom: var(--space-5); }
+.display-choices { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-4); padding: 0; border: 0; }
+.display-choices legend { width: 100%; margin-bottom: var(--space-2); font-weight: 700; }
+.display-option { display: flex; align-items: center; gap: var(--space-2); min-height: var(--target-min); padding: 0 var(--space-3); border: var(--border-width) solid var(--border); border-radius: var(--radius-control); background: var(--surface); }
+.display-option input:focus-visible + span { outline: var(--focus-width) solid var(--focus-color); outline-offset: var(--focus-gap); }
+.choice-icon { display: inline-flex; align-items: center; justify-content: center; min-height: 2.25rem; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; font-size: 2rem; line-height: 1; }
+.checkin-form.display-words_only .choice-icon { display: none; }
+.checkin-form.display-pictures_first .choice-box { min-height: 7rem; }
+.checkin-form.display-pictures_first .choice-icon { min-height: 3.25rem; font-size: 3rem; }
+.checkin-form.display-pictures_first .choice-icon .emoji-big { font-size: 48px; }
+
 /* Mood emoji: shown in colour on every device, large on the buttons and smaller in lists */
 .emoji {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;

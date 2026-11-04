@@ -43,7 +43,7 @@ Support Pictures and Words, Words Only, and Pictures First. Offer Read Aloud, Sh
 
 ## Check-in choices
 
-Show a clear icon or picture together with each label. Feelings include Calm, Okay, Tired, Worried, Overwhelmed, and Another Feeling. “What would help?” options include a quiet break, a smaller step, messaging someone trusted, read aloud, reducing screen content, or Nothing Right Now. Check-in privacy remains clear at the point of entry and sharing.
+Show a clear icon or picture together with each label. Feelings include Calm, Okay, Tired, Worried, Overwhelmed, and Another Feeling. “What would help?” options include a quiet break, a smaller step, messaging someone trusted, read aloud, reducing screen content, or Nothing Right Now. Offer Pictures and Words, Words Only, and Pictures First display preferences. Check-in privacy remains clear at the point of entry and sharing.
 
 ## Health and sharing presentation
 

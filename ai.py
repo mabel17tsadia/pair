@@ -146,6 +146,7 @@ message: exactly 2 short sentences that put the mood and the facts side by side.
 - Tired, facts steady: gentle motivation, using one item from their calms list.
 - Worried or overwhelmed, facts steady: validate how they feel.
 - Worried or overwhelmed, facts show changes: validate, and say it is okay to go gently.
+- Another feeling: acknowledge the feeling without guessing what it means.
 - Facts say Pair is still learning: thank them; each check in helps Pair learn their usual.
 suggestion: one small step under 15 words, using one item from their calms list when it fits.
 If a fact mentions a low glucose reading, the suggestion is "Follow your care plan before anything active." """
