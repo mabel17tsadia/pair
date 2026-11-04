@@ -400,8 +400,8 @@ class PairExperienceTests(unittest.TestCase):
         page = self.client.get("/patterns")
         self.assertEqual(page.status_code, 200)
         for label in [b"Usual range", b"Last 5 days", b"Your usual average",
-                      b"Last 5-day average", b"Source: My phone", b"Daily steps",
-                      b"not its cause or a diagnosis", b"Recent check-ins", b"Private to you"]:
+                      b"Last 5-day average", b"Source: My phone", b"Movement",
+                      b"not its cause or a diagnosis", b"Recent private check-ins", b"Private to you"]:
             self.assertIn(label, page.data)
         self.assertIn(b"pattern-pictogram", page.data)
 
@@ -547,6 +547,41 @@ class PairExperienceTests(unittest.TestCase):
             with self.client.session_transaction() as state:
                 state["demo_role"] = role
             self.assertNotEqual(self.client.post("/professional/next-steps").status_code, 200)
+
+    # Keep only one pattern chart visible while exposing all six named choices.
+    def test_patterns_progressively_disclose_one_selected_signal(self):
+        page = self.client.get("/patterns?pattern=sleep")
+        for label in [b"Sleep", b"Movement", b"Screen Use", b"Time Away from Home",
+                      b"Blood Sugar", b"Heart Rate", b"Choose a health pattern"]:
+            self.assertIn(label, page.data)
+        self.assertEqual(page.data.count(b'<svg class="chart"'), 1)
+        self.assertIn(b"class=\"pattern-tile is-selected", page.data)
+        screen = self.client.get("/patterns?pattern=screen")
+        self.assertEqual(screen.data.count(b'<svg class="chart"'), 1)
+        self.assertIn(b"Phone pickups", screen.data)
+        with self.client.session_transaction() as state:
+            state["person_id"] = "p2"
+        body = self.client.get("/patterns?pattern=blood_sugar")
+        self.assertIn(b"Glucose monitor (CGM)", body.data)
+        self.assertIn(b"mg/dL", body.data)
+        self.assertEqual(body.data.count(b'<svg class="chart"'), 1)
+
+    # Keep device details collapsed in selectable rows and preserve pair and disconnect actions.
+    def test_device_sources_use_compact_details_and_keep_pairing_actions(self):
+        page = self.client.get("/devices")
+        for text in [b"Connected devices", b"Available to connect", b"Smart washing machine",
+                     b"Pair reads:", b"Privacy:", b"Connect"]:
+            self.assertIn(text, page.data)
+        self.assertIn(b'<details class="source-option">', page.data)
+        self.assertNotIn(b'<details class="source-option" open', page.data)
+        response = self.client.post("/devices/pair/Mattress sleep sensor")
+        self.assertEqual(response.status_code, 302)
+        with self.client.session_transaction() as state:
+            self.assertTrue(state["paired"]["p1"]["Mattress sleep sensor"])
+        response = self.client.post("/devices/stop/Mattress sleep sensor")
+        self.assertEqual(response.status_code, 302)
+        with self.client.session_transaction() as state:
+            self.assertFalse(state["paired"]["p1"]["Mattress sleep sensor"])
 
     # Exercise the main activity presentation buttons and retain one-step navigation.
     def test_activity_buttons_keep_the_route_working(self):

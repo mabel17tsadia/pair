@@ -283,6 +283,12 @@ SOURCE_DETAILS = {
     "Glucose monitor (CGM)": ("Bluetooth device", "Show readings from an optional health source."),
     "Smart watch": ("Bluetooth device", "Add optional sleep, activity, or heart-rate signals."),
 }
+DEVICE_PICTOGRAMS = {
+    "My phone": "phone", "Time away from home": "door",
+    "Smart washing machine": "washer", "Mattress sleep sensor": "sleep",
+    "Smart ring": "wearable", "Glucose monitor (CGM)": "glucose-meter",
+    "Smart watch": "wearable", "Google Health (Fitbit, Pixel Watch)": "healthapp",
+}
 
 
 # Paired devices. A real product would connect through each maker's official app or account.
@@ -313,6 +319,10 @@ def device_cards(person):
             source["connection_type"] = "API integration"
         source["status"] = "Connected" if source["paired"] else "Not connected"
         source["used_in"] = "Health Patterns, Check In, and appointment preparation when relevant"
+        source["pictogram"] = DEVICE_PICTOGRAMS.get(source["device"], "healthapp")
+        source["privacy"] = ("Only minutes are shown; exact places and maps are not stored." if source["device"] == "Time away from home" else
+                             "This optional source uses fictional sample data in this demonstration; disconnect it at any time." if source["device"] != GOOGLE_DEVICE else
+                             "Google account connection is optional. Google data is not currently imported into pattern calculations.")
     return cards
 
 
@@ -1271,19 +1281,51 @@ def patterns():
     if not person:
         return redirect(url_for("choose"))
     presentation = {
-        "sleep_min": ("Sleep", "sleep", "My phone · sleep estimate"),
-        "steps": ("Daily steps", "footprints", "My phone · step count"),
-        "late_screen_min": ("Phone time late at night", "phone", "My phone · screen-time estimate"),
-        "unlocks": ("Phone pickups", "phone", "My phone · pickup count"),
-        "time_out_min": ("Time away from home", "home", "My phone · minutes only; no map"),
+        "sleep_min": ("sleep", "Sleep", "sleep", "My phone · sleep estimate"),
+        "steps": ("movement", "Movement", "footprints", "My phone · step count"),
+        "late_screen_min": ("screen", "Screen Use", "phone", "My phone · screen-time estimate"),
+        "unlocks": ("screen", "Phone pickups", "phone", "My phone · pickup count"),
+        "time_out_min": ("away", "Time Away from Home", "door", "My phone · minutes only; no map"),
+        "glucose_avg": ("blood_sugar", "Blood Sugar", "glucose-meter", "Your connected glucose monitor"),
+        "resting_hr": ("heart_rate", "Heart Rate", "heart-rate", "Your connected heart-rate device"),
     }
-    trends = []
-    for trend in get_trends(person["id"], devices_for(person)):
-        name, pictogram, source = presentation[trend["signal"]]
+    paired_devices = devices_for(person)
+    paired_signals = {signal for device in paired_devices if device["paired"] for signal in device["signals"]}
+    available = {}
+    for trend in get_trends(person["id"], paired_devices):
+        key, name, pictogram, source = presentation[trend["signal"]]
         sentence = trend["sentence"].replace(trend["name"] + ":", name + ":", 1)
-        trends.append({**trend, "name": name, "pictogram": pictogram,
-                       "source_label": source, "sentence": sentence,
-                       "chart": trend_chart(trend["values"], trend["usual"])})
+        metric = {**trend, "name": name, "pictogram": pictogram,
+                  "source_label": source, "sentence": sentence,
+                  "explanation": "Pair compares your recent average with your earlier days. A difference describes a pattern, not its cause or a diagnosis.",
+                  "chart": trend_chart(trend["values"], trend["usual"])}
+        if key == "screen" and key in available:
+            available[key]["related_metric"] = metric
+        else:
+            available[key] = metric
+    for signal in get_body_signals(person["id"], paired_devices):
+        key, name, pictogram, source_label = presentation[signal["signal"]]
+        available[key] = {**signal, "name": name, "pictogram": pictogram,
+                          "source_label": signal["source"],
+                          "explanation": "This is information from your connected device, compared with your own earlier readings. It does not explain a cause or provide a diagnosis.",
+                          "chart": trend_chart(signal["values"], signal["usual"])}
+    pattern_options = [
+        ("sleep", "Sleep", "sleep", {"sleep"}),
+        ("movement", "Movement", "footprints", {"steps"}),
+        ("screen", "Screen Use", "phone", {"late screen time", "unlocks"}),
+        ("away", "Time Away from Home", "door", {"time out of home"}),
+        ("blood_sugar", "Blood Sugar", "glucose-meter", {"glucose"}),
+        ("heart_rate", "Heart Rate", "heart-rate", {"resting heart rate"}),
+    ]
+    selectors = [{"key": key, "name": name, "pictogram": pictogram,
+                  "available": key in available,
+                  "status": "Data available" if key in available else
+                           "Learning your usual" if signals & paired_signals else "Not connected"}
+                 for key, name, pictogram, signals in pattern_options]
+    selected_key = request.args.get("pattern", "")
+    if selected_key not in [item["key"] for item in selectors]:
+        selected_key = next((item["key"] for item in selectors if item["available"]), selectors[0]["key"])
+    selected = available.get(selected_key)
     checkins = [{"mood": str(item.get("feeling", item.get("mood", "Okay"))).capitalize(),
                  "date": item.get("date", data.get_today())}
                 for item in data.get_checkins(person["id"])]
@@ -1291,7 +1333,8 @@ def patterns():
                  for item in session.get("checkins", []) if item.get("person_id") == person["id"]]
     checkins = sorted(checkins, key=lambda item: item["date"])[-4:]
     return render_template("patterns.html", title="Health Patterns",
-                           trends=trends, checkins=checkins, person=person)
+                           selectors=selectors, selected_key=selected_key,
+                           selected=selected, checkins=checkins, person=person)
 
 
 # Return only people who granted the demo's activity and learning preference sharing level.

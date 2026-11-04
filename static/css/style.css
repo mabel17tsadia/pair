@@ -1684,6 +1684,35 @@ main > .card, .workspace-main > .card { border-radius: 1.25rem; }
 .pattern-card .pattern-summary { padding: var(--space-3) var(--space-4); border-radius: var(--radius-control); background: var(--primary-soft); }
 .pattern-comparison div { border: 1px solid var(--border); }
 .pattern-pictogram { width: 3.5rem; height: 3.5rem; border: 1px solid var(--border); }
+.pattern-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: var(--space-3); margin: var(--space-4) 0; }
+.pattern-tile { display: grid; justify-items: start; gap: var(--space-1); min-height: 8rem; padding: var(--space-3); border: var(--border-strong) solid var(--border); border-radius: var(--radius-card); background: var(--surface); color: var(--text); text-decoration: none; }
+.pattern-tile:hover { border-color: var(--primary); }
+.pattern-tile.is-selected { border-color: var(--primary); background: var(--primary-soft); box-shadow: inset 0 0 0 1px var(--primary); }
+.pattern-tile.is-unavailable { color: var(--muted); }
+.pattern-tile-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--surface2); color: var(--primary); }
+.pattern-tile-icon .icon { width: 1.5rem; height: 1.5rem; }
+.pattern-tile-name { font-weight: 700; }
+.pattern-tile-status, .pattern-tile-current { font-size: var(--font-small); }
+.pattern-tile-current { color: var(--primary); font-weight: 700; }
+.pattern-mobile-select { display: none; }
+.selected-pattern { margin-top: var(--space-4); }
+.related-pattern-metric { padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface2); }
+.related-pattern-metric h3 { margin-top: 0; }
+.pattern-checkins > summary, .source-option > summary { min-height: var(--target-min); cursor: pointer; }
+.pattern-checkins > summary { color: var(--primary); font-weight: 700; }
+.source-group { margin: var(--space-4) 0; }
+.source-list { display: grid; gap: var(--space-2); }
+.source-option { border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); }
+.source-option[open] { box-shadow: var(--card-shadow); }
+.source-summary { display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); min-height: var(--target-min); padding: var(--space-3); list-style-position: inside; }
+.source-summary::marker { color: var(--primary); }
+.source-pictogram { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: .85rem; background: var(--primary-soft); color: var(--primary); }
+.source-pictogram .icon { width: 1.6rem; height: 1.6rem; }
+.source-summary-name { display: grid; gap: var(--space-1); }
+.source-summary-name small { color: var(--muted); }
+.source-status { text-align: center; }
+.source-details { padding: 0 var(--space-4) var(--space-4); }
+.source-details p { overflow-wrap: anywhere; }
 
 /* Circle access rows keep the permission pictogram, duration and edit control together. */
 .circle-list > li.card { padding: var(--space-4); }
@@ -1735,6 +1764,13 @@ button, a, summary { touch-action: manipulation; }
   .signin-layout { grid-template-columns: 1fr; }
   .workspace-main { padding-top: var(--space-5); }
   .workspace-heading::after { width: 4rem; }
+}
+@media (max-width: 767px) {
+  .pattern-tiles { display: none; }
+  .pattern-mobile-select { display: grid; gap: var(--space-2); margin: var(--space-4) 0; }
+  .pattern-mobile-select select { min-height: var(--target-min); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); color: var(--text); }
+  .source-summary { grid-template-columns: 2.75rem minmax(0, 1fr); }
+  .source-status { grid-column: 2; justify-self: start; }
 }
 
 /* Tablet and phone widths preserve the same spacious cards and useful touch targets. */

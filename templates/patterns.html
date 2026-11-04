@@ -2,49 +2,87 @@
 {% from "macros.html" import icon, mood_emoji, signal_value %}
 
 {% block content %}
-  <!-- Link back to Health and explain the pattern charts -->
+  <!-- Return to Health and introduce the one-pattern-at-a-time view. -->
   <a class="text-link" href="{{ url_for('health') }}">‹ Health</a>
   <h1>Health Patterns</h1>
-  <p>Your last 21 days. The shaded band is your usual range. The last 5 days are highlighted.</p>
+  <p>Choose one pattern to compare your recent days with your own usual range.</p>
 
-  <!-- A legend explains the visual chart before the member reviews individual signals. -->
+  <!-- Explain the chart band and recent-period highlight before the pattern choices. -->
   <section class="card pattern-key" aria-label="How to read these patterns">
     <p><span class="pattern-key-swatch usual-swatch" aria-hidden="true"></span><strong>Usual range</strong> is the band around your earlier days.</p>
     <p><span class="pattern-key-swatch recent-swatch" aria-hidden="true"></span><strong>Last 5 days</strong> are highlighted for comparison.</p>
-    <p>Each card names the source and compares your recent average with your own usual average.</p>
   </section>
 
-  <!-- Each signal card pairs its source and pictogram with a comparison and a non-diagnostic explanation. -->
-  {% for t in trends %}
-    <section class="card pattern-card">
+  <!-- Let desktop users choose a labeled pictogram tile; only the chosen pattern is expanded. -->
+  <nav class="pattern-tiles" aria-label="Choose a health pattern">
+    {% for option in selectors %}
+      <a class="pattern-tile {% if selected_key == option.key %}is-selected{% endif %} {% if not option.available %}is-unavailable{% endif %}"
+         href="{{ url_for('patterns', pattern=option.key) }}" {% if selected_key == option.key %}aria-current="page"{% endif %}>
+        <span class="pattern-tile-icon" aria-hidden="true">{{ icon(option.pictogram) }}</span>
+        <span class="pattern-tile-name">{{ option.name }}</span>
+        <span class="pattern-tile-status">{{ option.status }}</span>
+        {% if selected_key == option.key %}<span class="pattern-tile-current">Selected</span>{% endif %}
+      </a>
+    {% endfor %}
+  </nav>
+
+  <!-- Use a native labeled select on smaller screens instead of a long tile grid. -->
+  <form class="pattern-mobile-select" method="get" action="{{ url_for('patterns') }}">
+    <label for="pattern-choice">Choose a health pattern</label>
+    <select id="pattern-choice" name="pattern">
+      {% for option in selectors %}<option value="{{ option.key }}" {% if selected_key == option.key %}selected{% endif %}>{{ option.name }} — {{ option.status | lower }}</option>{% endfor %}
+    </select>
+    <button class="btn-secondary" type="submit">Show pattern</button>
+  </form>
+
+  <!-- Show only the selected pattern's summary, data source, comparisons, chart and actions. -->
+  {% if selected %}
+    {% set t = selected %}
+    <section class="card pattern-card selected-pattern" aria-labelledby="selected-pattern-title">
       <header class="pattern-heading">
-        <span class="pattern-pictogram" aria-hidden="true">{{ icon(t.pictogram) }}</span>
-        <div><h2>{{ t.name }}</h2><p class="note">Source: {{ t.source_label }}</p></div>
+        <span class="pattern-pictogram" aria-hidden="true">{{ icon(selected.pictogram) }}</span>
+        <div><h2 id="selected-pattern-title">{{ selected.name }}</h2><p class="note">Source: {{ selected.source_label }}</p></div>
       </header>
-      <p class="pattern-summary">{{ t.sentence }}</p>
-      <p class="note">Comparison period: the last five days; usual range: earlier days. Pair shows a change in your own pattern, not its cause or a diagnosis.</p>
+      <p class="pattern-summary">{{ selected.sentence }}</p>
+      {% if selected.signal == "glucose_avg" %}
+        <p class="note">Blood sugar readings are shown as recorded by the connected monitor. Pair does not interpret readings or recommend care.</p>
+      {% endif %}
+      <p class="note">Comparison period: the last five days; usual average: earlier days. The chart's shaded band shows your usual range.</p>
       <dl class="pattern-comparison">
-        <div><dt>Your usual average</dt><dd>{{ signal_value(t.signal, t.usual | round | int) }}</dd></div>
-        <div><dt>Last 5-day average</dt><dd>{{ signal_value(t.signal, t.recent | round | int) }}</dd></div>
+        <div><dt>Your usual average</dt><dd>{{ signal_value(selected.signal, selected.usual | round | int) }}</dd></div>
+        <div><dt>Last 5-day average</dt><dd>{{ signal_value(selected.signal, selected.recent | round | int) }}</dd></div>
       </dl>
       {% include "partials/trend_chart.html" %}
+      {% if selected.related_metric %}
+        <!-- Keep phone pickups available as a related Screen Use measure without adding another chart. -->
+        <section class="related-pattern-metric" aria-labelledby="related-screen-title">
+          <h3 id="related-screen-title">Also in Screen Use: {{ selected.related_metric.name }}</h3>
+          <p>{{ selected.related_metric.sentence }}</p>
+          <p class="note">Your usual average: {{ signal_value(selected.related_metric.signal, selected.related_metric.usual | round | int) }} · Last 5-day average: {{ signal_value(selected.related_metric.signal, selected.related_metric.recent | round | int) }} · Source: {{ selected.related_metric.source_label }}</p>
+        </section>
+      {% endif %}
+      <p class="note">{{ selected.explanation }}</p>
+      <a class="btn-secondary" href="{{ url_for('devices') }}">Manage data sources</a>
     </section>
   {% else %}
-    <p class="card">No patterns to show yet. Pair needs a paired device and about 10 days of data.</p>
-  {% endfor %}
+    <!-- Explain when the selected signal needs an optional connected source or more sample data. -->
+    <section class="card selected-pattern" aria-live="polite">
+      <h2>{{ selectors | selectattr("key", "equalto", selected_key) | map(attribute="name") | first }}</h2>
+      <p>This pattern is not available from your connected data sources right now. Pair works without connecting a device.</p>
+      <a class="btn-secondary" href="{{ url_for('devices') }}">Review data sources</a>
+    </section>
+  {% endif %}
 
-  <!-- Show recent private feelings with the same picture and label used in Check In. -->
-  <section class="card pattern-checkins" aria-labelledby="pattern-checkins-title">
-    <h2 id="pattern-checkins-title">Recent check-ins</h2>
+  <!-- Keep self-reported check-ins private and separate from device measurements. -->
+  <details class="card pattern-checkins">
+    <summary>Recent private check-ins</summary>
     <p class="note">Private to you. Check-ins are self-reports and are not device measurements.</p>
     {% for checkin in checkins %}
       <p class="pattern-checkin">{{ mood_emoji(checkin.mood) }} <strong>{{ checkin.mood }}</strong> · {{ checkin.date | long_day }}</p>
-    {% else %}
-      <p>No check-ins to show yet.</p>
-    {% endfor %}
-  </section>
+    {% else %}<p>No check-ins to show yet.</p>{% endfor %}
+  </details>
 
-  <!-- Link to get ready for an appointment -->
+  <!-- Preserve the appointment-preparation entry point below the selected pattern. -->
   <nav class="card link-list" aria-label="More">
     <a href="{{ url_for('visit_start') }}">Get ready for an appointment <span aria-hidden="true">›</span></a>
   </nav>
