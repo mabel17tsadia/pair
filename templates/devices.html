@@ -1,12 +1,15 @@
 {% extends "base.html" %}
 {% from "macros.html" import icon %}
 
-{# One device card: icon by kind, name, what it reads, how it connects, and its button #}
+{# One source card: describe what it reads, why, where Pair uses it, and its available action. #}
 {% macro device_card(d) %}
 <section class="card">
   <h3 class="icon-line">{{ icon(d.kind) }} {{ d.device }}</h3>
+  <p><strong>Connection type:</strong> {{ d.connection_type }} · {{ d.connects_through }}</p>
   <p>Reads {{ d.signals | words }}.</p>
-  <p class="note">Connects through: {{ d.connects_through }}</p>
+  <p><strong>Purpose:</strong> {{ d.purpose }}</p>
+  <p><strong>Used in:</strong> {{ d.used_in }}.</p>
+  <p><strong>Status:</strong> {{ d.status }}{% if d.device == google_name and d.paired %} · Google account connected{% endif %}</p>
   {% if d.device == google_name and d.paired %}
     <form method="post" action="{{ url_for('google.disconnect') }}">
       <input type="hidden" name="back" value="devices">
@@ -14,7 +17,7 @@
     </form>
   {% elif d.paired %}
     <form method="post" action="{{ url_for('stop_pairing', name=d.device) }}">
-      <button type="submit" class="btn-secondary">Stop pairing</button>
+      <button type="submit" class="btn-secondary">Disconnect</button>
     </form>
   {% else %}
     <a class="btn-primary" href="{{ url_for('pair_device', name=d.device) }}">Pair this device</a>
@@ -25,14 +28,34 @@
 {% block content %}
   <!-- Link back to Health, page title and short intro -->
   <a class="text-link" href="{{ url_for('health') }}">‹ Health</a>
-  <h1>Connected Health Sources</h1>
-  <p>Pair only reads devices you choose. You can stop pairing at any time.</p>
+  <h1>Connected Data Sources</h1>
+  <p>Phone and optional sources help Pair notice changes in your usual patterns. Pair works when no source is connected.</p>
 
-  <!-- Devices Pair reads now -->
-  <h2>Paired</h2>
-  {% for d in paired %}{{ device_card(d) }}{% else %}<p class="note">No devices paired yet.</p>{% endfor %}
+  <!-- Connected sources are grouped by how a real service would connect. -->
+  <h2>Connected</h2>
+  {% if paired %}
+    {% for connection_type in connection_types %}
+      {% set sources = paired | selectattr('connection_type', 'equalto', connection_type) | list %}
+      {% if sources %}
+        <section aria-label="Connected {{ connection_type }} sources">
+          <h3>{{ connection_type }}</h3>
+          {% for d in sources %}{{ device_card(d) }}{% endfor %}
+        </section>
+      {% endif %}
+    {% endfor %}
+  {% else %}<p class="note">No sources connected. Pair remains usable with simulated sample data.</p>{% endif %}
 
-  <!-- Devices the person could pair -->
-  <h2>Available to pair</h2>
-  {% for d in available %}{{ device_card(d) }}{% else %}<p class="note">Nothing else to pair.</p>{% endfor %}
+  <!-- Available sources retain their existing consent and pairing actions. -->
+  <h2>Available to connect</h2>
+  {% if available %}
+    {% for connection_type in connection_types %}
+      {% set sources = available | selectattr('connection_type', 'equalto', connection_type) | list %}
+      {% if sources %}
+        <section aria-label="Available {{ connection_type }} sources">
+          <h3>{{ connection_type }}</h3>
+          {% for d in sources %}{{ device_card(d) }}{% endfor %}
+        </section>
+      {% endif %}
+    {% endfor %}
+  {% else %}<p class="note">No other sources are available in this demo.</p>{% endif %}
 {% endblock %}

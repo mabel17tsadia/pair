@@ -17,8 +17,9 @@ in plain language. The person then chooses what each member of their trust circl
   badges. Personal only: never compared or ranked.
 - **Check in:** pick a mood; Pair puts it side by side with what patterns and devices show.
 - **Circle:** five sharing levels, a share preview, and nothing is ever sent without the person.
-- **Me:** profile, routines with picture steps, patterns, body signals, paired devices,
-  getting ready for an appointment, and settings.
+- **Health:** appointment preparation, packets, next steps, patterns, body signals, and Connected
+  Data Sources.
+- **Me:** profile, routines with picture steps, and settings.
 
 Pair **does not diagnose** and is **not a task planner**.
 

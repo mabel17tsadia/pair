@@ -183,6 +183,18 @@ def current_person():
     return person
 
 
+# Data-source details explain each demo source's connection type, purpose, and use.
+SOURCE_DETAILS = {
+    "My phone": ("Operating-system health service", "Show sleep, activity, and screen-use patterns."),
+    "Time away from home": ("Operating-system health service", "Notice changes in time away while keeping exact places private."),
+    "Smart washing machine": ("API integration", "Notice changes in laundry routines."),
+    "Mattress sleep sensor": ("Bluetooth device", "Add an optional sleep signal."),
+    "Smart ring": ("Bluetooth device", "Add optional sleep and heart-rate signals."),
+    "Glucose monitor (CGM)": ("Bluetooth device", "Show readings from an optional health source."),
+    "Smart watch": ("Bluetooth device", "Add optional sleep, activity, or heart-rate signals."),
+}
+
+
 # Paired devices. A real product would connect through each maker's official app or account.
 # Here all device data is simulated from the CSV files; only the optional Google Health card
 # is a real sign in (see google_health.py), and its data is not used for patterns yet.
@@ -202,7 +214,15 @@ def devices_for(person):
 def device_cards(person):
     google = {"device": GOOGLE_DEVICE, "kind": "wearable", "signals": ["sleep", "steps"],
               "connects_through": "Your Google account", "paired": google_health.is_connected()}
-    return devices_for(person) + [google]
+    cards = devices_for(person) + [google]
+    for source in cards:
+        source["connection_type"], source["purpose"] = SOURCE_DETAILS.get(
+            source["device"], ("API integration", "Add optional sleep and activity signals."))
+        if source["device"] == GOOGLE_DEVICE:
+            source["connection_type"] = "API integration"
+        source["status"] = "Connected" if source["paired"] else "Not connected"
+        source["used_in"] = "Health Patterns, Check In, and appointment preparation when relevant"
+    return cards
 
 
 # Save one pairing choice for this person in the session
@@ -1158,16 +1178,17 @@ def settings():
                            google_connected=google_health.is_connected())
 
 
-# Paired devices: the person's devices in two groups, Paired and Available to pair
+# Connected Data Sources: list each source by connection type and current status.
 @app.route("/devices")
 def devices():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
     cards = device_cards(person)
-    return render_template("devices.html", title="Connected Health Sources", google_name=GOOGLE_DEVICE,
+    return render_template("devices.html", title="Connected Data Sources", google_name=GOOGLE_DEVICE,
                            paired=[d for d in cards if d["paired"]],
-                           available=[d for d in cards if not d["paired"]])
+                           available=[d for d in cards if not d["paired"]],
+                           connection_types=["Bluetooth device", "Operating-system health service", "API integration"])
 
 
 # Consent page for pairing one device: what Pair reads, never reads, and who can see it.

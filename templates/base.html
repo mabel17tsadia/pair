@@ -64,7 +64,7 @@
         <a href="{{ url_for('health_packets') }}" {% if request.endpoint in ['health_packets', 'health_packet'] %}aria-current="page"{% endif %}>My Shared Packets</a>
         <a href="{{ url_for('health_next_steps') }}" {% if request.endpoint == 'health_next_steps' %}aria-current="page"{% endif %}>Next Steps</a>
         <a href="{{ url_for('patterns') }}" {% if request.endpoint == 'patterns' or request.endpoint == 'body' %}aria-current="page"{% endif %}>Health Patterns</a>
-        <a href="{{ url_for('devices') }}" {% if request.endpoint in ['devices', 'pair_device', 'stop_pairing'] %}aria-current="page"{% endif %}>Connected Health Sources</a>
+        <a href="{{ url_for('devices') }}" {% if request.endpoint in ['devices', 'pair_device', 'stop_pairing'] %}aria-current="page"{% endif %}>Connected Data Sources</a>
       </nav>
     {% endif %}
 

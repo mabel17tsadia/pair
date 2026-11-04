@@ -2,14 +2,17 @@
 {% from "macros.html" import icon %}
 
 {% block content %}
-  <!-- Link back to Paired devices and page title -->
-  <a class="text-link" href="{{ url_for('devices') }}">‹ Paired devices</a>
-  <h1 class="icon-line">{{ icon(device.kind) }} Pair {{ device.device }}?</h1>
+  <!-- Link back to Connected Data Sources and page title -->
+  <a class="text-link" href="{{ url_for('devices') }}">‹ Connected Data Sources</a>
+  <h1 class="icon-line">{{ icon(device.kind) }} Connect {{ device.device }}?</h1>
 
   <!-- Consent: what Pair reads, never reads, who can see it, and how to stop -->
   <section class="card">
     <h2>What Pair will read</h2>
     <p>{{ (device.signals | words) | capitalize }}.</p>
+    <p><strong>Connection type:</strong> {{ device.connection_type }} via {{ device.connects_through }}.</p>
+    <p><strong>Purpose:</strong> {{ device.purpose }}</p>
+    <p><strong>Used in:</strong> {{ device.used_in }}.</p>
     {% if device.device == "Time away from home" %}
       <p>Pair only counts minutes away from home. It never stores or shows a map.</p>
     {% endif %}
@@ -23,7 +26,7 @@
     <h2>Who can see it</h2>
     <p>Only you, unless you choose to share it.</p>
 
-    <p><strong>You can stop pairing at any time.</strong></p>
+    <p><strong>You can disconnect at any time. Pair works without connected sources.</strong></p>
   </section>
 
   <!-- Pair saves the choice; Not now goes back without changing anything -->
