@@ -242,51 +242,22 @@
   "health_follow_ups": [
     {
       "id": "follow-up-01",
-      "packet_id": "packet-upcoming",
+      "packet_id": "packet-completed",
       "source_id": "health-priya",
       "source_name": "Dr. Priya Patel",
       "action_type": "other_instruction",
-      "instruction": "Bring your questions about sleep to your next appointment.",
-      "due_on": "2026-11-12",
+      "instruction": "Record sleep for seven days",
+      "due_on": "2026-11-14",
       "status": "proposed",
-      "supporting_detail": "A member-selected sleep pattern from the phone demo data.",
+      "supporting_detail": "Dr. Priya Patel suggested this during Jordan’s completed fictional appointment.",
       "estimated_minutes": 10,
       "member_id": "member-jordan",
       "health_follow_up_id": "follow-up-01",
       "proposed_by": "Dr. Priya Patel",
-      "proposed_on": "2026-11-04",
+      "proposed_on": "2026-10-20",
       "instruction_type": "other_instruction",
       "schedule": {
-        "date": "2026-11-12",
-        "label": "Suggested date"
-      },
-      "source": {
-        "kind": "authorized appointment follow-up",
-        "label": "Dr. Priya Patel"
-      },
-      "member_question": "",
-      "declined_on": "",
-      "accepted_on": "",
-      "fictional": true
-    },
-    {
-      "id": "follow-up-02",
-      "packet_id": "packet-upcoming",
-      "source_id": "health-priya",
-      "source_name": "Dr. Priya Patel",
-      "action_type": "follow_up_appointment",
-      "instruction": "Ask the clinic which follow-up time works for you.",
-      "due_on": "2026-11-10",
-      "status": "proposed",
-      "supporting_detail": "Fictional follow-up suggestion; no appointment has been booked.",
-      "estimated_minutes": 10,
-      "member_id": "member-jordan",
-      "health_follow_up_id": "follow-up-02",
-      "proposed_by": "Dr. Priya Patel",
-      "proposed_on": "2026-11-04",
-      "instruction_type": "follow_up_appointment",
-      "schedule": {
-        "date": "2026-11-10",
+        "date": "2026-11-14",
         "label": "Suggested date"
       },
       "source": {
@@ -304,103 +275,45 @@
       "source_id": "health-priya",
       "source_name": "Dr. Priya Patel",
       "action_type": "other_instruction",
-      "instruction": "Write down any questions before your next visit.",
-      "due_on": "2026-11-18",
+      "instruction": "Prepare questions for your appointment.",
+      "due_on": "2026-11-12",
       "status": "accepted",
-      "supporting_detail": "Member-reviewed fictional next step.",
+      "supporting_detail": "Jordan accepted this single question-preparation action after the fictional visit.",
       "estimated_minutes": 10,
       "member_id": "member-jordan",
       "health_follow_up_id": "follow-up-03",
       "proposed_by": "Dr. Priya Patel",
-      "proposed_on": "2026-11-04",
+      "proposed_on": "2026-10-20",
       "instruction_type": "other_instruction",
-      "schedule": {
-        "date": "2026-11-18",
-        "label": "Suggested date"
-      },
-      "source": {
-        "kind": "authorized appointment follow-up",
-        "label": "Dr. Priya Patel"
-      },
-      "member_question": "",
-      "declined_on": "",
-      "accepted_on": "2026-11-04",
-      "fictional": true
-    },
-    {
-      "id": "follow-up-walk",
-      "health_follow_up_id": "follow-up-walk",
-      "member_id": "member-jordan",
-      "packet_id": "packet-upcoming",
-      "source_id": "health-priya",
-      "source_name": "Dr. Priya Patel",
-      "proposed_by": "Dr. Priya Patel",
-      "proposed_on": "2026-11-04",
-      "action_type": "other_instruction",
-      "instruction_type": "other_instruction",
-      "instruction": "Walk for 15 minutes each day",
-      "due_on": "2026-11-12",
       "schedule": {
         "date": "2026-11-12",
-        "label": "Suggested date"
+        "label": "Before the scheduled follow-up"
       },
-      "status": "proposed",
-      "accepted_on": "",
-      "declined_on": "",
-      "member_question": "",
       "source": {
         "kind": "authorized appointment follow-up",
         "label": "Dr. Priya Patel"
       },
-      "supporting_detail": "A fictional example of an optional activity proposed in an authorized visit packet.",
-      "estimated_minutes": 15,
-      "fictional": true
-    },
-    {
-      "id": "follow-up-sleep",
-      "health_follow_up_id": "follow-up-sleep",
-      "member_id": "member-jordan",
-      "packet_id": "packet-upcoming",
-      "source_id": "health-priya",
-      "source_name": "Dr. Priya Patel",
-      "proposed_by": "Dr. Priya Patel",
-      "proposed_on": "2026-11-04",
-      "action_type": "other_instruction",
-      "instruction_type": "other_instruction",
-      "instruction": "Record how you slept for seven days",
-      "due_on": "2026-11-14",
-      "schedule": {
-        "date": "2026-11-14",
-        "label": "Suggested date"
-      },
-      "status": "proposed",
-      "accepted_on": "",
-      "declined_on": "",
       "member_question": "",
-      "source": {
-        "kind": "authorized appointment follow-up",
-        "label": "Dr. Priya Patel"
-      },
-      "supporting_detail": "A fictional example of tracking sleep for a later conversation.",
-      "estimated_minutes": 15,
+      "declined_on": "",
+      "accepted_on": "2026-10-20",
       "fictional": true
     },
     {
       "id": "follow-up-pressure",
       "health_follow_up_id": "follow-up-pressure",
       "member_id": "member-jordan",
-      "packet_id": "packet-upcoming",
+      "packet_id": "packet-completed",
       "source_id": "health-priya",
       "source_name": "Dr. Priya Patel",
       "proposed_by": "Dr. Priya Patel",
-      "proposed_on": "2026-11-04",
+      "proposed_on": "2026-10-20",
       "action_type": "other_instruction",
       "instruction_type": "other_instruction",
       "instruction": "Bring your blood-pressure readings to your next visit",
-      "due_on": "2026-11-18",
+      "due_on": "2026-11-11",
       "schedule": {
-        "date": "2026-11-18",
-        "label": "Suggested date"
+        "date": "2026-11-11",
+        "label": "Before the scheduled follow-up"
       },
       "status": "proposed",
       "accepted_on": "",
@@ -410,7 +323,7 @@
         "kind": "authorized appointment follow-up",
         "label": "Dr. Priya Patel"
       },
-      "supporting_detail": "A fictional example of bringing existing readings; Pair does not interpret them.",
+      "supporting_detail": "The fictional clinician requested existing home readings for the next appointment. Jordan has one manual sample reading.",
       "estimated_minutes": 15,
       "fictional": true
     },
@@ -422,10 +335,10 @@
       "source_id": "health-priya",
       "source_name": "Dr. Priya Patel",
       "proposed_by": "Dr. Priya Patel",
-      "proposed_on": "2026-11-03",
+      "proposed_on": "2026-10-20",
       "action_type": "other_instruction",
       "instruction_type": "other_instruction",
-      "instruction": "Write down one question you would like to ask at your next visit.",
+      "instruction": "Walk for 15 minutes daily",
       "due_on": "2026-11-04",
       "schedule": {
         "date": "2026-11-04",
@@ -433,14 +346,14 @@
         "label": "Today at 1:00 PM"
       },
       "status": "accepted",
-      "accepted_on": "2026-11-03",
+      "accepted_on": "2026-10-20",
       "declined_on": "",
       "member_question": "",
       "source": {
         "kind": "authorized appointment follow-up",
         "label": "Dr. Priya Patel"
       },
-      "supporting_detail": "Fictional clinician guidance from the completed appointment. The member chose to add it to today’s plan.",
+      "supporting_detail": "Jordan accepted this fictional care-team instruction after the completed appointment.",
       "estimated_minutes": 10,
       "fictional": true
     }
@@ -542,7 +455,8 @@
           "source": "Jordan Reyes",
           "detail": "Jordan's question about a more consistent sleep routine."
         }
-      ]
+      ],
+      "confirmation_status": "confirmed"
     },
     {
       "id": "packet-completed",
@@ -1019,15 +933,120 @@
       "id": "medication-demo-01",
       "member_id": "member-jordan",
       "fictional": true,
-      "medication_name": "Example medication (fictional demo)",
-      "dose_as_entered": "Example dose, exactly as entered in this fictional record",
-      "time_as_entered": "Example time, exactly as entered in this fictional record",
-      "instruction": "Follow the fictional source instruction shown for this demonstration.",
-      "source_name": "Dr. Priya Patel (fictional demonstration)",
-      "instruction_source": "Fictional demonstration visit instruction; not a prescription",
-      "entered_by": "Dr. Priya Patel (fictional demonstration)",
-      "entered_on": "2026-11-04",
-      "member_confirmed": true
+      "medication_name": "Amoxicillin 500 mg capsule",
+      "dose_as_entered": "500 mg (one capsule)",
+      "time_as_entered": "Three times daily, about every 8 hours, for 7 days",
+      "schedule_as_entered": "Three times daily, about every 8 hours, for 7 days",
+      "instruction": "Take one capsule by mouth three times daily until the 7-day course is finished.",
+      "source_name": "Dr. Priya Patel",
+      "instruction_source": "Prescription recorded at the fictional primary care follow-up",
+      "entered_by": "Dr. Priya Patel",
+      "entered_on": "2026-10-20",
+      "member_confirmed": true,
+      "appointment_id": "appointment-last-01"
+    }
+  ],
+  "health_observations": [
+    {
+      "id": "observation-resting-heart-rate",
+      "member_id": "member-jordan",
+      "summary": "Resting heart rate stayed within the target range set by the fictional care team.",
+      "source": "Fictional clinician-reviewed connected-data summary",
+      "measurement_source": "Simulated smart watch readings",
+      "measurement_period": "October 28–November 3, 2026",
+      "recorded_on": "2026-11-04",
+      "observed_range": "58–88 beats per minute",
+      "target_range": "55–100 beats per minute",
+      "fictional": true
+    },
+    {
+      "id": "observation-glucose",
+      "member_id": "member-jordan",
+      "summary": "Glucose readings stayed within the target range set by the fictional care team.",
+      "source": "Fictional clinician-entered demonstration record",
+      "measurement_source": "Simulated glucose readings selected for this demonstration",
+      "measurement_period": "October 28–November 3, 2026",
+      "recorded_on": "2026-11-04",
+      "observed_range": "82–126 mg/dL",
+      "target_range": "70–140 mg/dL",
+      "fictional": true
+    },
+    {
+      "id": "observation-sleep",
+      "member_id": "member-jordan",
+      "summary": "Recent sleep was about 1 hour 8 minutes below Jordan’s usual range.",
+      "source": "Simulated phone sleep-duration data",
+      "measurement_source": "Jordan’s optional phone data",
+      "measurement_period": "October 31–November 4, 2026",
+      "recorded_on": "2026-11-04",
+      "usual_range": "Jordan’s own recent usual pattern",
+      "fictional": true
+    }
+  ],
+  "appointment_summaries": [
+    {
+      "id": "appointment-last-01",
+      "member_id": "member-jordan",
+      "appointment_type": "Primary care follow-up",
+      "appointment_on": "2026-10-20T09:00:00-07:00",
+      "clinician": "Dr. Priya Patel",
+      "source": "Fictional clinician-entered visit record",
+      "vitals": [
+        {
+          "name": "Heart rate",
+          "value": "72 beats per minute",
+          "measured": true
+        },
+        {
+          "name": "Blood pressure",
+          "value": "118/76 mmHg",
+          "measured": true
+        },
+        {
+          "name": "Temperature",
+          "value": "36.8 °C",
+          "measured": true
+        },
+        {
+          "name": "Weight",
+          "value": "68.4 kg",
+          "measured": true
+        }
+      ],
+      "glucose": {
+        "measured": false,
+        "value": ""
+      },
+      "manual_readings": [
+        {
+          "name": "Home blood pressure",
+          "value": "116/74 mmHg",
+          "recorded_on": "2026-11-03",
+          "source": "Jordan’s manual entry"
+        }
+      ],
+      "medication_ids": [
+        "medication-demo-01"
+      ],
+      "clinician_instructions": [
+        {
+          "action_id": "follow-up-demo-today",
+          "instruction": "Walk for 15 minutes daily"
+        },
+        {
+          "action_id": "follow-up-01",
+          "instruction": "Record sleep for seven days"
+        },
+        {
+          "action_id": "follow-up-pressure",
+          "instruction": "Bring home blood-pressure readings"
+        }
+      ],
+      "scheduled_follow_up": {
+        "appointment_packet_id": "packet-upcoming",
+        "status": "confirmed"
+      },
+      "fictional": true
     }
   ]
 }

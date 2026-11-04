@@ -715,35 +715,19 @@ def today():
     today_activities = plan_activities(home_records, data.get_today(), "today", "all",
                                        session.get("activity_progress", {}))
     today_activities = [item for item in today_activities if item["status"] != "completed"]
-    progress = session.get("activity_progress", {})
-    completed = next(({**item, **progress.get(item["id"], {})} for item in activities
-                      if progress.get(item["id"], {}).get("status", item.get("status")) == "completed"), None)
-    in_progress = next(({**item, **progress.get(item["id"], {})} for item in activities
-                        if progress.get(item["id"], {}).get("status", item.get("status")) == "in_progress"), None)
-    positive_observations = []
-    if completed:
-        positive_observations.append(f'You completed “{completed["title"]}.”')
-    if in_progress:
-        positive_observations.append(f'You are partway through “{in_progress["title"]}.”')
-    positive_observations.extend(patterns["positive_notes"])
+    health_observations = records.get("health_observations", []) if demo_member else []
     climb = climb_for(person)
-    if climb["reached"]:
-        positive_observations.append(f'You have reached {climb["reached"]} of {climb["total"]} My Climb goals.')
-    positive_observations = positive_observations[:2]
-    supportive_area = (home_supportive_area(patterns["changes"][0]) if patterns["changes"] else
-                       "Pair is still learning your usual patterns. You can review them privately when you are ready.")
     upcoming = next((item for item in records["appointment_packets"]
                      if item["member_id"] == records["member"]["id"] and item["status"] == "upcoming"), None) if demo_member else None
     if upcoming:
         appointment_date = datetime.fromisoformat(upcoming["appointment_on"])
         upcoming = {**upcoming, "date_label": f"{appointment_date:%A}, {appointment_date:%B} {appointment_date.day}"}
     return render_template("today.html", title="Today", person=person, climb=climb,
-                           patterns=patterns, week=week_text(person, patterns),
+                           patterns=patterns,
                            circle=circle_for(person),
                            today_activities=today_activities,
                            pace=session.get("plan_pace", {}).get(pid, DEFAULT_PLAN_PACE),
-                           positive_observations=positive_observations,
-                           supportive_area=supportive_area,
+                           health_observations=health_observations,
                            upcoming_appointment=upcoming, today_iso=data.get_today())
 
 
@@ -873,8 +857,26 @@ def health():
         packet["date_label"] = (f"{appointment:%A}, {appointment:%B} {appointment.day} · "
                                 f"{appointment:%I:%M %p}".replace(" 0", " "))
     upcoming = next((packet for packet in packets if packet["status"] == "upcoming"), None)
+    appointment = next(iter(records.get("appointment_summaries", [])), None)
+    if appointment:
+        appointment = {**appointment,
+                        "medications": [item for item in records["medications"]
+                                        if item["id"] in appointment.get("medication_ids", [])],
+                        "clinician_instructions": [item for item in health_follow_ups_for(person, records)
+                                                   if item["id"] in {entry["action_id"] for entry in appointment.get("clinician_instructions", [])}],
+                        "manual_readings": appointment.get("manual_readings", [])}
+    scheduled = next((packet for packet in packets
+                      if appointment and packet["id"] == appointment.get("scheduled_follow_up", {}).get("appointment_packet_id")), None)
+    accepted_actions = [item for item in health_follow_ups_for(person, records)
+                        if item["status"] == "accepted" and item.get("action_type") != "follow_up_appointment"]
+    instructions = appointment.get("clinician_instructions", []) if appointment else []
+    has_home_readings = bool(appointment and appointment.get("manual_readings")) or any(
+        item.get("paired") and "blood_pressure" in item.get("signals", []) for item in devices_for(person))
+    if not has_home_readings:
+        instructions = [item for item in instructions if item["id"] != "follow-up-pressure"]
     return render_template("health.html", title="Health", person=person,
-                           upcoming=upcoming, next_steps=health_follow_ups_for(person, records)[:2],
+                           upcoming=upcoming, appointment=appointment, scheduled=scheduled,
+                           instructions=instructions, accepted_actions=accepted_actions,
                            packet_count=len(packets), patterns=get_patterns(person["id"], devices_for(person)),
                            connected_count=sum(device["paired"] for device in devices_for(person)),
                            has_demo_records=True)

@@ -18,6 +18,8 @@ class DemoData(TypedDict):
     check_ins: list
     connected_sources: list
     appointment_packets: list
+    health_observations: list
+    appointment_summaries: list
 
 
 class DemoDataProvider(Protocol):

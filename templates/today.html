@@ -9,13 +9,20 @@
     <div class="home-mountain" aria-label="My Climb: small steps at Jordan's own pace">{% include "partials/climb_mountain.html" %}</div>
   </section>
 
-  <!-- Name two real positives and one gentle, data-supported area to support. -->
+  <!-- Show three fictional health observations with source details kept closed until opened. -->
   <div class="home-primary-grid">
     <section class="card home-health-summary" aria-labelledby="noticed-title">
       <p class="eyebrow">Pair noticed</p><h2 id="noticed-title">Your week at a glance</h2>
-      {% for observation in positive_observations %}<p class="home-observation">{{ observation }}</p>{% endfor %}
-      <p class="home-supportive-area"><strong>A supportive area:</strong> {{ supportive_area }}</p>
-      <p class="note">{{ "Adapted with AI" if week.source == "ai" else "Using built-in guidance" }} · This is information, not a diagnosis.</p>
+      <p class="note">Fictional demonstration data · Information, not a diagnosis.</p>
+      {% for observation in health_observations %}
+        <details class="home-health-observation {% if loop.last %}home-supportive-area{% else %}home-observation{% endif %}">
+          <summary>{{ observation.summary }}</summary>
+          <p><strong>Source:</strong> {{ observation.source }} · {{ observation.measurement_source }}</p>
+          <p><strong>Measurement period:</strong> {{ observation.measurement_period }}</p>
+          <p><strong>Date recorded:</strong> {{ observation.recorded_on | long_day }}</p>
+          {% if observation.observed_range %}<p><strong>Recorded range:</strong> {{ observation.observed_range }} · <strong>Care-team target:</strong> {{ observation.target_range }}</p>{% endif %}
+        </details>
+      {% endfor %}
       <div class="actions"><a class="btn-primary" href="{{ url_for('checkin') }}">Check in</a><a class="btn-secondary" href="{{ url_for('patterns') }}">Review privately</a></div>
     </section>
 

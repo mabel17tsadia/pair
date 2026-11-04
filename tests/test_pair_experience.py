@@ -153,15 +153,20 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"pace-day-icon", plan_page.data)
         self.assertIn(b"activity-pictogram", plan_page.data)
 
-    # Show two named positives followed by exactly one supportive pattern observation.
+    # Show the three ordered fictional health observations and their expandable provenance.
     def test_home_summary_uses_specific_supported_observations(self):
         page = self.client.get("/today").data
         summary = page.split(b'class="card home-health-summary"', 1)[1].split(b"</section>", 1)[0]
-        self.assertEqual(summary.count(b'class="home-observation"'), 2)
-        self.assertEqual(summary.count(b'class="home-supportive-area"'), 1)
-        self.assertIn("You completed “Choose music for tomorrow.”".encode(), summary)
-        self.assertIn("You are partway through “Practice a simple meal.”".encode(), summary)
-        self.assertIn(b"below your usual range", summary)
+        self.assertEqual(summary.count(b'class="home-health-observation '), 3)
+        first = summary.index(b"Resting heart rate stayed within the target range")
+        second = summary.index(b"Glucose readings stayed within the target range")
+        third = summary.index(b"Recent sleep was about 1 hour 8 minutes below Jordan")
+        self.assertLess(first, second)
+        self.assertLess(second, third)
+        self.assertIn(b"Fictional demonstration data", summary)
+        self.assertIn(b"Measurement period:", summary)
+        self.assertIn(b"Date recorded:", summary)
+        self.assertIn("below Jordan’s usual range".encode(), summary)
         self.assertNotIn(b"An activity in your plan is marked complete", summary)
         self.assertNotIn(b"normal", summary.lower())
         self.assertNotIn(b"abnormal", summary.lower())
@@ -175,7 +180,7 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"Scheduled time:", day)
         self.assertIn(b"Duration: About", day)
         self.assertIn(b"Tidy my desk", day)
-        self.assertIn(b"Write down one question", day)
+        self.assertIn(b"Walk for 15 minutes daily", day)
         self.assertNotIn(b"Later", day)
         self.assertNotIn(b"activities are hidden", day)
         self.assertIn(b"/my-plan?time=today", day)
@@ -185,9 +190,57 @@ class PairExperienceTests(unittest.TestCase):
         full_day = self.client.get("/today").data.split(b'<ol class="day-timeline">', 1)[1].split(b'</ol>', 1)[0]
         self.assertIn(b"Practice a simple meal", full_day)
         self.assertIn(b"Tidy my desk", full_day)
-        self.assertIn(b"Write down one question", full_day)
         self.assertIn(b"Later", full_day)
         self.assertGreaterEqual(full_day.count(b'class="day-activity"'), 4)
+
+    # Separate the prior visit, preparation, instructions, scheduled visit, and accepted actions.
+    def test_health_overview_shows_only_recorded_visit_fields_and_member_actions(self):
+        page = self.client.get("/health")
+        self.assertEqual(page.status_code, 200)
+        for label in [b"Prepare for an appointment", b"Your last appointment", b"Vitals recorded at this appointment",
+                      b"Instructions from your last visit", b"Scheduled follow-up", b"My accepted health actions",
+                      b"Primary care follow-up", b"Dr. Priya Patel", b"Blood pressure", b"Bring your blood-pressure readings",
+                      b"November 12", b"2:30 PM", b"Prepare questions for your appointment."]:
+            self.assertIn(label, page.data)
+        self.assertNotIn(b"Glucose:</strong>", page.data)
+        self.assertNotIn(b"Ask clinic which follow-up time works", page.data)
+        self.assertEqual(page.data.count(b"Prepare questions for your appointment."), 1)
+
+    # Keep Health records member-only and expose only the values marked as measured.
+    def test_health_visit_data_is_member_scoped_and_packet_navigation_is_visible(self):
+        for route in ["/health", "/health/packets", "/health/packets/packet-completed"]:
+            self.assertEqual(self.client.get(route).status_code, 200)
+        packets = self.client.get("/health/packets")
+        self.assertIn(b"Back to Health", packets.data)
+        self.assertIn(b"Prepare another appointment", packets.data)
+        detail = self.client.get("/health/packets/packet-completed")
+        self.assertIn(b"Back to Health", detail.data)
+        self.assertIn(b"Prepare another appointment", detail.data)
+        with self.client.session_transaction() as state:
+            state["person_id"] = "p2"
+        page = self.client.get("/health")
+        self.assertNotIn(b"118/76 mmHg", page.data)
+        self.assertNotIn(b"Amoxicillin", page.data)
+
+    # Hide the blood-pressure instruction when its only relevant source is unavailable.
+    def test_blood_pressure_instruction_requires_a_requested_available_reading(self):
+        records = load_demo_data()
+        records["appointment_summaries"][0]["manual_readings"] = []
+        with patch.object(pair, "load_demo_data", return_value=records), \
+                patch.object(pair, "devices_for", return_value=[{"paired": False, "signals": ["blood_pressure"]}]):
+            page = self.client.get("/health")
+        self.assertNotIn(b"Bring your blood-pressure readings", page.data)
+
+    # Replace medication placeholders with the exact fictional instruction and source details.
+    def test_medication_page_has_coherent_fictional_fields_without_placeholders(self):
+        page = self.client.get("/health/medications").data
+        for text in [b"Fictional demonstration data", b"Amoxicillin 500 mg capsule", b"500 mg (one capsule)",
+                     b"Three times daily, about every 8 hours, for 7 days",
+                     b"Take one capsule by mouth three times daily until the 7-day course is finished.",
+                     b"Dr. Priya Patel", b"20 October"]:
+            self.assertIn(text, page)
+        for placeholder in [b"example dose", b"example time", b"Example medication"]:
+            self.assertNotIn(placeholder.lower(), page.lower())
 
     # Keep the default pace focused, retain a saved choice, and clear it with the member's demo data.
     def test_my_pace_default_saved_and_reset(self):

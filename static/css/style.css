@@ -93,7 +93,7 @@ body {
 .role-sidebar .nav-unavailable { opacity: .65; }
 .role-sidebar .nav-unavailable > span:last-child { display: grid; }
 .sidebar-note { margin-top: var(--space-7); padding: var(--space-4); border-radius: var(--radius-card); background: var(--primary); color: var(--on-primary); }
-.workspace-main { width: 100%; max-width: var(--wide-content-width); margin: 0 auto; padding: var(--space-6) var(--space-7) 4rem; }
+.workspace-main { box-sizing: border-box; width: 100%; max-width: var(--wide-content-width); margin: 0 auto; padding: var(--space-6) var(--space-7) 4rem; }
 .mobile-role-nav { display: none; }
 
 /* Role dashboards share a clear heading and compact summary cards. */

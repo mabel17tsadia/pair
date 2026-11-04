@@ -2,7 +2,7 @@
 {% block content %}
   <!-- Explain that medication information is a private, fictional demonstration record. -->
   <h1>My medications</h1>
-  <p class="note">Medication reminders are separate from activities and follow-up recommendations. These records are fictional demonstration data.</p>
+  <p class="note">Fictional demonstration data. Medication reminders are separate from activities and follow-up recommendations.</p>
   {% if has_demo_records %}
     <!-- Ask once whether Jordan wants medication reminders in this demonstration. -->
     {% if reminder_choice is none %}
@@ -22,11 +22,11 @@
     {% for medication in medications %}
       <!-- Display only exact source-provided fictional prescription details. -->
       <article class="card medication-card" id="{{ medication.id }}">
-        <p class="eyebrow">Fictional medication sample · Source: {{ medication.source_name }}</p>
+        <p class="eyebrow">Source: {{ medication.source_name }}</p>
         <h2>{{ medication.medication_name }}</h2>
         <dl class="medication-details">
           <div><dt>Dose, as entered</dt><dd>{{ medication.dose_as_entered }}</dd></div>
-          <div><dt>Time, as entered</dt><dd>{{ medication.time_as_entered }}</dd></div>
+          <div><dt>Schedule, as entered</dt><dd>{{ medication.schedule_as_entered }}</dd></div>
           <div><dt>Original instruction</dt><dd>{{ medication.instruction }}</dd></div>
           <div><dt>Source</dt><dd>{{ medication.instruction_source }}</dd></div>
           <div><dt>Date entered</dt><dd>{{ medication.entered_on | long_day }}</dd></div>
