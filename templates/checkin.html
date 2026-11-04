@@ -6,9 +6,9 @@
   <h1>Check in</h1>
   <p class="card checkin-privacy">Your check-in and optional note are private by default. Nothing is shared automatically; you decide what to share with your circle.</p>
 
-  <!-- Keep display choices available without taking attention from the check-in. -->
+  <!-- Keep display choices available, show the saved preference, and keep the panel collapsed. -->
   <details class="card display-preference">
-    <summary>Display preferences</summary>
+    <summary>Display preferences <span class="note">Saved: {{ dict(display_options).get(display) }}</span></summary>
     <form method="post">
       <input type="hidden" name="action" value="display">
       <fieldset class="display-choices">

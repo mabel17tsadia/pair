@@ -183,6 +183,33 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn("max-width: min(10rem, 37vw)", css)
         self.assertIn("overflow-wrap: anywhere", css)
 
+    # Keep desktop density changes isolated from the completed mobile-specific rules.
+    def test_desktop_density_keeps_targets_and_compacts_shared_pages(self):
+        with open(os.path.join(pair.app.static_folder, "css", "style.css"), encoding="utf-8") as stylesheet:
+            css = stylesheet.read()
+        self.assertIn("@media (min-width: 769px)", css)
+        self.assertIn("@media (min-width: 900px)", css)
+        self.assertIn("min-height: 5.25rem", css)
+        self.assertIn("grid-template-columns: 15rem minmax(0, 1fr)", css)
+        self.assertIn("min-height: var(--target-min)", css)
+        self.assertIn("min-height: 12.5rem", css)
+        self.assertIn(".entry-hero { box-sizing: border-box; min-height: 19rem", css)
+        self.assertIn(".checkin-form .choice-box { min-height: 5.5rem", css)
+        self.assertIn(".visit-choice { box-sizing: border-box; min-height: 3.75rem", css)
+        self.assertIn("@media (min-width: 900px) and (max-height: 650px)", css)
+        for path in ["/", "/today", "/checkin", "/health", "/my-plan", "/visit/primary",
+                     "/patterns", "/devices", "/settings"]:
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200, path)
+
+    # Show the saved display preference next to its collapsed disclosure control.
+    def test_checkin_shows_saved_display_preference_summary(self):
+        page = self.client.get("/checkin")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b"Display preferences", page.data)
+        self.assertIn(b"Saved: Pictures and Words", page.data)
+        self.assertNotIn(b'<details class="card display-preference" open', page.data)
+
     # Keep the member Home brief and focused on next actions and private summaries.
     def test_member_home_summarizes_without_showing_all_pattern_details(self):
         page = self.client.get("/today")
