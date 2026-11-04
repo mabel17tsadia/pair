@@ -20,7 +20,7 @@ load_dotenv()
 
 # Create the Flask app; the secret key signs the session cookie that remembers each person's choices.
 # Without it nothing can be remembered, so stop with a clear message instead of failing later.
-app = Flask(__name__)
+app = Flask(__name__, static_folder="public", static_url_path="")
 app.secret_key = os.getenv("SECRET_KEY")
 if not app.secret_key:
     raise RuntimeError("SECRET_KEY is missing. Add it to .env on your laptop, or as an environment variable on Render.")
@@ -2306,7 +2306,7 @@ def routines():
     return render_template("routines.html", title="My routines", routines=routines_for(person))
 
 
-# Picture steps for one routine, shown one at a time by static/js/steps.js. Finishing the last
+# Picture steps for one routine, shown one at a time by public/js/steps.js. Finishing the last
 # step posts to routine_finish.
 @app.route("/routines/<int:index>")
 def routine_steps(index):
@@ -2486,7 +2486,7 @@ def settings_export():
         return redirect(url_for("choose"))
     person_id = person["id"]
     saved_keys = ["profile", "member_preferences", "circle", "circle_shared_snapshots", "paired",
-                  "checkin_display", "checkin_response", "goals_added", "goals_done", "climb_seen",
+                  "checkin_display", "goals_added", "goals_done", "climb_seen",
                   "badges", "routines", "plan_pace", "health_action_states", "health_plan_states",
                   "medication_reminder_choice", "medication_states", "professional_proposals",
                   "trusted_encouragements", "coach_assignments",

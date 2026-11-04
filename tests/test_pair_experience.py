@@ -80,6 +80,11 @@ class PairExperienceTests(unittest.TestCase):
             if role == "member":
                 for label in [b"Pair member", b"Your information, your choices", b"Pair keeps the member in control", b"Patterns", b"Appointments"]:
                     self.assertIn(label, page.data)
+                member_nav = page.data.split(b'<nav aria-label="Pair member navigation">', 1)[1].split(b"</nav>", 1)[0]
+                nav_labels = [b"Home", b"Check In", b"Health", b"My Plan", b"Patterns",
+                              b"Appointments", b"My Circle", b"Settings"]
+                positions = [member_nav.index(label) for label in nav_labels]
+                self.assertEqual(positions, sorted(positions))
 
     # Keep prototype sign-in links honest and never submit the displayed password fields.
     def test_demo_sign_in_and_help_pages_are_transparent(self):
@@ -149,6 +154,7 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"Want to check in before choosing your next step?", page.data)
         plan_page = self.client.get("/my-plan")
         self.assertIn(b"One thing at a time", plan_page.data)
+        self.assertIn(b'value="one_at_a_time" checked', plan_page.data)
         self.assertIn(b"Show my full day", plan_page.data)
         self.assertIn(b"pace-focus-icon", plan_page.data)
         self.assertIn(b"pace-day-icon", plan_page.data)
@@ -818,6 +824,10 @@ class PairExperienceTests(unittest.TestCase):
             self.assertIn('form.dataset.submitted = "yes"', script.read())
         form = page.data.split(b'class="card checkin-form', 1)[1].split(b"</form>", 1)[0]
         self.assertNotIn(b" required", form)
+        self.assertIn(b"Skip", form)
+        self.assertEqual(self.client.get("/today").status_code, 200)
+        with self.client.session_transaction() as state:
+            self.assertEqual(state.get("checkins", []), [])
         submission_id = re.search(rb'name="submission_id" value="([^"]+)"', page.data).group(1).decode()
         result = self.client.post("/checkin", data={"action": "save", "submission_id": submission_id})
         self.assertEqual(result.status_code, 302)
@@ -894,6 +904,29 @@ class PairExperienceTests(unittest.TestCase):
         self.assertEqual(duplicate_post.headers["Location"], result_url)
         with self.client.session_transaction() as state:
             self.assertEqual(len(state["checkins"]), 1)
+
+    # Serve stylesheet and scripts from the same public directory used by Vercel's CDN.
+    def test_public_static_assets_and_templates_use_flask_paths(self):
+        for path in ["/css/style.css", "/js/main.js", "/js/steps.js", "/js/confetti.js"]:
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200, path)
+            self.assertGreater(len(response.data), 0, path)
+            response.close()
+        page = self.client.get("/today")
+        self.assertIn(b'href="/css/style.css"', page.data)
+        self.assertIn(b'src="/js/main.js"', page.data)
+
+    # Without OAuth keys, Google sign-in returns to sample data without contacting Google.
+    def test_google_signin_is_optional_without_credentials(self):
+        with patch.dict(os.environ, {"GOOGLE_CLIENT_ID": "", "GOOGLE_CLIENT_SECRET": ""}):
+            response = self.client.get("/google/login")
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.headers["Location"], "/settings?section=demo")
+            with self.client.session_transaction() as state:
+                state["google_from_devices"] = True
+            response = self.client.get("/google/login")
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.headers["Location"], "/devices")
 
     # A check-in choice temporarily narrows Home without overwriting My Pace or changing activities.
     def test_ema_one_step_is_temporary_and_does_not_mutate_activities(self):
@@ -976,8 +1009,7 @@ class PairExperienceTests(unittest.TestCase):
                 self.assertTrue(control["named"] or control["wrapped"] or
                                 control["id"] in parser.labels,
                                 f"Unlabelled control on {route}: {control}")
-        with open(os.path.join(os.path.dirname(__file__), "..", "static", "css", "style.css"),
-                  encoding="utf-8") as stylesheet:
+        with open(os.path.join(pair.app.static_folder, "css", "style.css"), encoding="utf-8") as stylesheet:
             css = stylesheet.read()
         self.assertIn(":focus-visible", css)
         self.assertIn("@media (max-width: 899px)", css)

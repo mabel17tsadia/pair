@@ -142,6 +142,12 @@ each tester's email as a test user.
 - A free service sleeps after about 15 minutes without visits; the first visit then takes up to
   a minute.
 
+## Vercel demonstration project
+
+The separate Vercel project and environment-variable checklist are documented in
+[docs/deployment.md](docs/deployment.md). The production branch is `pair-ui-redesign`; the Vercel
+project name is `pair-mvp`. This does not replace the Render service above.
+
 ## How we used AI to build this
 
 We built Pair one stage at a time with Claude Code as a coding assistant, following the rules in

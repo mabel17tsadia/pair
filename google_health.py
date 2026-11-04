@@ -133,6 +133,13 @@ def recent_days():
 # Sign-in, step 1: send the person to Google with a random "state" to check later
 @google.route("/login")
 def login():
+    # Keep Google sign-in optional when OAuth credentials are not configured.
+    if not os.getenv("GOOGLE_CLIENT_ID") or not os.getenv("GOOGLE_CLIENT_SECRET"):
+        if session.pop("google_from_devices", False):
+            flash("Google Health is not configured. Showing sample data.")
+            return redirect(url_for("devices"))
+        flash("Google Health is not configured. Showing sample data.")
+        return redirect(url_for("settings", section="demo"))
     session["google_state"] = secrets.token_urlsafe(16)
     return redirect(sign_in_url(session["google_state"]))
 

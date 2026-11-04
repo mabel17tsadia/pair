@@ -51,4 +51,4 @@ Show health details gradually and only after an appropriate permission check. Ap
 
 ## Existing visual implementation
 
-The prototype currently uses plain CSS theme variables in `static/css/style.css`, shared server-rendered layout in `templates/base.html`, and small JavaScript files for theme preview, routine steps, and celebrations. Preserve this architecture when implementing the design. Do not add a frontend framework or a new package without approval.
+The prototype currently uses plain CSS theme variables in `public/css/style.css`, shared server-rendered layout in `templates/base.html`, and small JavaScript files in `public/js/` for theme preview, routine steps, and celebrations. Preserve this architecture when implementing the design. Do not add a frontend framework or a new package without approval.
