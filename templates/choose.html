@@ -2,27 +2,7 @@
 {% from "macros.html" import icon %}
 
 {% block content %}
-  <!-- Introduce Pair and the prototype sign-in or new-member paths. -->
-  <section class="entry-hero">
-    <div class="entry-copy">
-      <p class="eyebrow">Independence, one clear step at a time</p>
-      <h1>Welcome to Pair</h1>
-      <p>Build life skills, prepare for healthcare visits, and choose what information you share.</p>
-      <div class="actions">
-        <a class="btn-primary" href="{{ url_for('signin') }}">Sign in</a>
-        <a class="btn-secondary" href="{{ url_for('start_begin') }}">New to Pair? Get started</a>
-      </div>
-    </div>
-    <!-- A calm mountain illustration echoes Pair's personal climb concept. -->
-    <svg class="entry-mountain" viewBox="0 0 360 220" aria-hidden="true">
-      <path class="entry-mountain-far" d="M8 210 112 70l60 74 48-54 132 120z"/>
-      <path class="entry-mountain-near" d="m70 210 102-116 100 116z"/>
-      <path class="entry-mountain-path" d="m118 196 20-22-15-20 25-21-8-23 31-25 25 23"/>
-      <path class="entry-mountain-flag" d="M194 108V66l34 10-34 11"/>
-    </svg>
-  </section>
-
-  <!-- Role cards open distinct demo workspaces, never real accounts or private member data. -->
+  <!-- Offer five distinct sample workspaces without repeating the public welcome hero. -->
   <section class="entry-roles" aria-labelledby="role-choice-title">
     <p class="eyebrow">Explore the prototype</p>
     <h2 id="role-choice-title">Whose view would you like to explore?</h2>
@@ -40,5 +20,6 @@
       {% endfor %}
     </div>
     <p class="entry-privacy">Pair does not diagnose. Members control what they share. This prototype does not authenticate anyone.</p>
+    <p class="entry-path-links"><a href="{{ url_for('signin') }}">Sign in</a><span aria-hidden="true">·</span><a href="{{ url_for('start_begin') }}">New to Pair? Continue sign-up</a></p>
   </section>
 {% endblock %}

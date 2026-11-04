@@ -57,11 +57,19 @@ class PairExperienceTests(unittest.TestCase):
     def test_role_entry_opens_distinct_workspaces(self):
         page = self.client.get("/")
         self.assertEqual(page.status_code, 200)
-        self.assertIn(b"Whose view would you like to explore?", page.data)
+        self.assertIn(b"Welcome to Pair", page.data)
+        self.assertIn(b"Get started", page.data)
+        self.assertNotIn(b"Whose view would you like to explore?", page.data)
+        self.assertNotIn(b"role-card", page.data)
         self.assertIn(b"brand-mark", page.data)
         self.assertNotIn(b"Choose a demo person", page.data)
         self.assertNotIn(b"Maya Chen", page.data)
         self.assertNotIn(b"Theo Okafor", page.data)
+        chooser = self.client.get("/?view=roles")
+        self.assertEqual(chooser.status_code, 200)
+        self.assertIn(b"Whose view would you like to explore?", chooser.data)
+        self.assertEqual(chooser.data.count(b'class="role-card"'), 5)
+        self.assertIn(b"Continue sign-up", chooser.data)
         destinations = {"member": ("/today", b"Jordan Reyes"),
                         "coach": ("/coach", b"Dana Brooks"),
                         "healthcare": ("/professional", b"Dr. Priya Patel"),
@@ -195,9 +203,12 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn("min-height: 12.5rem", css)
         self.assertIn(".entry-hero { box-sizing: border-box; min-height: 19rem", css)
         self.assertIn(".checkin-form .choice-box { min-height: 5.5rem", css)
+        self.assertIn(".checkin-form .choice-box { min-height: 7rem", css)
+        self.assertIn("grid-template-columns: repeat(6, minmax(0, 1fr))", css)
+        self.assertIn(".landing-hero { min-height: min(19rem, calc(100vh - 7rem))", css)
         self.assertIn(".visit-choice { box-sizing: border-box; min-height: 3.75rem", css)
         self.assertIn("@media (min-width: 900px) and (max-height: 650px)", css)
-        for path in ["/", "/today", "/checkin", "/health", "/my-plan", "/visit/primary",
+        for path in ["/", "/?view=roles", "/today", "/checkin", "/health", "/my-plan", "/visit/primary",
                      "/patterns", "/devices", "/settings"]:
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200, path)

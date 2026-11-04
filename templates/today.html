@@ -4,8 +4,10 @@
 {% block content %}
   <!-- Welcome Jordan with a short message and the familiar climb landscape. -->
   <section class="member-welcome home-hero">
-    <div><p class="eyebrow">Pair member · {{ person.first_name }} {{ person.last_name }}</p>
-      <h1>Good afternoon, Jordan.</h1><p>Choose one thing. Details stay tucked away until you want them.</p></div>
+    <div class="home-greeting-copy">
+      <h1>Good afternoon, Jordan.</h1><p>Choose one thing. Details stay tucked away until you want them.</p>
+      {% if not home_checkin %}<a class="home-checkin-invite" href="{{ url_for('checkin') }}">Want to check in before choosing your next step?</a>{% endif %}
+    </div>
     <div class="home-mountain" aria-label="My Climb: small steps at Jordan's own pace">{% include "partials/climb_mountain.html" %}</div>
   </section>
 
@@ -36,9 +38,6 @@
         {% endif %}
       </form>
     </section>
-  {% else %}
-    <!-- Offer the optional private check-in without adding another dashboard message. -->
-    <a class="home-checkin-invite" href="{{ url_for('checkin') }}">Want to check in before choosing your next step?</a>
   {% endif %}
 
   <!-- Show three fictional health observations with source details kept closed until opened. -->

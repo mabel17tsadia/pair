@@ -2092,3 +2092,59 @@ button, a, summary { touch-action: manipulation; }
   .home-mountain { width: 24%; }
   .home-mountain .climb-art { max-height: 7rem; }
 }
+
+/* Focus public entry pages and keep the desktop workspace header on one compact row. */
+@media (min-width: 769px) {
+  .site-header .header-inner { min-height: 4.25rem; padding-block: .35rem; }
+  .site-header .brand-mark { width: 2.625rem; height: 2.625rem; }
+  .role-preview-note { flex: 0 1 auto; max-width: none; white-space: nowrap; font-size: .74rem; }
+  .public-main { padding-top: 1.25rem; }
+  .landing-hero { min-height: min(19rem, calc(100vh - 7rem)); margin: 0; }
+  .landing-hero .entry-copy h1 { font-size: clamp(2.5rem, 3.2vw, 2.75rem); }
+  .landing-hero .entry-mountain { width: min(20rem, 38%); max-height: 11rem; }
+  .entry-path-links { display: flex; justify-content: center; gap: .5rem; margin-top: .75rem; color: var(--muted); }
+  .entry-path-links a { color: var(--primary); font-weight: 700; }
+  .entry-roles { max-width: 80rem; margin: 0 auto; }
+  .entry-roles > .eyebrow, .entry-roles > h2, .entry-roles > p:not(.eyebrow) { text-align: center; }
+  .entry-roles > h2 { margin: .2rem 0; font-size: clamp(1.5rem, 2vw, 1.75rem); }
+  .entry-roles > p:not(.eyebrow) { margin: .35rem 0; }
+  .entry-roles .role-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .7rem; margin-top: .65rem; }
+  .entry-roles .role-card { grid-column: span 2; padding: .85rem 1rem; }
+  .entry-roles .role-card:nth-child(4) { grid-column: 2 / span 2; }
+  .entry-roles .role-card:nth-child(5) { grid-column: 4 / span 2; }
+  .entry-roles .role-card-icon { width: 2.35rem; height: 2.35rem; }
+  .entry-roles .role-card h3 { margin: .35rem 0; font-size: 1.15rem; }
+  .entry-roles .role-card > p { margin: .25rem 0; line-height: 1.35; }
+  .entry-roles .role-card .btn-secondary { min-height: 2.75rem; margin-top: .3rem; }
+  .entry-privacy { margin: .55rem auto 0; padding: .45rem .75rem; text-align: center; }
+  main h1 { font-size: clamp(2.125rem, 2.6vw, 2.5rem); }
+  .workspace-heading h1 { font-size: clamp(2.125rem, 2.6vw, 2.5rem); }
+  .workspace-main > h2, .public-main > h2 { font-size: clamp(1.5rem, 1.8vw, 1.75rem); }
+  .card h2 { font-size: clamp(1.125rem, 1.35vw, 1.375rem); }
+  .workspace-shell { min-height: calc(100vh - 4.25rem); }
+  .role-sidebar { min-height: calc(100vh - 4.25rem); padding-top: 1rem; }
+  .role-sidebar nav { gap: .25rem; }
+  .role-sidebar nav a, .role-sidebar .nav-unavailable { min-height: 2.875rem; }
+  .workspace-main { padding: 1.25rem clamp(1.25rem, 1.8vw, 1.75rem) 2rem; }
+  .home-hero { min-height: 11rem; margin-bottom: 1rem; padding: 1.2rem 1.35rem; }
+  .home-hero h1 { font-size: clamp(2.5rem, 3vw, 3rem); }
+  .home-mountain { width: min(11rem, 20%); }
+  .home-mountain .climb-art { max-height: 6rem; }
+  .home-checkin-invite { display: inline-flex; min-height: var(--target-min); align-items: center; margin: .1rem 0 0; padding: .1rem 0; border: 0; background: transparent; box-shadow: none; }
+  .home-primary-grid, .home-secondary-grid { gap: 1rem; margin-bottom: 1rem; }
+  .home-primary-grid > .card, .home-secondary-grid > .card { padding: 1.15rem; }
+  .day-timeline li { min-height: 3.4rem; }
+  .day-timeline .day-activity-title { font-size: 1.1rem; }
+  .checkin-form .choice-box { min-height: 7rem; padding: .55rem .4rem; }
+  .checkin-form .choice-icon { min-height: 2.3rem; font-size: 2rem; }
+  .checkin-form { gap: .85rem; padding: 1.1rem; }
+  .checkin-privacy { margin-block: .35rem .55rem; }
+  .display-preference { margin-bottom: .55rem; }
+}
+
+/* Use a two-column role grid when there is not room for three readable cards. */
+@media (min-width: 769px) and (max-width: 999px) {
+  .entry-roles .role-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .entry-roles .role-card, .entry-roles .role-card:nth-child(4), .entry-roles .role-card:nth-child(5) { grid-column: auto; }
+  .entry-roles .role-card:nth-child(5) { grid-column: 1 / -1; width: calc(50% - .35rem); justify-self: center; }
+}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Welcome visitors and direct them to sign in or explore a sample workspace. -->
+  <section class="entry-hero landing-hero">
+    <div class="entry-copy">
+      <p class="eyebrow">Independence, one clear step at a time</p>
+      <h1>Welcome to Pair</h1>
+      <p>Build life skills, prepare for healthcare visits, and choose what information you share.</p>
+      <div class="actions">
+        <a class="btn-primary" href="{{ url_for('signin') }}">Sign in</a>
+        <a class="btn-secondary" href="{{ url_for('choose', view='roles') }}">Get started</a>
+      </div>
+    </div>
+    <!-- Use the local mountain illustration to introduce Pair's personal climb. -->
+    <svg class="entry-mountain" viewBox="0 0 360 220" aria-hidden="true">
+      <path class="entry-mountain-far" d="M8 210 112 70l60 74 48-54 132 120z"/>
+      <path class="entry-mountain-near" d="m70 210 102-116 100 116z"/>
+      <path class="entry-mountain-path" d="m118 196 20-22-15-20 25-21-8-23 31-25 25 23"/>
+      <path class="entry-mountain-flag" d="M194 108V66l34 10-34 11"/>
+    </svg>
+  </section>
+{% endblock %}

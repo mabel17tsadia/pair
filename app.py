@@ -583,10 +583,12 @@ def shared_view(access, patterns, celebrations):
     return lines + celebrations
 
 
-# Entry page: introduce Pair and show the five distinct demonstration workspaces.
+# Show the public landing by default and the distinct demo workspaces on request.
 @app.route("/")
 def choose():
-    return render_template("choose.html", title="Explore Pair", role_cards=ROLE_CARDS)
+    if request.args.get("view") == "roles":
+        return render_template("choose.html", title="Explore Pair", role_cards=ROLE_CARDS)
+    return render_template("landing.html", title="Welcome to Pair")
 
 
 # Keep the old member URL for compatibility, but never offer Maya or Theo as member entry accounts.
