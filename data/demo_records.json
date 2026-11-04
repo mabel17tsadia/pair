@@ -413,6 +413,36 @@
       "supporting_detail": "A fictional example of bringing existing readings; Pair does not interpret them.",
       "estimated_minutes": 15,
       "fictional": true
+    },
+    {
+      "id": "follow-up-demo-today",
+      "health_follow_up_id": "follow-up-demo-today",
+      "member_id": "member-jordan",
+      "packet_id": "packet-completed",
+      "source_id": "health-priya",
+      "source_name": "Dr. Priya Patel",
+      "proposed_by": "Dr. Priya Patel",
+      "proposed_on": "2026-11-03",
+      "action_type": "other_instruction",
+      "instruction_type": "other_instruction",
+      "instruction": "Write down one question you would like to ask at your next visit.",
+      "due_on": "2026-11-04",
+      "schedule": {
+        "date": "2026-11-04",
+        "time": "1:00 PM",
+        "label": "Today at 1:00 PM"
+      },
+      "status": "accepted",
+      "accepted_on": "2026-11-03",
+      "declined_on": "",
+      "member_question": "",
+      "source": {
+        "kind": "authorized appointment follow-up",
+        "label": "Dr. Priya Patel"
+      },
+      "supporting_detail": "Fictional clinician guidance from the completed appointment. The member chose to add it to today’s plan.",
+      "estimated_minutes": 10,
+      "fictional": true
     }
   ],
   "check_ins": [
@@ -786,6 +816,30 @@
         }
       ],
       "fictional": true
+    },
+    {
+      "id": "template-personal-break",
+      "title": "Take a quiet break",
+      "objective": "Choose a moment for personal well-being",
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "steps": [
+        {
+          "order": 1,
+          "instruction": "Choose a quiet or comfortable place.",
+          "picture": "🌿",
+          "picture_label": "a leaf",
+          "short_instruction": "Choose a quiet place."
+        },
+        {
+          "order": 2,
+          "instruction": "Take a few minutes to rest or do something calming.",
+          "picture": "☕",
+          "picture_label": "a warm drink",
+          "short_instruction": "Take a few minutes."
+        }
+      ],
+      "fictional": true
     }
   ],
   "activity_assignments": [
@@ -873,6 +927,90 @@
       "next_action": "Choose a first step",
       "id": "assignment-coach-maya-01",
       "template_id": "template-coach-maya-01"
+    },
+    {
+      "assigned_to": "p1",
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "scheduled_for": "2026-11-04T12:00:00-07:00",
+      "due_on": "2026-11-04",
+      "estimated_minutes": 10,
+      "status": "not_started",
+      "next_action": "Choose one small area",
+      "id": "assignment-member-demo-today",
+      "template_id": "template-member-01"
+    },
+    {
+      "assigned_to": "p1",
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "scheduled_for": "2026-11-04T14:00:00-07:00",
+      "due_on": "2026-11-04",
+      "estimated_minutes": 20,
+      "status": "not_started",
+      "next_action": "Choose a quiet place",
+      "id": "assignment-wellness-demo-today",
+      "template_id": "template-personal-break"
+    },
+    {
+      "assigned_to": "p1",
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "scheduled_for": "2026-11-05T15:00:00-07:00",
+      "due_on": "2026-11-05",
+      "estimated_minutes": 15,
+      "status": "not_started",
+      "next_action": "Choose a place for a short walk",
+      "id": "assignment-wellness-demo-tomorrow",
+      "template_id": "template-personal-break"
+    },
+    {
+      "assigned_to": "p1",
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "scheduled_for": "2026-11-06T12:00:00-07:00",
+      "due_on": "2026-11-06",
+      "estimated_minutes": 15,
+      "status": "not_started",
+      "next_action": "Choose one easy lunch option",
+      "id": "assignment-wellness-demo-friday",
+      "template_id": "template-personal-break"
+    },
+    {
+      "assigned_to": "p1",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "scheduled_for": "2026-11-06T15:00:00-07:00",
+      "due_on": "2026-11-06",
+      "estimated_minutes": 20,
+      "status": "not_started",
+      "next_action": "Review the first step",
+      "id": "assignment-coach-demo-friday",
+      "template_id": "template-coach-02"
+    },
+    {
+      "assigned_to": "p1",
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "scheduled_for": "2026-11-09T13:00:00-07:00",
+      "due_on": "2026-11-09",
+      "estimated_minutes": 15,
+      "status": "not_started",
+      "next_action": "Choose one small goal",
+      "id": "assignment-wellness-demo-monday",
+      "template_id": "template-personal-break"
+    },
+    {
+      "assigned_to": "p1",
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "scheduled_for": "2026-11-09T15:00:00-07:00",
+      "due_on": "2026-11-09",
+      "estimated_minutes": 10,
+      "status": "not_started",
+      "next_action": "Choose one area to tidy",
+      "id": "assignment-member-demo-monday",
+      "template_id": "template-member-01"
     }
   ],
   "schema_version": 2,

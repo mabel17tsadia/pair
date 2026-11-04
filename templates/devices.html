@@ -2,15 +2,17 @@
 {% from "macros.html" import icon %}
 
 {% macro source_row(d) %}
-  <!-- Show one source as a compact row and reveal its consent details only when opened. -->
+  <!-- Make the source row itself selectable, with connection details kept collapsed. -->
+  <div class="source-entry">
   <details class="source-option">
     <summary class="source-summary">
       <span class="source-pictogram" aria-hidden="true">{{ icon(d.pictogram) }}</span>
-      <span class="source-summary-name"><strong>{{ d.device }}</strong><small>{{ d.connection_type }} · View details</small></span>
+      <span class="source-summary-name"><strong>{{ d.device }}</strong><small>{{ d.user_category }} · View details</small></span>
       <span class="chip source-status">{{ d.status }}</span>
     </summary>
     <div class="source-details">
-      <p><strong>Connection:</strong> {{ d.connects_through }}</p>
+      <p><strong>Connection type:</strong> {{ d.connection_type }}</p>
+      <p><strong>Connects through:</strong> {{ d.connects_through }}</p>
       <p><strong>Pair reads:</strong> {{ d.signals | words }}.</p>
       <p><strong>Purpose:</strong> {{ d.purpose }}</p>
       <p><strong>Used in:</strong> {{ d.used_in }}.</p>
@@ -24,11 +26,11 @@
         <form method="post" action="{{ url_for('stop_pairing', name=d.device) }}">
           <button type="submit" class="btn-secondary">Disconnect</button>
         </form>
-      {% else %}
-        <a class="btn-primary" href="{{ url_for('pair_device', name=d.device) }}">Connect</a>
       {% endif %}
     </div>
   </details>
+  {% if not d.paired %}<a class="btn-primary source-connect" href="{{ url_for('pair_device', name=d.device) }}">Connect</a>{% endif %}
+  </div>
 {% endmacro %}
 
 {% block content %}
@@ -42,9 +44,9 @@
     <h2 id="connected-devices-title">Connected devices</h2>
     {% if paired %}
       {% for connection_type in connection_types %}
-        {% set sources = paired | selectattr('connection_type', 'equalto', connection_type) | list %}
+        {% set sources = paired | selectattr('user_category', 'equalto', connection_type) | list %}
         {% if sources %}
-          <section class="source-group" aria-label="Connected {{ connection_type }} sources">
+          <section class="source-group" aria-label="Connected {{ connection_type }}">
             <h3>{{ connection_type }}</h3>
             <div class="source-list">{% for d in sources %}{{ source_row(d) }}{% endfor %}</div>
           </section>
@@ -58,9 +60,9 @@
     <h2 id="available-sources-title">Available to connect</h2>
     {% if available %}
       {% for connection_type in connection_types %}
-        {% set sources = available | selectattr('connection_type', 'equalto', connection_type) | list %}
+        {% set sources = available | selectattr('user_category', 'equalto', connection_type) | list %}
         {% if sources %}
-          <section class="source-group" aria-label="Available {{ connection_type }} sources">
+          <section class="source-group" aria-label="Available {{ connection_type }}">
             <h3>{{ connection_type }}</h3>
             <div class="source-list">{% for d in sources %}{{ source_row(d) }}{% endfor %}</div>
           </section>

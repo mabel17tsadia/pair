@@ -82,7 +82,10 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
         activities = activity_assignments(records, member_id)
     for activity in activities:
         saved = progress.get(activity["id"], {})
-        rows.append({**activity, **saved, "source_label": {
+        scheduled = activity.get("scheduled_for", "")
+        time_label = (datetime.fromisoformat(scheduled).strftime("%I:%M %p").lstrip("0")
+                      if scheduled else "Anytime today")
+        rows.append({**activity, **saved, "time_label": time_label, "source_label": {
             "member": "Added by me", "coach": "From my coach"}.get(activity["source"], activity["source"])})
     seen_follow_ups = set()
     for follow_up in records["health_follow_ups"]:
@@ -93,13 +96,18 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
                 continue
             seen_follow_ups.add(follow_up["id"])
             due_on = plan_state.get("scheduled_for", follow_up.get("schedule", {}).get("date", follow_up.get("due_on", "")))
+            schedule_time = follow_up.get("schedule", {}).get("time", "")
+            scheduled_for = (datetime.strptime(f"{due_on} {schedule_time}", "%Y-%m-%d %I:%M %p").isoformat()
+                             if due_on and schedule_time else "")
             status = "paused" if plan_status == "paused" else "accepted"
             rows.append({
                 "id": follow_up["id"], "title": follow_up["instruction"], "source": "health",
                 "source_name": follow_up["source_name"], "source_label": "From Health",
                 "proposed_on": follow_up.get("proposed_on", ""),
                 "accepted_on": plan_state.get("accepted_on", follow_up.get("accepted_on", "")),
-                "due_on": due_on, "scheduled_for": "",
+                "due_on": due_on, "scheduled_for": scheduled_for,
+                "time_label": (datetime.fromisoformat(scheduled_for).strftime("%I:%M %p").lstrip("0")
+                               if scheduled_for else "Anytime today"),
                 "schedule": plan_state.get("schedule", follow_up.get("schedule", {})),
                 "plan_status": plan_status,
                 "estimated_minutes": follow_up.get("estimated_minutes", 10),

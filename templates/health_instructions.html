@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+  <!-- Keep care-team instructions distinct from prescriptions and appointment packets. -->
+  <a class="text-link" href="{{ url_for('health') }}">‹ Health</a>
+  <h1>My Health Plan</h1>
+  <p class="note">Instructions from your care team · Fictional demo records. Pair organizes and reminds; it does not diagnose or prescribe.</p>
+  {% if has_demo_records %}
+    {% for item in follow_ups %}
+      {% if item.action_type not in ['prescription_pickup'] %}
+        <!-- Show the original clinician instruction with its source and current member choice. -->
+        <article class="card health-record-card" id="{{ item.id }}">
+          <div class="health-record-heading"><h2>{{ item.instruction }}</h2><span class="chip">{{ item.status.replace('_',' ') | capitalize }}{% if item.status == 'accepted' %} · {{ item.plan_status.replace('_',' ') | capitalize }}{% endif %}</span></div>
+          <p><strong>Type:</strong> {{ item.action_type_label }} · <strong>Source:</strong> {{ item.source.get('label', item.source_name) if item.source is mapping else item.source_name }} · <strong>Clinician:</strong> {{ item.source_name }}</p>
+          <p><strong>Date entered:</strong> {{ item.proposed_on | long_day if item.proposed_on else 'Date not recorded' }}</p>
+          <p><strong>Original instruction:</strong> {{ item.instruction }}</p>
+          <p><strong>Schedule:</strong> {{ item.schedule.label if item.schedule and item.schedule.label else (item.due_on | long_day if item.due_on else 'No schedule set') }}</p>
+          {% if item.status == 'accepted' and item.plan_status != 'removed' %}<a class="btn-secondary" href="{{ url_for('plan', time='today' if item.due_on == today_iso else 'later', source='health') }}">{{ 'Manage reminder in My Plan' if item.plan_status == 'paused' else 'Review in My Plan' }}</a>
+          {% else %}<a class="btn-secondary" href="{{ url_for('health_next_steps', _anchor=item.id) }}">Review this instruction</a>{% endif %}
+        </article>
+      {% endif %}
+    {% else %}<p class="card">No care-team instructions are available in this demo.</p>{% endfor %}
+    <p><a class="btn-secondary" href="{{ url_for('health_medications') }}">Open My Medications</a></p>
+  {% else %}<p class="card">Health demo records are available for Jordan Reyes only.</p>{% endif %}
+{% endblock %}

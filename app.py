@@ -41,7 +41,7 @@ ROLE_NAVIGATION = {
         ("Home", "today", "sun", ["today"]),
         ("My Plan", "plan", "calendar", ["plan"]),
         ("Check In", "checkin", "check", ["checkin"]),
-        ("Health", "health", "heart", ["health", "health_packets", "health_packet", "health_next_steps",
+        ("Health", "health", "heart", ["health", "health_packets", "health_packet", "health_next_steps", "health_instructions",
                                           "health_follow_up_action", "health_medications",
                                           "health_plan_action", "devices", "pair_device", "stop_pairing"]),
         ("Patterns", "patterns", "chart", ["patterns", "body"]),
@@ -102,6 +102,7 @@ ROLE_CARDS = [
 ROLE_ENDPOINTS = {
     "member": {"choose_person", "today", "plan", "health", "health_packets", "health_packet",
                "health_next_steps", "health_follow_up_action", "health_medications",
+               "health_instructions",
                "health_plan_action", "activity_detail", "checkin", "patterns",
                "circle", "circle_save", "circle_remove", "circle_add", "circle_revoke_share", "share",
                "doctor", "visit_start", "visit_page", "visit_suggest", "visit_add_question", "visit_entry",
@@ -118,7 +119,7 @@ ROLE_ENDPOINTS = {
               "admin_templates", "admin_settings"},
 }
 HEALTH_ENDPOINTS = {
-    "health", "health_packets", "health_packet", "health_next_steps", "health_follow_up_action",
+    "health", "health_packets", "health_packet", "health_next_steps", "health_instructions", "health_follow_up_action",
     "health_medications", "health_plan_action",
     "patterns", "body",
     "devices", "pair_device", "stop_pairing", "visit_start", "visit_page", "visit_suggest",
@@ -220,7 +221,8 @@ def member_preferences(person_id):
             "picture_preference": preferences.get("picture_preference",
                                                    session.get("checkin_display", {}).get(person_id, "pictures_words")),
             "read_aloud": preferences.get("read_aloud", True),
-            "speech_rate": preferences.get("speech_rate", "1")}
+            "speech_rate": preferences.get("speech_rate", "1"),
+            "notification_privacy": preferences.get("notification_privacy", "generic")}
 
 
 # Template filter: minutes as "6 h 40 min"
@@ -318,6 +320,9 @@ def device_cards(person):
         if source["device"] == GOOGLE_DEVICE:
             source["connection_type"] = "API integration"
         source["status"] = "Connected" if source["paired"] else "Not connected"
+        source["user_category"] = ("Bluetooth devices" if source["connection_type"] == "Bluetooth device" else
+                                    "Home devices" if source["device"] == "Smart washing machine" else
+                                    "Health apps")
         source["used_in"] = "Health Patterns, Check In, and appointment preparation when relevant"
         source["pictogram"] = DEVICE_PICTOGRAMS.get(source["device"], "healthapp")
         source["privacy"] = ("Only minutes are shown; exact places and maps are not stored." if source["device"] == "Time away from home" else
@@ -690,16 +695,10 @@ def today():
                     "health_follow_ups": active_health_actions}
     today_activities = plan_activities(home_records, data.get_today(), "today", "all",
                                        session.get("activity_progress", {}))
-    week_activities = plan_activities(home_records, data.get_today(), "this_week", "all",
-                                      session.get("activity_progress", {}))
-    today_ids = {item["id"] for item in today_activities}
-    next_activity = next((item for item in week_activities
-                          if item["id"] not in today_ids and item["status"] != "completed"), None)
-    later_activity = plan_activities(home_records, data.get_today(), "later", "all",
-                                     session.get("activity_progress", {}))
-    later_activity = [item for item in later_activity if item["status"] != "completed"]
-    next_action_activity = next((item for item in today_activities if item["status"] != "completed"),
-                                next_activity or (later_activity[0] if later_activity else None))
+    today_activities = [item for item in today_activities if item["status"] != "completed"]
+    completed = next((item for item in activities if item.get("status") == "completed"), None)
+    positive_observation = ("An activity in your plan is marked complete." if completed else
+                            f"You have {len(today_activities)} activities planned for today." if today_activities else "")
     upcoming = next((item for item in records["appointment_packets"]
                      if item["member_id"] == records["member"]["id"] and item["status"] == "upcoming"), None) if demo_member else None
     if upcoming:
@@ -708,8 +707,9 @@ def today():
     return render_template("today.html", title="Today", person=person, climb=climb_for(person),
                            patterns=patterns, week=week_text(person, patterns),
                            circle=circle_for(person),
-                           next_activity=next_activity, later_activity=later_activity[:1],
-                           next_action_activity=next_action_activity,
+                           today_activities=today_activities,
+                           pace=session.get("plan_pace", {}).get(pid, "one_at_a_time"),
+                           positive_observation=positive_observation,
                            upcoming_appointment=upcoming, today_iso=data.get_today())
 
 
@@ -743,8 +743,13 @@ def plan():
     activities = plan_activities(records, data.get_today(), time_filter, source_filter,
                                  session.get("activity_progress", {})) if has_activities else []
     pace = session.get("plan_pace", {}).get(person["id"], "one_at_a_time")
+    focused = next((item for item in activities if item["id"] == request.args.get("activity")), None)
+    visible_activities = activities if pace == "full_day" else [focused] if focused else activities[:1]
+    visible_ids = {item["id"] for item in visible_activities}
     return render_template("plan.html", title="My Plan", person=person, activities=activities,
                            pace=pace if pace in ["one_at_a_time", "full_day"] else "one_at_a_time",
+                           visible_activities=visible_activities,
+                           remaining_activities=[item for item in activities if item["id"] not in visible_ids],
                            time_filter=time_filter if time_filter in ["today", "tomorrow", "this_week", "later"] else "today",
                            source_filter=source_filter if source_filter in ["all", "member", "coach", "health"] else "all",
                            has_demo_records=has_activities)
@@ -1040,6 +1045,18 @@ def health_next_steps():
     return render_template("health_next_steps.html", title="Next Steps", person=person,
                            follow_ups=health_follow_ups_for(person, records),
                            has_demo_records=bool(records))
+
+
+# Show the member's saved care-team instructions separately from prescriptions.
+@app.route("/health/my-plan")
+def health_instructions():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    records = health_demo_records(person)
+    return render_template("health_instructions.html", title="My Health Plan", person=person,
+                           follow_ups=health_follow_ups_for(person, records) if records else [],
+                           has_demo_records=bool(records), today_iso=data.get_today())
 
 
 # Show exact fictional prescription instructions in Health with member-controlled reminders.
@@ -2268,18 +2285,34 @@ def settings():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
+    sections = {"profile", "appearance", "notifications", "privacy", "sources", "circle",
+                "personalization", "data", "demo"}
+    section = request.args.get("section", "")
+    if section not in sections:
+        section = ""
     # Demo controls: save the chosen data source
     if request.method == "POST" and request.form.get("source") in SOURCES:
         session["data_source"] = request.form["source"]
         flash(f"Data source set to {SOURCES[request.form['source']]}.")
-        return redirect(url_for("settings"))
+        return redirect(url_for("settings", section="demo"))
+    if request.method == "POST" and request.form.get("action") == "save_notification_privacy":
+        privacy = request.form.get("notification_privacy")
+        if privacy in ["generic", "detailed"]:
+            all_preferences = session.get("member_preferences", {})
+            preferences = all_preferences.get(person["id"], {})
+            preferences["notification_privacy"] = privacy
+            all_preferences[person["id"]] = preferences
+            session["member_preferences"] = all_preferences
+            flash("Notification preview privacy was saved for this demo.")
+        return redirect(url_for("settings", section="notifications"))
     if request.method == "POST" and request.form.get("action") == "save_member_preferences":
         density, pictures = request.form.get("density"), request.form.get("picture_preference")
         rate = request.form.get("speech_rate")
         if density in ["comfortable", "compact"] and pictures in dict(CHECKIN_DISPLAY) and rate in ["0.8", "1", "1.2"]:
-            preferences = {"density": density, "picture_preference": pictures,
-                           "read_aloud": request.form.get("read_aloud") == "on", "speech_rate": rate}
             all_preferences = session.get("member_preferences", {})
+            preferences = {**all_preferences.get(person["id"], {}), "density": density,
+                           "picture_preference": pictures, "read_aloud": request.form.get("read_aloud") == "on",
+                           "speech_rate": rate}
             all_preferences[person["id"]] = preferences
             session["member_preferences"] = all_preferences
             displays = session.get("checkin_display", {})
@@ -2288,10 +2321,11 @@ def settings():
             if request.form.get("theme") in THEMES:
                 session["theme"] = request.form["theme"]
             flash("Your display and reading preferences were saved in this demo.")
-        return redirect(url_for("settings"))
+        return redirect(url_for("settings", section="appearance"))
     return render_template("settings.html", title="Settings", sources=SOURCES,
                            google_connected=google_health.is_connected(), person=person,
-                           preferences=member_preferences(person["id"]), display_options=CHECKIN_DISPLAY)
+                           preferences=member_preferences(person["id"]), display_options=CHECKIN_DISPLAY,
+                           section=section)
 
 
 # Download only this member's changes saved in the current demo session.
@@ -2388,7 +2422,7 @@ def devices():
     return render_template("devices.html", title="Connected Data Sources", google_name=GOOGLE_DEVICE,
                            paired=[d for d in cards if d["paired"]],
                            available=[d for d in cards if not d["paired"]],
-                           connection_types=["Bluetooth device", "Operating-system health service", "API integration"])
+                           connection_types=["Bluetooth devices", "Health apps", "Home devices"])
 
 
 # Consent page for pairing one device: what Pair reads, never reads, and who can see it.

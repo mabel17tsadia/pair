@@ -1703,6 +1703,18 @@ main > .card, .workspace-main > .card { border-radius: 1.25rem; }
 .source-group { margin: var(--space-4) 0; }
 .source-list { display: grid; gap: var(--space-2); }
 .source-option { border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); }
+.source-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; gap: var(--space-2); }
+.source-summary::after { content: "View details  ›"; color: var(--primary); font-weight: 700; }
+.source-option[open] > .source-summary::after { content: "Hide details  ⌄"; }
+.source-connect { align-self: center; }
+.settings-sections { display: grid; gap: var(--space-2); }
+.settings-section-row { display: grid; grid-template-columns: 3rem minmax(0, 1fr) 2rem; align-items: center; gap: var(--space-3); min-height: var(--target-min); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); color: var(--text); text-decoration: none; }
+.settings-section-row > span:first-child { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--surface2); font-size: 1.35rem; }
+.settings-section-row strong, .settings-section-row small { display: block; }
+.settings-section-row small { margin-top: var(--space-1); color: var(--muted); }
+.settings-chevron { color: var(--primary); font-size: 1.5rem; text-align: center; }
+.day-activity { display: grid; gap: var(--space-1); }
+.day-activity span { color: var(--muted); }
 .source-option[open] { box-shadow: var(--card-shadow); }
 .source-summary { display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); min-height: var(--target-min); padding: var(--space-3); list-style-position: inside; }
 .source-summary::marker { color: var(--primary); }
@@ -1770,6 +1782,9 @@ button, a, summary { touch-action: manipulation; }
   .pattern-mobile-select { display: grid; gap: var(--space-2); margin: var(--space-4) 0; }
   .pattern-mobile-select select { min-height: var(--target-min); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); color: var(--text); }
   .source-summary { grid-template-columns: 2.75rem minmax(0, 1fr); }
+  .source-summary::after { grid-column: 2; }
+  .source-entry { grid-template-columns: minmax(0, 1fr); }
+  .source-connect { margin: 0 var(--space-3) var(--space-3); }
   .source-status { grid-column: 2; justify-self: start; }
 }
 

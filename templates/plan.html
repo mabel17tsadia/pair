@@ -47,9 +47,8 @@
 
     <!-- Each activity shows its source, date, time estimate, status, and one next action. -->
     <section aria-label="Activities">
-      {% set visible_activities = activities if pace == "full_day" else activities[:1] %}
       {% for activity in visible_activities %}
-        <article class="card activity-card {% if activity.source == 'health' %}health-plan-card{% endif %}">
+        <article id="{{ activity.id }}" class="card activity-card {% if activity.source == 'health' %}health-plan-card{% endif %}">
           <div class="activity-heading">
             <h2 class="activity-title"><span class="activity-pictogram" aria-hidden="true">{{ icon("book" if activity.source == "coach" else "heart" if activity.source == "member" else "medical") }}</span>{{ activity.title }}</h2>
             <span class="chip activity-status">{{ activity.status_label }}</span>
@@ -80,11 +79,11 @@
       {% else %}
         <p class="card">{% if has_demo_records %}No activities match these filters.{% else %}Demo activities are available for Jordan Reyes only.{% endif %}</p>
       {% endfor %}
-      {% if pace == "one_at_a_time" and activities|length > 1 %}
+      {% if pace == "one_at_a_time" and remaining_activities %}
         <details class="card remaining-activities">
-          <summary>Show the other {{ activities|length - 1 }} activities in this view</summary>
-          {% for activity in activities[1:] %}
-            <article class="activity-card {% if activity.source == 'health' %}health-plan-card{% endif %}">
+          <summary>Show the other {{ remaining_activities|length }} activities in this view</summary>
+          {% for activity in remaining_activities %}
+            <article id="{{ activity.id }}" class="activity-card {% if activity.source == 'health' %}health-plan-card{% endif %}">
               <div class="activity-heading"><h2 class="activity-title"><span class="activity-pictogram" aria-hidden="true">{{ icon("book" if activity.source == "coach" else "heart" if activity.source == "member" else "medical") }}</span>{{ activity.title }}</h2><span class="chip activity-status">{{ activity.status_label }}</span></div>
               <p class="activity-meta"><strong>{{ activity.source_label }}</strong> · {{ activity.date_label }} · About {{ activity.estimated_minutes }} minutes</p>
               {% if activity.source == "health" %}<p class="health-plan-source"><strong>Fictional Health follow-up</strong> · {{ activity.source_name }}{% if activity.proposed_on %} · Proposed {{ activity.proposed_on | long_day }}{% endif %}{% if activity.accepted_on %} · Accepted {{ activity.accepted_on | long_day }}{% endif %}</p><p><strong>Schedule:</strong> {{ activity.schedule.label if activity.schedule and activity.schedule.label else activity.date_label }}</p>{% endif %}

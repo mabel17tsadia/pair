@@ -140,7 +140,7 @@ class PairExperienceTests(unittest.TestCase):
         page = self.client.get("/today")
         self.assertEqual(page.status_code, 200)
         for label in [b"Good afternoon, Jordan.", b"Your Day", b"Up Next", b"Later", b"My Climb",
-                      b"Your week looks different", b"Upcoming appointment"]:
+                      b"Your week at a glance", b"Upcoming appointment", b"Fictional demo schedule"]:
             self.assertIn(label, page.data)
         self.assertNotIn(b"Your usual average", page.data)
         self.assertNotIn(b"Last 5-day average", page.data)
@@ -152,6 +152,61 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"pace-focus-icon", plan_page.data)
         self.assertIn(b"pace-day-icon", plan_page.data)
         self.assertIn(b"activity-pictogram", plan_page.data)
+
+    # Keep the Home timeline limited to current-day items and preserve both My Pace views.
+    def test_home_schedule_today_filter_pace_and_plan_links(self):
+        page = self.client.get("/today")
+        day = page.data.split(b'<ol class="day-timeline">', 1)[1].split(b'</ol>', 1)[0]
+        self.assertNotIn(b"Plan a bus trip", day)
+        self.assertNotIn(b"Primary care", day)
+        self.assertIn(b"Scheduled time:", day)
+        self.assertIn(b"Duration: About", day)
+        self.assertIn(b"/my-plan?time=today", day)
+        focused = self.client.get("/my-plan", query_string={"time": "today", "activity": "assignment-wellness-demo-today"})
+        self.assertIn(b'id="assignment-wellness-demo-today"', focused.data)
+        self.client.post("/my-plan", data={"action": "pace", "pace": "full_day", "time": "today"})
+        full_day = self.client.get("/today").data.split(b'<ol class="day-timeline">', 1)[1].split(b'</ol>', 1)[0]
+        self.assertIn(b"Practice a simple meal", full_day)
+        self.assertIn(b"Tidy my desk", full_day)
+        self.assertIn(b"Write down one question", full_day)
+
+    # Keep care-team instructions private and separate from prescription details.
+    def test_health_instructions_are_member_only_and_keep_original_sources(self):
+        page = self.client.get("/health/my-plan")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b"Instructions from your care team", page.data)
+        self.assertIn(b"Dr. Priya Patel", page.data)
+        self.assertIn(b"Original instruction", page.data)
+        self.assertIn(b"Fictional demo records", page.data)
+        for role in ["coach", "trusted", "admin", "healthcare"]:
+            with self.client.session_transaction() as state:
+                state["demo_role"] = role
+            self.assertNotEqual(self.client.get("/health/my-plan").status_code, 200)
+
+    # Keep notification previews generic by default and settings controls progressively disclosed.
+    def test_settings_sections_and_notification_preview_privacy(self):
+        page = self.client.get("/settings")
+        self.assertIn(b"Appearance and accessibility", page.data)
+        self.assertIn(b"Notifications and celebrations", page.data)
+        self.assertNotIn(b'id="speech-rate"', page.data)
+        page = self.client.get("/settings?section=notifications")
+        self.assertIn(b"You have a private reminder from Pair.", page.data)
+        self.assertIn(b"Detailed preview", page.data)
+        self.client.post("/settings?section=notifications", data={
+            "action": "save_notification_privacy", "notification_privacy": "detailed"})
+        self.assertIn(b"Your planned activity is ready to view in Pair.",
+                      self.client.get("/settings?section=notifications").data)
+        self.assertEqual(self.client.get("/settings?section=appearance").status_code, 200)
+
+    # Keep Connect visible beside a collapsed device row with details available on selection.
+    def test_device_rows_show_user_categories_and_connection_actions(self):
+        page = self.client.get("/devices")
+        self.assertIn(b"Available to connect", page.data)
+        self.assertIn(b"Health apps", page.data)
+        self.assertIn(b"Bluetooth devices", page.data)
+        self.assertIn(b"Connect</a>", page.data)
+        self.assertIn(b"View details", page.data)
+        self.assertIn(b"Privacy:", page.data)
 
     # Keep the coach dashboard useful while excluding private and unrelated member details.
     def test_coach_dashboard_uses_learning_only_signals(self):
@@ -313,7 +368,7 @@ class PairExperienceTests(unittest.TestCase):
         page = self.client.get("/today")
         self.assertEqual(page.status_code, 200)
         for label in [b"Good afternoon, Jordan.", b"Choose one thing. Details stay tucked away until you want them.",
-                      b"Pair noticed", b"Your week looks different", b"Your Day", b"Now", b"Up Next", b"Later",
+                      b"Pair noticed", b"Your week at a glance", b"Your Day", b"Now", b"Up Next", b"Later",
                       b"Upcoming appointment", b"My Climb", b"data-demo-role=\"member\""]:
             self.assertIn(label, page.data)
         self.assertNotIn(b"Last Check In", page.data)
@@ -502,11 +557,11 @@ class PairExperienceTests(unittest.TestCase):
                 "status": "active", "scheduled_for": today,
                 "schedule": {"date": today, "label": "Member-selected date"}}}}
         home = self.client.get("/today")
-        self.assertIn(f"/health/next-steps#{action['id']}".encode(), home.data)
+        self.assertIn(f"/my-plan?time=today&amp;source=all&amp;activity={action['id']}#{action['id']}".encode(), home.data)
         self.client.post(url, data={"choice": "pause"})
         paused = self.client.get("/my-plan", query_string={"time": "this_week", "source": "health"})
         self.assertIn(b"Paused", paused.data)
-        self.assertNotIn(f"/health/next-steps#{action['id']}".encode(), self.client.get("/today").data)
+        self.assertNotIn(f"/my-plan?time=today&amp;source=all&amp;activity={action['id']}#{action['id']}".encode(), self.client.get("/today").data)
         self.assertIn(action["instruction"].encode(), self.client.get("/health/next-steps").data)
         self.client.post(url, data={"choice": "reschedule", "schedule": "2026-11-20"})
         moved = self.client.get("/my-plan", query_string={"time": "later", "source": "health"})
@@ -618,7 +673,8 @@ class PairExperienceTests(unittest.TestCase):
     # Check semantic landmarks, labels, keyboard focus, responsive breakpoints, and theme contrast.
     def test_accessibility_and_responsive_contracts(self):
         routes = [("member", route) for route in ["/today", "/my-plan", "/checkin", "/circle",
-                  "/health", "/settings", "/activity/" + self.records["activity_assignments"][0]["id"],
+                  "/health", "/health/my-plan", "/settings", "/settings?section=appearance",
+                  "/settings?section=notifications", "/devices", "/activity/" + self.records["activity_assignments"][0]["id"],
                   "/visit/primary"]]
         routes += [("coach", route) for route in ["/coach", "/coach/library", "/coach/settings"]]
         routes += [("healthcare", route) for route in ["/professional", "/professional/packets",
