@@ -22,7 +22,7 @@
   </form>
 
   {% if response and response.urgent %}
-    <!-- Emergency words in the note: no normal response, only how to get help now -->
+    <!-- Preserve local urgent-note support while keeping all saved responses member-private. -->
     <section class="card emergency" role="alert">
       <h2>This could be urgent</h2>
       <p><strong>This could be urgent. Call 911, or call or text 988.</strong></p>
@@ -32,34 +32,55 @@
         <a class="btn-secondary" href="sms:988">Text 988</a>
       </div>
     </section>
+    <section class="card soft-card" role="status"><h2>{{ response.readiness_state }}</h2><p>{{ response.readiness_reason }}</p>
+      <form method="post" class="checkin-guidance-actions"><input type="hidden" name="action" value="guidance"><input type="hidden" name="checkin_id" value="{{ response.id }}">
+        <button class="btn-secondary" name="choice" value="show_one_step" type="submit">Show one small step</button>
+        <button class="btn-secondary" name="choice" value="show_full_day" type="submit">Show my full day</button>
+        <button class="btn-secondary" name="choice" value="quiet_break" type="submit">Take a quiet break</button>
+        <button class="btn-secondary" name="choice" value="remind_later" type="submit">Remind me later</button>
+        <button class="btn-secondary" name="choice" value="nothing_now" type="submit">Nothing right now</button>
+      </form>
+    </section>
   {% elif response %}
-    <!-- Response after saving: what the person said, what their body and devices show (up to three
-         facts), 2 short sentences, one suggestion, "Share with my circle" when they feel worried or
-         overwhelmed and signals changed, and a tiny label saying who wrote it -->
+    <!-- Show the member's transparent readiness words and ask what they want to do next. -->
     <section class="card soft-card" role="status">
       <h2>Thank you for checking in</h2>
-      <p><strong>You said:</strong> {{ mood_emoji(response.mood) }} {{ response.mood }}</p>
-      {% if response.help_choice %}<p><strong>What would help:</strong> <span class="choice-icon" aria-hidden="true">{{ response.help_choice.icon }}</span> {{ response.help_choice.label }}</p>{% endif %}
-      <p><strong>Your body and devices show:</strong></p>
-      <ul>{% for f in response.facts %}<li>{{ f }}</li>{% endfor %}</ul>
-      <p>{{ response.message }}</p>
-      <p class="icon-line">{{ icon("heart") }} {{ response.suggestion }}</p>
-      <p class="note">{{ "Written with AI" if response.source == "ai" else "Written by rules" }}</p>
-      <div class="actions">
-        {% if response.share %}<a class="btn-primary" href="{{ url_for('share') }}">Preview sharing options</a>{% endif %}
-        <a class="btn-secondary" href="{{ url_for('today') }}">Back to Today</a>
-      </div>
-      {% if response.share %}<p class="note">This preview does not include your check-in or note.</p>{% endif %}
+      <p><strong>{{ response.readiness_state }}</strong></p>
+      <p>{{ response.readiness_reason }}</p>
+      {% if response.manageability %}<p>Your choice: {{ manageability_by_key.get(response.manageability) }}</p>{% endif %}
+      {% if response.feeling %}<p>You felt: {{ mood_emoji(response.feeling) }} {{ response.feeling }}</p>{% endif %}
+      {% if response.help_choice %}<p>What would help: <span class="choice-icon" aria-hidden="true">{{ help_by_key[response.help_choice].icon }}</span> {{ help_by_key[response.help_choice].label }}</p>{% endif %}
+      <h3>What would you like to do?</h3>
+      <form method="post" class="checkin-guidance-actions">
+        <input type="hidden" name="action" value="guidance"><input type="hidden" name="checkin_id" value="{{ response.id }}">
+        <button class="btn-primary" name="choice" value="show_one_step" type="submit">Show one small step</button>
+        <button class="btn-secondary" name="choice" value="show_full_day" type="submit">Show my full day</button>
+        <button class="btn-secondary" name="choice" value="quiet_break" type="submit">Take a quiet break</button>
+        <button class="btn-secondary" name="choice" value="remind_later" type="submit">Remind me later</button>
+        <button class="btn-secondary" name="choice" value="nothing_now" type="submit">Nothing right now</button>
+      </form>
+      <p class="note">Your plan changes only when you choose an action. Check-ins stay private unless you choose to share them.</p>
     </section>
   {% else %}
-    <!-- Check-in form: labeled feelings, optional help choice, a private note, Save and Skip. -->
+    <!-- Keep the existing feeling and help choices, with every answer optional. -->
     <form method="post" class="card checkin-form display-{{ display }}">
       <fieldset class="choices">
-        <legend>How are you feeling?</legend>
+        <legend>How are you feeling? <span class="note">(optional)</span></legend>
         {% for f in feelings %}
           <label class="choice">
-            <input type="radio" name="feeling" value="{{ f }}" class="visually-hidden" required>
+            <input type="radio" name="feeling" value="{{ f }}" class="visually-hidden">
             <span class="choice-box"><span class="choice-icon">{{ mood_emoji(f, "big") }}</span><span>{{ f }}</span></span>
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      <!-- Ask how today feels right now without calculating a readiness score. -->
+      <fieldset class="choices manageability-choices">
+        <legend>How manageable does today feel right now? <span class="note">(optional)</span></legend>
+        {% for value, label in manageability_options %}
+          <label class="choice">
+            <input type="radio" name="manageability" value="{{ value }}" class="visually-hidden">
+            <span class="choice-box"><span class="choice-icon" aria-hidden="true">{{ icon('stairs' if value == 'one_small_step' else 'sequence' if value == 'few_manageable' else 'leaf' if value == 'pause' else 'wave') }}</span><span>{{ label }}</span></span>
           </label>
         {% endfor %}
       </fieldset>
@@ -79,22 +100,26 @@
       <textarea id="note" name="note" rows="3" maxlength="200"></textarea>
 
       <div class="actions">
-        <button type="submit" class="btn-primary">Save</button>
+        <button type="submit" name="action" value="save" class="btn-primary">Save</button>
         <a class="btn-secondary" href="{{ url_for('today') }}">Skip</a>
       </div>
     </form>
   {% endif %}
 
-  <!-- Earlier private check-ins for this person, newest first. -->
+  <!-- Keep previous EMA responses in this member-only history without scores or totals. -->
   {% if checkins %}
-    <h2>Earlier check ins</h2>
+    <h2>Private check-in history</h2>
     <ul class="checkin-list">
       {% for c in checkins | reverse %}
         <li class="card">
-          {{ mood_emoji(c.feeling) }} <strong>{{ c.feeling }}</strong> · {{ c.time }}
-          {% set help = help_by_key.get(c.help_choice) %}
-          {% if help %}<p><strong>What would help:</strong> <span class="choice-icon" aria-hidden="true">{{ help.icon }}</span> {{ help.label }}</p>{% endif %}
-          {% if c.note %}<p>{{ c.note }}</p>{% endif %}
+          <details><summary>{{ c.date }} · {{ c.time }} · {{ c.readiness_state or 'Private check-in' }}</summary>
+            {% if c.feeling %}<p>{{ mood_emoji(c.feeling) }} <strong>{{ c.feeling }}</strong></p>{% endif %}
+            {% set help = help_by_key.get(c.help_choice) %}
+            {% if help %}<p><strong>What would help:</strong> <span class="choice-icon" aria-hidden="true">{{ help.icon }}</span> {{ help.label }}</p>{% endif %}
+            {% if c.manageability %}<p><strong>How manageable did today feel:</strong> {{ manageability_by_key.get(c.manageability) }}</p>{% endif %}
+            {% if c.readiness_reason %}<p>{{ c.readiness_reason }}</p>{% endif %}
+            {% if c.note %}<p><strong>Your private note:</strong> {{ c.note }}</p>{% endif %}
+          </details>
         </li>
       {% endfor %}
     </ul>

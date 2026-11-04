@@ -9,6 +9,38 @@
     <div class="home-mountain" aria-label="My Climb: small steps at Jordan's own pace">{% include "partials/climb_mountain.html" %}</div>
   </section>
 
+  <!-- Keep momentary guidance private and compact, with no more than two next-step choices. -->
+  {% if home_checkin %}
+    <section class="card home-guidance-card" aria-labelledby="guidance-title">
+      <p class="eyebrow">Private check-in</p><h2 id="guidance-title">What may help right now</h2>
+      <p><strong>{{ home_checkin.readiness_state }}</strong></p>
+      <p>{{ home_checkin.readiness_reason }}</p>
+      {% if home_checkin.guidance_action == "show_one_step" %}<p class="note">One scheduled activity is shown in Your Day; your saved My Pace choice is unchanged.</p>
+      {% elif home_checkin.guidance_action == "show_full_day" %}<p class="note">Your full day is shown for now; your saved My Pace choice is unchanged.</p>
+      {% elif home_checkin.guidance_action == "quiet_break" %}<p class="note">Your quiet-break choice did not change today's activities.</p>
+      {% elif home_checkin.guidance_action == "remind_later" %}<p class="note">Pair has a private check-in reminder for you.</p>{% endif %}
+      <form method="post" action="{{ url_for('checkin') }}" class="home-guidance-actions">
+        <input type="hidden" name="action" value="guidance"><input type="hidden" name="checkin_id" value="{{ home_checkin.id }}">
+        {% if home_checkin.guidance_action == "show_one_step" %}
+          <button class="btn-secondary" name="choice" value="show_full_day" type="submit">Show my full day</button>
+          <button class="btn-secondary" name="choice" value="quiet_break" type="submit">Take a quiet break</button>
+        {% elif home_checkin.guidance_action == "show_full_day" %}
+          <button class="btn-secondary" name="choice" value="show_one_step" type="submit">Show one small step</button>
+          <button class="btn-secondary" name="choice" value="quiet_break" type="submit">Take a quiet break</button>
+        {% elif home_checkin.guidance_action == "quiet_break" or home_checkin.guidance_action == "remind_later" %}
+          <button class="btn-secondary" name="choice" value="show_one_step" type="submit">Show one small step</button>
+          <button class="btn-secondary" name="choice" value="nothing_now" type="submit">Nothing right now</button>
+        {% else %}
+          <button class="btn-secondary" name="choice" value="show_one_step" type="submit">Show one small step</button>
+          <button class="btn-secondary" name="choice" value="show_full_day" type="submit">Show my full day</button>
+        {% endif %}
+      </form>
+    </section>
+  {% else %}
+    <!-- Offer the optional private check-in without adding another dashboard message. -->
+    <a class="home-checkin-invite" href="{{ url_for('checkin') }}">Want to check in before choosing your next step?</a>
+  {% endif %}
+
   <!-- Show three fictional health observations with source details kept closed until opened. -->
   <div class="home-primary-grid">
     <section class="card home-health-summary" aria-labelledby="noticed-title">
@@ -30,11 +62,12 @@
     <section class="card home-day" aria-labelledby="day-title">
       <p class="eyebrow">Today</p><h2 id="day-title">Your Day</h2><p class="note">Fictional demo schedule</p>
       <ol class="day-timeline">
-        {% set markers = ["Now", "Up Next", "Later"] if pace == "full_day" else ["Now", "Up Next"] %}
+        {% set markers = ["One small step"] if pace == "guided_one_step" else (["Now", "Up Next", "Later"] if pace == "full_day" else ["Now", "Up Next"]) %}
         {% for marker in markers %}
           <li><span class="timeline-marker">{{ marker }}</span><div>
-            {% set visible = today_activities if pace == "full_day" else today_activities[:2] %}
-            {% if marker == "Now" or marker == "Up Next" %}
+            {% set visible = [checkin_guidance.activity] if pace == "guided_one_step" else (today_activities if pace == "full_day" else today_activities[:2]) %}
+            {% if marker == "One small step" %}{% set activity = visible[0] if visible else none %}
+            {% elif marker == "Now" or marker == "Up Next" %}
               {% if marker == "Now" %}{% set activity = visible[0] if visible else none %}
               {% else %}{% set activity = visible[1] if visible|length > 1 else none %}
               {% endif %}
@@ -42,9 +75,9 @@
               {% set activity = visible[2:] if visible|length > 2 else [] %}
             {% endif %}
             {% if marker == "Later" and activity %}
-              {% for item in activity %}<a class="day-activity" href="{{ url_for('plan', time='today', source='all', activity=item.id) }}#{{ item.id }}"><strong class="day-activity-title">{{ icon('medical' if item.source == 'health' else 'book' if item.source == 'coach' else 'heart') }} {{ item.title }}</strong><span class="day-activity-time">Scheduled time: {{ item.time_label or 'Anytime today' }} · Duration: About {{ item.estimated_minutes }} minutes</span><span class="day-activity-meta">{{ item.source_label }} · {{ item.status_label }}</span></a>{% endfor %}
+              {% for item in activity %}<a class="day-activity" href="{{ url_for('plan', time='today', source='all', activity=item.id) }}#{{ item.id }}"><strong class="day-activity-title">{{ icon('medical' if item.source == 'health' else 'book' if item.source == 'coach' else 'heart') }} {{ item.title }}</strong><span class="day-activity-time">Scheduled time: {{ item.time_label or 'Anytime today' }} · Duration: About {{ item.estimated_minutes }} minutes</span><span class="day-activity-meta">{{ item.source_label }}{% if item.source_name %} · {{ item.source_name }}{% endif %} · {{ item.status_label }}</span></a>{% endfor %}
             {% elif activity %}
-              <a class="day-activity" href="{{ url_for('plan', time='today', source='all', activity=activity.id) }}#{{ activity.id }}"><strong class="day-activity-title">{{ icon('medical' if activity.source == 'health' else 'book' if activity.source == 'coach' else 'heart') }} {{ activity.title }}</strong><span class="day-activity-time">Scheduled time: {{ activity.time_label or 'Anytime today' }} · Duration: About {{ activity.estimated_minutes }} minutes</span><span class="day-activity-meta">{{ activity.source_label }} · {{ activity.status_label }}</span></a>
+              <a class="day-activity" href="{{ url_for('plan', time='today', source='all', activity=activity.id) }}#{{ activity.id }}"><strong class="day-activity-title">{{ icon('medical' if activity.source == 'health' else 'book' if activity.source == 'coach' else 'heart') }} {{ activity.title }}</strong><span class="day-activity-time">Scheduled time: {{ activity.time_label or 'Anytime today' }} · Duration: About {{ activity.estimated_minutes }} minutes</span><span class="day-activity-meta">{{ activity.source_label }}{% if activity.source_name %} · {{ activity.source_name }}{% endif %} · {{ activity.status_label }}</span></a>
             {% elif marker == "Up Next" %}<p>No activity is scheduled next.</p>
             {% else %}<p>No activity is scheduled for this part of today.</p>{% endif %}
           </div></li>

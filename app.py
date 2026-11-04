@@ -8,7 +8,7 @@ from demo_data import activity_assignments, load_demo_data, plan_activities
 from patterns import get_patterns, get_trends, feeling_counts, format_minutes, RECENT_DAYS
 from goals import get_goals, days_left, week_name
 from vitals import get_body_signals
-from ai import (explain_week, explain_for_doctor, respond_to_checkin, suggest_questions, suggest_steps,
+from ai import (explain_week, explain_for_doctor, suggest_questions, suggest_steps,
                 suggest_professionals, is_urgent)
 from visits import VISITS, things_to_tell
 import google_health
@@ -143,6 +143,15 @@ CHECKIN_HELP = [
 ]
 CHECKIN_DISPLAY = [("pictures_words", "Pictures and Words"), ("words_only", "Words Only"),
                    ("pictures_first", "Pictures First")]
+CHECKIN_MANAGEABILITY = [
+    ("one_small_step", "One small step"), ("few_manageable", "A few things feel manageable"),
+    ("pause", "I need a pause"), ("not_sure", "Not sure")]
+READINESS_STATES = {
+    "one_small_step": "Ready for one small step",
+    "few_manageable": "A few things may feel manageable",
+    "pause": "A pause may help",
+    "not_sure": "You can decide when you are ready",
+    "": "You can decide when you are ready"}
 
 # The id of a person who signed up at /start (kept in the session only, never in a file)
 NEW_ID = "new"
@@ -415,7 +424,10 @@ def climb_for(person):
     done = session.get("goals_done", {}).get(person["id"], [])
     today_checkins = sum(c["person_id"] == person["id"] for c in session.get("checkins", []))
     added = saved("goals_added", person["id"], [])
-    goals = sorted(get_goals(person["id"], done, today_checkins, added), key=lambda g: not g["done"])
+    goals = get_goals(person["id"], done, today_checkins, added)
+    if person["id"] == load_demo_data()["member"]["application_person_id"]:
+        goals = [goal for goal in goals if goal["rule"] != "checkins"]
+    goals = sorted(goals, key=lambda g: not g["done"])
     flags = climb_flags(goals)
     reached = sum(g["done"] for g in goals)
     return {"flags": flags, "reached": reached, "total": len(goals),
@@ -695,6 +707,57 @@ def terms():
     return render_template("terms.html", title="Full terms")
 
 
+# Build a private reason from only the choices the member selected.
+def checkin_readiness(feeling, help_choice, manageability):
+    labels = dict(CHECKIN_MANAGEABILITY)
+    selected = [value for value in [feeling,
+                next((item["label"] for item in CHECKIN_HELP if item["value"] == help_choice), ""),
+                labels.get(manageability, "")] if value]
+    if len(selected) == 3:
+        reason = f'You selected “{selected[0]},” “{selected[1]},” and “{selected[2]}.”'
+    elif selected:
+        reason = "You selected " + " and ".join(f'“{value}”' for value in selected) + "."
+    else:
+        reason = "You chose not to answer these questions right now."
+    return READINESS_STATES.get(manageability, READINESS_STATES[""]), reason
+
+
+# Return only this member's incomplete activities already scheduled for today.
+def scheduled_activities_for_today(person, records=None):
+    records = records or load_demo_data()
+    member_id = records["member"]["application_person_id"]
+    if person["id"] != member_id:
+        return []
+    plan_states = session.get("health_plan_states", {}).get(person["id"], {})
+    actions = [{**item, "plan_state": plan_states.get(item["id"], {})}
+               for item in health_follow_ups_for(person, records)
+               if item["plan_status"] not in ["paused", "removed"]]
+    day_records = {**records, "activity_assignments": activities_for_member(person["id"], records),
+                   "health_follow_ups": actions}
+    activities = plan_activities(day_records, data.get_today(), "today", "all",
+                                 session.get("activity_progress", {}))
+    return [item for item in activities if item["status"] != "completed"]
+
+
+# Choose an existing scheduled activity using member acceptance, duration, due time and help choice.
+def select_guidance_activity(activities, help_choice=""):
+    help_terms = {"quiet_break": ("quiet", "break"), "smaller_step": ("small", "step"),
+                  "message_someone": ("message",), "read_aloud": ("read aloud",),
+                  "reduce_screen": ("screen",), "nothing_now": ()}
+    terms = help_terms.get(help_choice, ())
+
+    # Score only existing activities by the member's stated preferences.
+    def rank(item):
+        text = (item.get("title", "") + " " + item.get("next_action", "")).lower()
+        minutes = item.get("estimated_minutes", 30)
+        matches = (any(term in text for term in terms) or
+                   (help_choice == "smaller_step" and minutes <= 15))
+        due = item.get("scheduled_for") or item.get("due_on", "")
+        return (item.get("status") != "accepted", minutes > 15, minutes, due, not matches)
+
+    return min(activities, key=rank) if activities else None
+
+
 # Member Home: pair a short private summary with the next scheduled items.
 @app.route("/today")
 def today():
@@ -705,17 +768,21 @@ def today():
     patterns = get_patterns(pid, devices_for(person))
     records = load_demo_data()
     demo_member = pid == records["member"]["application_person_id"]
-    activities = activities_for_member(pid, records) if demo_member else []
-    plan_states = session.get("health_plan_states", {}).get(person["id"], {})
-    active_health_actions = [{**item, "plan_state": plan_states.get(item["id"], {})}
-                             for item in health_follow_ups_for(person, records)
-                             if item["plan_status"] not in ["paused", "removed"]] if demo_member else []
-    home_records = {**records, "activity_assignments": activities,
-                    "health_follow_ups": active_health_actions}
-    today_activities = plan_activities(home_records, data.get_today(), "today", "all",
-                                       session.get("activity_progress", {}))
-    today_activities = [item for item in today_activities if item["status"] != "completed"]
+    today_activities = scheduled_activities_for_today(person, records)
     health_observations = records.get("health_observations", []) if demo_member else []
+    today_checkins = [item for item in session.get("checkins", [])
+                      if item.get("person_id") == pid and item.get("date") == data.get_today()]
+    latest_checkin = max(today_checkins, key=lambda item: item.get("created_at", item.get("time", "")), default=None)
+    saved_pace = session.get("plan_pace", {}).get(pid, DEFAULT_PLAN_PACE)
+    checkin_guidance = None
+    pace = saved_pace
+    if latest_checkin and latest_checkin.get("guidance_action") == "show_one_step":
+        activity = next((item for item in today_activities
+                         if item["id"] == latest_checkin.get("guidance_activity_id")), None)
+        checkin_guidance = {"action": "show_one_step", "activity": activity}
+        pace = "guided_one_step"
+    elif latest_checkin and latest_checkin.get("guidance_action") == "show_full_day":
+        pace = "full_day"
     climb = climb_for(person)
     upcoming = next((item for item in records["appointment_packets"]
                      if item["member_id"] == records["member"]["id"] and item["status"] == "upcoming"), None) if demo_member else None
@@ -726,7 +793,8 @@ def today():
                            patterns=patterns,
                            circle=circle_for(person),
                            today_activities=today_activities,
-                           pace=session.get("plan_pace", {}).get(pid, DEFAULT_PLAN_PACE),
+                           pace=pace, saved_pace=saved_pace, checkin_guidance=checkin_guidance,
+                           home_checkin=latest_checkin,
                            health_observations=health_observations,
                            upcoming_appointment=upcoming, today_iso=data.get_today())
 
@@ -1276,11 +1344,13 @@ def activity_detail(activity_id):
                            read_aloud=preferences["read_aloud"], picture_preference=preferences["picture_preference"])
 
 
-# Check in screen: pick a mood and add an optional note, then Save (or Skip). After saving, a
-# response card compares the mood with what patterns and body signals show (or, if the note has
-# emergency words, shows 911 and 988 instead).
+# Check in screen: save optional private responses and let the member choose what to do next.
 @app.route("/checkin", methods=["GET", "POST"])
 def checkin():
+    # Keep private EMA history and actions within the member workspace.
+    role = session.get("demo_role", "member")
+    if role != "member":
+        return redirect(url_for(ROLE_HOME_ENDPOINTS.get(role, "today")))
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
@@ -1297,31 +1367,66 @@ def checkin():
             flash("Check-in display preference saved.")
         return redirect(url_for("checkin"))
 
-    # Save: add the check in to the session (demo only, keeps the last 20; it counts toward the
-    # weekly Check in goal), work out the response, then show it on this page
-    if request.method == "POST" and request.form.get("feeling") in MOODS:
-        feeling, note = request.form["feeling"], request.form.get("note", "").strip()[:200]
+    # Save a member's optional answers and a plain-language state without creating a score.
+    if request.method == "POST" and request.form.get("action") == "guidance":
+        checkin_id = request.form.get("checkin_id", "")
+        choice = request.form.get("choice", "")
+        choices = {"show_one_step", "show_full_day", "quiet_break", "remind_later", "nothing_now"}
+        record = next((item for item in checkins if item.get("id") == checkin_id and
+                       item.get("person_id") == pid and item.get("date") == data.get_today()), None)
+        if record and choice in choices:
+            if choice == "show_one_step":
+                activity = select_guidance_activity(scheduled_activities_for_today(person), record.get("help_choice", ""))
+                record["guidance_activity_id"] = activity["id"] if activity else ""
+                if not activity:
+                    flash("No activity is scheduled for today. Your plan is unchanged.")
+            record["guidance_action"] = choice
+            session["checkins"] = checkins
+            if choice == "quiet_break":
+                flash("Your quiet-break choice is saved. Activities remain as scheduled.")
+            elif choice == "remind_later":
+                flash("Pair has a private check-in reminder for you.")
+            elif choice == "nothing_now":
+                flash("Nothing has changed in your plan.")
+        return redirect(url_for("today"))
+
+    # Save any optional answers; the member can save an entirely blank check-in.
+    if request.method == "POST" and (request.form.get("action") == "save" or
+                                      request.form.get("feeling") or request.form.get("help_choice") or
+                                      request.form.get("manageability")):
+        selected_feeling = request.form.get("feeling", "")
+        feeling = selected_feeling if selected_feeling in MOODS else ""
+        note = request.form.get("note", "").strip()[:200]
         help_choice = request.form.get("help_choice", "")
         if help_choice not in {choice["value"] for choice in CHECKIN_HELP}:
             help_choice = ""
-        checkins.append({"person_id": pid, "date": data.get_today(),
-                         "time": datetime.now().strftime("%H:%M"), "feeling": feeling,
-                         "help_choice": help_choice, "note": note})
+        selected_manageability = request.form.get("manageability", "")
+        manageability = selected_manageability if selected_manageability in dict(CHECKIN_MANAGEABILITY) else ""
+        readiness_state, readiness_reason = checkin_readiness(feeling, help_choice, manageability)
+        now = datetime.now().astimezone()
+        record = {"id": f"checkin-{pid}-{now:%Y%m%d%H%M%S}-{len(checkins)}",
+                  "person_id": pid, "date": data.get_today(), "time": now.strftime("%H:%M"),
+                  "created_at": now.isoformat(timespec="seconds"), "feeling": feeling,
+                  "help_choice": help_choice, "manageability": manageability, "note": note,
+                  "readiness_state": readiness_state, "readiness_reason": readiness_reason,
+                  "guidance_action": "", "guidance_activity_id": "", "visibility": "private"}
+        record["urgent"] = is_urgent(note)
+        checkins.append(record)
         session["checkins"] = checkins[-20:]
-        devices = devices_for(person)
-        response = respond_to_checkin(person, feeling, get_patterns(pid, devices), get_body_signals(pid, devices), note)
-        selected_help = next((item for item in CHECKIN_HELP if item["value"] == help_choice), None)
-        save("checkin_response", pid, {**response, "mood": feeling,
-                                        "help_choice": selected_help})
+        save("checkin_response", pid, record)
         return redirect(url_for("checkin"))
 
-    # Show the response once (if there is one), otherwise the form, plus earlier check ins
+    # Show a saved private response once, then keep the member's history available on this page.
     response = session.get("checkin_response", {}).pop(pid, None)
+    if response and "readiness_state" not in response:
+        response = None
     session.modified = True
     mine = [c for c in checkins if c["person_id"] == pid]
     help_by_key = {item["value"]: item for item in CHECKIN_HELP}
     return render_template("checkin.html", title="Check in", feelings=MOODS,
                            help_choices=CHECKIN_HELP, help_by_key=help_by_key,
+                           manageability_options=CHECKIN_MANAGEABILITY,
+                           manageability_by_key=dict(CHECKIN_MANAGEABILITY),
                            display_options=CHECKIN_DISPLAY, display=display,
                            response=response, checkins=mine)
 

@@ -146,6 +146,7 @@ class PairExperienceTests(unittest.TestCase):
         self.assertNotIn(b"Last 5-day average", page.data)
         self.assertNotIn(b"Last Check In", page.data)
         self.assertNotIn(b"My Circle</p>", page.data)
+        self.assertIn(b"Want to check in before choosing your next step?", page.data)
         plan_page = self.client.get("/my-plan")
         self.assertIn(b"One thing at a time", plan_page.data)
         self.assertIn(b"Show my full day", plan_page.data)
@@ -307,7 +308,7 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"Notifications and celebrations", page.data)
         self.assertNotIn(b'id="speech-rate"', page.data)
         page = self.client.get("/settings?section=notifications")
-        self.assertIn(b"You have a private reminder from Pair.", page.data)
+        self.assertIn(b"Pair has a private check-in reminder for you.", page.data)
         self.assertIn(b"Detailed preview", page.data)
         self.client.post("/settings?section=notifications", data={
             "action": "save_notification_privacy", "notification_privacy": "detailed"})
@@ -797,6 +798,98 @@ class PairExperienceTests(unittest.TestCase):
             self.assertIn(f'data-theme="{theme}"'.encode(), page.data)
         for motion in pair.CELEBRATIONS:
             self.assertEqual(self.client.post("/celebrations", data={"celebrations": motion}).status_code, 302)
+
+    # Keep every check-in question optional and allow an empty private entry to be saved.
+    def test_ema_questions_can_all_be_skipped_without_a_score(self):
+        page = self.client.get("/checkin")
+        self.assertIn(b"How manageable does today feel right now?", page.data)
+        form = page.data.split(b'class="card checkin-form', 1)[1].split(b"</form>", 1)[0]
+        self.assertNotIn(b" required", form)
+        self.assertEqual(self.client.post("/checkin", data={"action": "save"}).status_code, 302)
+        saved = self.client.get("/checkin").data
+        self.assertIn(b"You can decide when you are ready", saved)
+        self.assertIn(b"You chose not to answer these questions right now.", saved)
+        self.assertIn(b"Private check-in history", saved)
+        self.assertNotIn(b"%", saved)
+        self.assertNotIn(b"readiness score", saved.lower())
+        with self.client.session_transaction() as state:
+            checkin = state["checkins"][-1]
+            self.assertEqual(checkin["visibility"], "private")
+            self.assertTrue(checkin["created_at"])
+            self.assertEqual(checkin["manageability"], "")
+            self.assertEqual(checkin["guidance_action"], "")
+        climb = self.client.get("/climb").data
+        goal_list = climb.split(b'<ul class="goal-list">', 1)[1].split(b"</ul>", 1)[0]
+        self.assertNotIn(b"Check in", goal_list)
+
+    # Explain the momentary state in plain words matching the member's selected answers.
+    def test_ema_readiness_state_and_explanation_match_selected_choices(self):
+        self.client.post("/checkin", data={"action": "save", "feeling": "Overwhelmed",
+                          "help_choice": "smaller_step", "manageability": "one_small_step"})
+        page = self.client.get("/checkin").data
+        self.assertIn(b"Ready for one small step", page)
+        self.assertIn("You selected “Overwhelmed,” “Smaller Step,” and “One small step.”".encode(), page)
+        for action in [b"Show one small step", b"Show my full day", b"Take a quiet break",
+                       b"Remind me later", b"Nothing right now"]:
+            self.assertIn(action, page)
+        for score_word in [b"%", b"risk score", b"readiness score", b"capacity score"]:
+            self.assertNotIn(score_word, page.lower())
+
+    # A check-in choice temporarily narrows Home without overwriting My Pace or changing activities.
+    def test_ema_one_step_is_temporary_and_does_not_mutate_activities(self):
+        fixture_records = load_demo_data()
+        fixture_instructions = fixture_records["health_follow_ups"]
+        fixture_medications = fixture_records["medications"]
+        self.client.post("/my-plan", data={"action": "pace", "pace": "full_day"})
+        with self.client.session_transaction() as state:
+            before_progress = dict(state.get("activity_progress", {}))
+            before_health = dict(state.get("health_plan_states", {}))
+        self.client.post("/checkin", data={"action": "save", "manageability": "one_small_step",
+                          "help_choice": "smaller_step"})
+        with self.client.session_transaction() as state:
+            checkin_id = state["checkins"][-1]["id"]
+        self.client.post("/checkin", data={"action": "guidance", "checkin_id": checkin_id,
+                          "choice": "show_one_step"})
+        home = self.client.get("/today").data
+        timeline = home.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0]
+        self.assertIn(b"One small step", timeline)
+        self.assertEqual(timeline.count(b'class="day-activity"'), 1)
+        self.assertIn(b"Walk for 15 minutes daily", timeline)
+        self.assertIn(b"Dr. Priya Patel", timeline)
+        self.assertIn(b"1:00 PM", timeline)
+        with self.client.session_transaction() as state:
+            self.assertEqual(state["plan_pace"]["p1"], "full_day")
+            self.assertEqual(state.get("activity_progress", {}), before_progress)
+            self.assertEqual(state.get("health_plan_states", {}), before_health)
+        self.assertEqual(load_demo_data()["health_follow_ups"], fixture_instructions)
+        self.assertEqual(load_demo_data()["medications"], fixture_medications)
+        self.client.post("/checkin", data={"action": "guidance", "checkin_id": checkin_id,
+                          "choice": "show_full_day"})
+        full_day = self.client.get("/today").data
+        timeline = full_day.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0]
+        self.assertIn(b"Later", timeline)
+        with self.client.session_transaction() as state:
+            self.assertEqual(state["plan_pace"]["p1"], "full_day")
+
+    # Keep all new check-in fields unavailable in the other role workspaces by default.
+    def test_other_roles_cannot_see_private_ema_responses(self):
+        with self.client.session_transaction() as state:
+            state["checkins"] = [{"id": "private-ema", "person_id": "p1", "date": data.get_today(),
+                "time": "10:30", "feeling": "Overwhelmed", "help_choice": "smaller_step",
+                "manageability": "one_small_step", "note": "PRIVATE_EMA_NOTE_SENTINEL",
+                "readiness_state": "PRIVATE_EMA_STATE_SENTINEL",
+                "readiness_reason": "PRIVATE_EMA_REASON_SENTINEL", "visibility": "private"}]
+        routes = {"coach": "/coach", "healthcare": "/professional", "trusted": "/trusted", "admin": "/admin"}
+        for role, route in routes.items():
+            with self.client.session_transaction() as state:
+                state["demo_role"] = role
+            private_page = self.client.get("/checkin")
+            self.assertEqual(private_page.status_code, 302, role)
+            self.assertNotIn("/checkin", private_page.headers["Location"], role)
+            page = self.client.get(route).data
+            for sentinel in [b"PRIVATE_EMA_NOTE_SENTINEL", b"PRIVATE_EMA_STATE_SENTINEL",
+                             b"PRIVATE_EMA_REASON_SENTINEL"]:
+                self.assertNotIn(sentinel, page, role)
 
     # Check semantic landmarks, labels, keyboard focus, responsive breakpoints, and theme contrast.
     def test_accessibility_and_responsive_contracts(self):
