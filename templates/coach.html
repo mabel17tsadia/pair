@@ -1,32 +1,25 @@
 {% extends "base.html" %}
-{% from "macros.html" import week_card %}
-
-{% block main_class %}dashboard{% endblock %}
 
 {% block content %}
-  <!-- Page title and why the coach can see this -->
-  <h1>Coach view</h1>
-  <p>You see this because these residents chose to share it with you.</p>
+  <!-- Overview gives a quick activity-only snapshot and links to the coach's work areas. -->
+  <h1>Coach Overview</h1>
+  <p class="note">Demo preview only. Learners appear here when sample sharing is enabled. Choosing a demo role does not verify identity or grant access.</p>
 
-  <!-- One week card per resident: first name, status, number of changes and the summary in words -->
+  <!-- These counts describe assigned activities and reusable learning materials only. -->
   <div class="card-grid">
-    {% for r in residents %}
-      {% call week_card(r.first_name, r.status) %}
-        <p class="note">{{ r.summary | length }} change{{ "s" if r.summary | length != 1 }} this week</p>
-        {% if r.summary %}
-          <ul>{% for line in r.summary %}<li>{{ line }}</li>{% endfor %}</ul>
-        {% else %}
-          <p>Patterns look like their usual this week.</p>
-        {% endif %}
-        {% if r.celebrations %}
-          <ul class="badge-list">{% for line in r.celebrations %}<li class="badge">{{ line }}</li>{% endfor %}</ul>
-        {% endif %}
-      {% endcall %}
-    {% else %}
-      <p class="card">No residents have shared their wellness details with you yet.</p>
-    {% endfor %}
+    <article class="card"><h2>Learners</h2><p class="coach-count">{{ learners | length }}</p><a class="text-link" href="{{ url_for('coach_learners') }}">Open Learners</a></article>
+    <article class="card"><h2>Assigned activities</h2><p class="coach-count">{{ assigned_count }}</p><p>{{ active_count }} in progress or not started</p></article>
+    <article class="card"><h2>Activity Library</h2><p class="coach-count">{{ library_count }}</p><a class="text-link" href="{{ url_for('coach_library') }}">Open Activity Library</a></article>
   </div>
 
-  <!-- Reminder of what a coach never sees -->
-  <p class="note">Time away from home, check in notes and doctor visit summaries are never shown here.</p>
+  <!-- The coach can open a specific learner before assigning an activity. -->
+  <section class="card">
+    <h2>Learners who shared activity information</h2>
+    {% for learner in learners %}
+      <p><a class="text-link" href="{{ url_for('coach_learner', learner_id=learner.id) }}">{{ learner.first_name }} {{ learner.last_name }} · {{ learner.activity_count }} assigned activity{{ "s" if learner.activity_count != 1 }}</a></p>
+    {% else %}<p>No learners have shared activity information in this demo.</p>{% endfor %}
+  </section>
+
+  <!-- This boundary is visible on every coach screen in the demo. -->
+  <p class="note">This view excludes private check-ins, health patterns, medical data, and appointment packets.</p>
 {% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Learners lists only sample profiles with the activity sharing level enabled. -->
+  <h1>Learners</h1>
+  <p class="note">Open a learner's profile to review activities and preferences. Assignments are available only from that profile.</p>
+
+  <!-- Progress counts refer only to educational and life-skills activities. -->
+  <div class="card-grid">
+    {% for learner in learners %}
+      <article class="card">
+        <h2>{{ learner.first_name }} {{ learner.last_name }}</h2>
+        <p>{{ learner.completed_count }} of {{ learner.activity_count }} activities completed</p>
+        <a class="btn-secondary" href="{{ url_for('coach_learner', learner_id=learner.id) }}">Open learner profile</a>
+      </article>
+    {% else %}<p class="card">No learners have shared activity information in this demo.</p>{% endfor %}
+  </div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Activity Library contains reusable life-skills activities and a simple create form. -->
+  <h1>Activity Library</h1>
+  <p class="note">Create an activity once, then assign it to a learner from that learner's profile.</p>
+
+  <!-- Reusable templates show the objective and a short step preview. -->
+  <section aria-labelledby="library-items-title">
+    <h2 id="library-items-title">Reusable activities</h2>
+    {% for activity in activities %}
+      <article class="card">
+        <h3>{{ activity.title }}</h3>
+        <p><strong>Learning objective:</strong> {{ activity.objective }}</p>
+        <details><summary>{{ activity.steps | length }} steps</summary>
+          <ol>{% for step in activity.steps %}<li>{{ step.instruction }}</li>{% endfor %}</ol>
+        </details>
+      </article>
+    {% else %}<p class="card">No reusable activities yet.</p>{% endfor %}
+  </section>
+
+  <!-- Each new activity has one objective and one or more plain-language steps. -->
+  <section class="card">
+    <h2>Create a reusable activity</h2>
+    <form method="post">
+      <label for="activity-title">Activity title</label>
+      <input id="activity-title" type="text" name="title" maxlength="80" required>
+      <label for="activity-objective">Learning objective</label>
+      <input id="activity-objective" type="text" name="objective" maxlength="200" required>
+      <label for="activity-steps">Instructions (one step per line)</label>
+      <textarea id="activity-steps" name="steps" rows="5" maxlength="2400" required></textarea>
+      <button type="submit" class="btn-primary">Save to Activity Library</button>
+    </form>
+  </section>
+{% endblock %}

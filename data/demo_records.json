@@ -6,6 +6,16 @@
     "fictional": true,
     "application_person_id": "p1"
   },
+  "learning_preferences": {
+    "p1": {
+      "instruction_display": "Pictures and Words",
+      "helpful_formats": ["One step at a time", "Show an example", "Shorter instructions when needed"]
+    },
+    "p3": {
+      "instruction_display": "Pictures First",
+      "helpful_formats": ["Written checklist", "Practice with one example first"]
+    }
+  },
   "professionals": [
     {
       "id": "coach-dana",
@@ -61,6 +71,7 @@
   "activities": [
     {
       "id": "activity-coach-01",
+      "assigned_to": "p1",
       "title": "Practice a simple meal",
       "source": "coach",
       "source_name": "Dana Brooks",
@@ -102,6 +113,7 @@
     },
     {
       "id": "activity-coach-02",
+      "assigned_to": "p1",
       "title": "Plan a bus trip",
       "source": "coach",
       "source_name": "Dana Brooks",
@@ -143,6 +155,7 @@
     },
     {
       "id": "activity-coach-03",
+      "assigned_to": "p1",
       "title": "Practice a laundry routine",
       "source": "coach",
       "source_name": "Dana Brooks",

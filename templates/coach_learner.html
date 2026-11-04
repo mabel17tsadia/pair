@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Profile shows only this learner's shared learning preferences and activity progress. -->
+  <a class="text-link" href="{{ url_for('coach_learners') }}">‹ Learners</a>
+  <h1>{{ learner.first_name }} {{ learner.last_name }}</h1>
+  <p class="note">Learner profile · demo activity sharing</p>
+
+  <!-- Preference details help the coach present activities in a useful format. -->
+  <section class="card">
+    <h2>Learning preferences</h2>
+    {% if preferences %}
+      <p><strong>Instruction display:</strong> {{ preferences.instruction_display }}</p>
+      <p><strong>Helpful formats:</strong></p>
+      <ul>{% for format in preferences.helpful_formats %}<li>{{ format }}</li>{% endfor %}</ul>
+    {% else %}<p>No learning preferences have been shared.</p>{% endif %}
+  </section>
+
+  <!-- Progress includes status, next action and step feedback only for assigned activities. -->
+  <section aria-labelledby="learner-activities-title">
+    <h2 id="learner-activities-title">Activity progress</h2>
+    {% for activity in activities %}
+      <article class="card">
+        <h3>{{ activity.title }}</h3>
+        <p><strong>Status:</strong> {{ activity.status.replace("_", " ").capitalize() }}</p>
+        <p><strong>Next action:</strong> {{ activity.next_action }}</p>
+        {% if activity.feedback %}<p><strong>Step feedback:</strong> {{ activity.feedback | join(", ") }}</p>{% endif %}
+      </article>
+    {% else %}<p class="card">No activities assigned yet.</p>{% endfor %}
+  </section>
+
+  <!-- Assigning is offered only from this opened profile, with a reusable library activity. -->
+  {% if can_assign %}
+    <section class="card">
+      <h2>Assign an activity</h2>
+      {% if library %}
+        <form method="post" action="{{ url_for('coach_assign', learner_id=learner.id) }}">
+          <label for="library-activity">Choose from Activity Library</label>
+          <select id="library-activity" name="activity_id" required>
+            {% for activity in library %}<option value="{{ activity.id }}">{{ activity.title }}</option>{% endfor %}
+          </select>
+          <label for="activity-due">Optional due date</label>
+          <input id="activity-due" type="date" name="due_on">
+          <button type="submit" class="btn-primary">Assign activity</button>
+        </form>
+      {% else %}<p>Add a reusable activity in the Activity Library before assigning.</p>{% endif %}
+    </section>
+  {% endif %}
+
+  <!-- Clearly state the boundary of this coach view. -->
+  <p class="note">Private check-ins, health patterns, medical data, and appointment packets are not shown here.</p>
+{% endblock %}

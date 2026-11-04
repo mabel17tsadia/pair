@@ -50,8 +50,10 @@ ROLE_NAVIGATION = {
                                 "climb_done", "climb_add", "routines", "routine_steps", "routine_edit"]),
     ],
     "coach": [
-        ("Overview", "coach", "wave", ["coach"]), ("Learners", None, "people", []),
-        ("Activity Library", None, "book", []), ("Coach Settings", None, "gear", []),
+        ("Overview", "coach", "wave", ["coach"]),
+        ("Learners", "coach_learners", "people", ["coach_learners", "coach_learner", "coach_assign"]),
+        ("Activity Library", "coach_library", "book", ["coach_library"]),
+        ("Coach Settings", "coach_settings", "gear", ["coach_settings"]),
     ],
     "healthcare": [
         ("Packets", None, "clipboard", []), ("Packet Detail", None, "clipboard", []),
@@ -512,16 +514,19 @@ def plan():
         return redirect(url_for("choose"))
     records = load_demo_data()
     is_demo_member = person["id"] == records["member"]["application_person_id"]
-    if is_demo_member:
-        records = {**records, "health_follow_ups": health_follow_ups_for(person, records)}
+    assigned = coach_learner_activities(person["id"])
+    records = {**records,
+               "activities": records["activities"] + assigned if is_demo_member else assigned,
+               "health_follow_ups": health_follow_ups_for(person, records) if is_demo_member else []}
+    has_activities = is_demo_member or bool(assigned)
     time_filter = request.args.get("time", "today")
     source_filter = request.args.get("source", "all")
     activities = plan_activities(records, data.get_today(), time_filter, source_filter,
-                                 session.get("activity_progress", {})) if is_demo_member else []
+                                 session.get("activity_progress", {})) if has_activities else []
     return render_template("plan.html", title="My Plan", person=person, activities=activities,
                            time_filter=time_filter if time_filter in ["today", "tomorrow", "this_week", "later"] else "today",
                            source_filter=source_filter if source_filter in ["all", "member", "coach", "health"] else "all",
-                           has_demo_records=is_demo_member)
+                           has_demo_records=has_activities)
 
 
 # Return Health fixture records only when the active demo member owns the fixture profile.
@@ -653,9 +658,12 @@ def activity_detail(activity_id):
     if not person:
         return redirect(url_for("choose"))
     records = load_demo_data()
-    if f"{person['first_name']} {person['last_name']}".strip() != records["member"]["name"]:
-        abort(404)
-    activity = next((item for item in records["activities"] if item["id"] == activity_id), None)
+    if person["id"] == records["member"]["application_person_id"]:
+        assigned = session.get("coach_assignments", {}).get(person["id"], [])
+        activities = records["activities"] + assigned
+    else:
+        activities = session.get("coach_assignments", {}).get(person["id"], [])
+    activity = next((item for item in activities if item["id"] == activity_id), None)
     if not activity:
         abort(404)
 
@@ -799,19 +807,149 @@ def patterns():
                            trends=[{**t, "chart": trend_chart(t["values"], t["usual"])} for t in trends])
 
 
-# Coach view (demo): residents who gave someone in their circle the Wellness details level, with
-# their week status, number of changes and weekly summary in words (the same view the Weekly
-# summary level gets). Time away from home, check in notes and the doctor summary are never shown.
+# Return only people who granted the demo's activity and learning preference sharing level.
+def coach_shared_learners():
+    return [person for person in data.get_people()
+            if any(member["access"] == "wellness" for member in circle_for(person))]
+
+
+# Add activity-only counts to each consented learner row.
+def coach_learner_summaries():
+    progress = session.get("activity_progress", {})
+    summaries = []
+    for learner in coach_shared_learners():
+        activities = coach_learner_activities(learner["id"])
+        completed = sum(progress.get(item["id"], {}).get("status", item["status"]) == "completed"
+                        for item in activities)
+        summaries.append({**learner, "activity_count": len(activities), "completed_count": completed})
+    return summaries
+
+
+# Return reusable activities from the library and coach-created demo templates.
+def coach_library_items():
+    records = load_demo_data()
+    samples = [item for item in records["activities"] if item["source"] == "coach"]
+    return samples + session.get("coach_activity_library", [])
+
+
+# Return activities assigned to one learner from fixtures and this demo session.
+def coach_learner_activities(learner_id):
+    records = load_demo_data()
+    samples = [item for item in records["activities"] if item.get("assigned_to") == learner_id]
+    return samples + session.get("coach_assignments", {}).get(learner_id, [])
+
+
+# Coach Overview shows activity-only counts for learners who shared this demo view.
 @app.route("/coach")
 def coach():
-    residents = []
-    for p in data.get_people():
-        if any(m["access"] == "wellness" for m in circle_for(p)):
-            patterns = get_patterns(p["id"], devices_for(p))
-            residents.append({"first_name": p["first_name"], "status": patterns["status"],
-                              "summary": shared_view("summary", patterns, [])[1:],
-                              "celebrations": celebrations_for(p)})
-    return render_template("coach.html", title="Coach view", residents=residents)
+    learners = coach_learner_summaries()
+    total_assignments = sum(p["activity_count"] for p in learners)
+    return render_template("coach.html", title="Coach Overview", learners=learners,
+                           assigned_count=total_assignments,
+                           library_count=len(coach_library_items()),
+                           active_count=sum(p["activity_count"] - p["completed_count"] for p in learners))
+
+
+# List learners who shared activity progress and learning preferences with a coach.
+@app.route("/coach/learners")
+def coach_learners():
+    return render_template("coach_learners.html", title="Learners", learners=coach_learner_summaries())
+
+
+# Open one shared learner profile before the coach can assign an activity.
+@app.route("/coach/learners/<learner_id>")
+def coach_learner(learner_id):
+    learner = next((p for p in coach_shared_learners() if p["id"] == learner_id), None)
+    if not learner:
+        abort(404)
+    opened = session.get("coach_opened_learners", [])
+    if learner_id not in opened:
+        opened.append(learner_id)
+        session["coach_opened_learners"] = opened
+    progress = session.get("activity_progress", {})
+    ui_states = session.get("activity_ui", {})
+    activities = []
+    for item in coach_learner_activities(learner_id):
+        state = progress.get(item["id"], {})
+        ui = ui_states.get(item["id"], {})
+        activities.append({**item, "status": state.get("status", item["status"]),
+                           "next_action": state.get("next_action", item["next_action"]),
+                           "feedback": list(ui.get("feedback", {}).values())})
+    records = load_demo_data()
+    preferences = records.get("learning_preferences", {}).get(learner_id, {})
+    return render_template("coach_learner.html", title=f"{learner['first_name']} {learner['last_name']}",
+                           learner=learner, activities=activities, preferences=preferences,
+                           library=coach_library_items(), can_assign=learner_id in session.get("coach_opened_learners", []))
+
+
+# Assign a reusable activity only after this browser session has opened that learner profile.
+@app.route("/coach/learners/<learner_id>/assign", methods=["POST"])
+def coach_assign(learner_id):
+    learner = next((p for p in coach_shared_learners() if p["id"] == learner_id), None)
+    if not learner:
+        abort(404)
+    if learner_id not in session.get("coach_opened_learners", []):
+        abort(403)
+    template = next((item for item in coach_library_items()
+                     if item["id"] == request.form.get("activity_id")), None)
+    if not template:
+        abort(404)
+    due_on = request.form.get("due_on", "").strip()
+    try:
+        if due_on:
+            date.fromisoformat(due_on)
+    except ValueError:
+        due_on = ""
+    assignments = session.get("coach_assignments", {})
+    learner_assignments = assignments.get(learner_id, [])
+    assignment_id = f"assigned-{learner_id}-{template['id']}-{len(learner_assignments) + 1}"
+    assigned = {**template, "id": assignment_id, "assigned_to": learner_id,
+                "source": "coach", "source_name": "Dana Brooks", "due_on": due_on,
+                "scheduled_for": "", "estimated_minutes": template.get("estimated_minutes", 15),
+                "status": "not_started", "next_action": "Open the activity"}
+    assignments[learner_id] = learner_assignments + [assigned]
+    session["coach_assignments"] = assignments
+    flash(f"{template['title']} assigned to {learner['first_name']}.")
+    return redirect(url_for("coach_learner", learner_id=learner_id))
+
+
+# Create and manage reusable step-by-step activities in the coach's demo library.
+@app.route("/coach/library", methods=["GET", "POST"])
+def coach_library():
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()[:80]
+        objective = request.form.get("objective", "").strip()[:200]
+        instructions = [line.strip()[:240] for line in request.form.get("steps", "").splitlines() if line.strip()][:10]
+        if not title or not objective or not instructions:
+            flash("Add a title, learning objective, and at least one step.")
+            return redirect(url_for("coach_library"))
+        library = session.get("coach_activity_library", [])
+        activity_id = f"coach-library-{len(library) + 1}"
+        steps = [{"order": i, "instruction": text, "picture": "📘", "short_instruction": text,
+                  "different_explanation": text, "example": "", "picture_label": "book"}
+                 for i, text in enumerate(instructions, 1)]
+        library.append({"id": activity_id, "title": title, "source": "coach", "source_name": "Dana Brooks",
+                        "scheduled_for": "", "due_on": "", "estimated_minutes": len(steps) * 5,
+                        "status": "not_started", "next_action": "Open the activity",
+                        "objective": objective, "steps": steps})
+        session["coach_activity_library"] = library
+        flash(f"{title} is saved in the Activity Library.")
+        return redirect(url_for("coach_library"))
+    return render_template("coach_library.html", title="Activity Library", activities=coach_library_items())
+
+
+# Save the coach's demo summary preference without changing learner permissions.
+@app.route("/coach/settings", methods=["GET", "POST"])
+def coach_settings():
+    settings = session.get("coach_settings", {"summary_frequency": "weekly"})
+    if request.method == "POST":
+        frequency = request.form.get("summary_frequency")
+        if frequency in ["weekly", "on_request"]:
+            settings["summary_frequency"] = frequency
+            session["coach_settings"] = settings
+            flash("Coach settings saved.")
+        return redirect(url_for("coach_settings"))
+    return render_template("coach_settings.html", title="Coach Settings", settings=settings)
 
 
 # Trust circle: one clean list (initials, name, relationship, level chip). Tapping a row opens an

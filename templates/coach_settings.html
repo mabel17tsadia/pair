@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Coach Settings saves a local demo preference without changing a learner's access. -->
+  <h1>Coach Settings</h1>
+  <p class="note">These settings affect this demo session only. They do not change what a learner shares.</p>
+
+  <!-- Choose how often the coach prefers to review activity summaries. -->
+  <section class="card">
+    <form method="post">
+      <fieldset>
+        <legend>Activity summary reminder</legend>
+        <label class="share-pick"><input type="radio" name="summary_frequency" value="weekly" {% if settings.summary_frequency == "weekly" %}checked{% endif %}> Weekly</label>
+        <label class="share-pick"><input type="radio" name="summary_frequency" value="on_request" {% if settings.summary_frequency == "on_request" %}checked{% endif %}> Only when I open a learner profile</label>
+      </fieldset>
+      <button type="submit" class="btn-primary">Save Coach Settings</button>
+    </form>
+  </section>
+{% endblock %}
