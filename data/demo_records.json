@@ -63,8 +63,8 @@
       "title": "Practice a simple meal",
       "source": "coach",
       "source_name": "Dana Brooks",
-      "scheduled_for": "2026-11-05T16:00:00-07:00",
-      "due_on": "2026-11-05",
+      "scheduled_for": "2026-11-04T16:00:00-07:00",
+      "due_on": "2026-11-04",
       "estimated_minutes": 25,
       "status": "in_progress",
       "next_action": "Continue with step 2",
@@ -89,8 +89,8 @@
       "title": "Plan a bus trip",
       "source": "coach",
       "source_name": "Dana Brooks",
-      "scheduled_for": "2026-11-06T10:00:00-07:00",
-      "due_on": "2026-11-06",
+      "scheduled_for": "2026-11-05T10:00:00-07:00",
+      "due_on": "2026-11-05",
       "estimated_minutes": 20,
       "status": "not_started",
       "next_action": "Open the route information",
@@ -115,8 +115,8 @@
       "title": "Practice a laundry routine",
       "source": "coach",
       "source_name": "Dana Brooks",
-      "scheduled_for": "2026-11-08T11:00:00-07:00",
-      "due_on": "2026-11-08",
+      "scheduled_for": "2026-11-09T11:00:00-07:00",
+      "due_on": "2026-11-09",
       "estimated_minutes": 30,
       "status": "not_started",
       "next_action": "Gather clothes and supplies",
@@ -141,8 +141,8 @@
       "title": "Tidy my desk",
       "source": "member",
       "source_name": "Jordan Reyes",
-      "scheduled_for": "2026-11-05T18:00:00-07:00",
-      "due_on": "2026-11-05",
+      "scheduled_for": "2026-11-06T18:00:00-07:00",
+      "due_on": "2026-11-06",
       "estimated_minutes": 10,
       "status": "not_started",
       "next_action": "Clear one small area",
@@ -163,8 +163,8 @@
       "title": "Choose music for tomorrow",
       "source": "member",
       "source_name": "Jordan Reyes",
-      "scheduled_for": "2026-11-06T19:00:00-07:00",
-      "due_on": "2026-11-06",
+      "scheduled_for": "2026-11-05T19:00:00-07:00",
+      "due_on": "2026-11-05",
       "estimated_minutes": 5,
       "status": "completed",
       "next_action": "No next step",
@@ -190,7 +190,8 @@
       "instruction": "Bring your questions about sleep to your next appointment.",
       "due_on": "2026-11-12",
       "status": "proposed",
-      "supporting_detail": "A member-selected sleep pattern from the phone demo data."
+      "supporting_detail": "A member-selected sleep pattern from the phone demo data.",
+      "estimated_minutes": 10
     },
     {
       "id": "follow-up-02",
@@ -200,7 +201,8 @@
       "instruction": "Ask the clinic which follow-up time works for you.",
       "due_on": "2026-11-10",
       "status": "question_asked",
-      "supporting_detail": "Fictional follow-up suggestion; no appointment has been booked."
+      "supporting_detail": "Fictional follow-up suggestion; no appointment has been booked.",
+      "estimated_minutes": 10
     },
     {
       "id": "follow-up-03",
@@ -210,7 +212,8 @@
       "instruction": "Write down any questions before your next visit.",
       "due_on": "2026-11-18",
       "status": "accepted",
-      "supporting_detail": "Member-reviewed fictional next step."
+      "supporting_detail": "Member-reviewed fictional next step.",
+      "estimated_minutes": 10
     }
   ],
   "check_ins": [

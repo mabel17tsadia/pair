@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Health introduction keeps appointments and follow-up records in their own area. -->
+  <h1>Health</h1>
+  <p class="note">Your appointment information and healthcare follow-up actions stay here.</p>
+
+  {% if has_demo_records %}
+    <!-- All professional follow-up actions remain visible here, including actions in My Plan. -->
+    <section aria-labelledby="follow-up-title">
+      <h2 id="follow-up-title">Next steps</h2>
+      {% for action in follow_ups %}
+        <article class="card activity-card" id="{{ action.id }}">
+          <div class="activity-heading">
+            <h3>{{ action.instruction }}</h3>
+            <span class="chip activity-status">{{ action.status.replace("_", " ").capitalize() }}</span>
+          </div>
+          <p class="activity-meta"><strong>From {{ action.source_name }}</strong> · Due {{ action.due_on | long_day }}</p>
+          <p>{{ action.supporting_detail }}</p>
+        </article>
+      {% else %}
+        <p class="card">No healthcare follow-up actions yet.</p>
+      {% endfor %}
+    </section>
+
+    <!-- Appointment packets live in Health and are never presented as My Plan activities. -->
+    <section aria-labelledby="appointment-title">
+      <h2 id="appointment-title">Appointments</h2>
+      {% for packet in packets %}
+        <article class="card activity-card">
+          <div class="activity-heading">
+            <h3>{{ packet.appointment_type }}</h3>
+            <span class="chip activity-status">{{ packet.status.capitalize() }}</span>
+          </div>
+          <p class="activity-meta">{{ packet.date_label }} · With {{ recipients.get(packet.recipient_id, "your healthcare professional") }}</p>
+          <p>{{ packet.selected_items | length }} member-selected item{{ "s" if packet.selected_items | length != 1 }} in this simulated packet.</p>
+        </article>
+      {% else %}
+        <p class="card">No appointments in this demo.</p>
+      {% endfor %}
+    </section>
+    <p class="note">These records are simulated. A packet shown here has not been delivered to a healthcare professional.</p>
+  {% else %}
+    <!-- Keep Jordan's fixture records private to their demonstration profile. -->
+    <p class="card">Demo Health records are available for Jordan Reyes only.</p>
+  {% endif %}
+{% endblock %}

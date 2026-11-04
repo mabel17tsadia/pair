@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, session, redirect, request, url_for, abort, flash
 import data
+from demo_data import load_demo_data, plan_activities
 from patterns import get_patterns, get_trends, feeling_counts, format_minutes, RECENT_DAYS
 from goals import get_goals, days_left, week_name
 from vitals import get_body_signals
@@ -37,9 +38,9 @@ DEMO_ROLES = {"member": "Pair member", "coach": "Coach or educator",
 ROLE_NAVIGATION = {
     "member": [
         ("Home", "today", "sun", ["today"]),
-        ("My Plan", None, "calendar", []),
+        ("My Plan", "plan", "calendar", ["plan"]),
         ("Check In", "checkin", "check", ["checkin"]),
-        ("Health", None, "heart", []),
+        ("Health", "health", "heart", ["health"]),
         ("My Circle", "circle", "people", ["circle"]),
         ("Me", "me", "user", ["me", "body", "settings", "devices", "pair_device", "climb",
                                 "climb_done", "climb_add",
@@ -460,6 +461,43 @@ def today():
                            body_signals=get_body_signals(pid, devices_for(person)),
                            laundry_index=laundry, circle=circle_for(person),
                            last_checkin=checkins[-1] if checkins else None)
+
+
+# My Plan: show the Jordan demo activities and accepted Health follow-ups through the shared data provider.
+@app.route("/my-plan")
+def plan():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    records = load_demo_data()
+    is_demo_member = f"{person['first_name']} {person['last_name']}".strip() == records["member"]["name"]
+    time_filter = request.args.get("time", "today")
+    source_filter = request.args.get("source", "all")
+    activities = plan_activities(records, data.get_today(), time_filter, source_filter) if is_demo_member else []
+    return render_template("plan.html", title="My Plan", person=person, activities=activities,
+                           time_filter=time_filter if time_filter in ["today", "tomorrow", "this_week", "later"] else "today",
+                           source_filter=source_filter if source_filter in ["all", "member", "coach", "health"] else "all",
+                           has_demo_records=is_demo_member)
+
+
+# Health: keep every proposed, questioned, or accepted follow-up visible with the appointment packets.
+@app.route("/health")
+def health():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    records = load_demo_data()
+    is_demo_member = f"{person['first_name']} {person['last_name']}".strip() == records["member"]["name"]
+    packets = records["appointment_packets"] if is_demo_member else []
+    for packet in packets:
+        appointment = datetime.fromisoformat(packet["appointment_on"])
+        packet["date_label"] = (f"{appointment:%A}, {appointment:%B} {appointment.day} · "
+                                f"{appointment:%I:%M %p}".replace(" 0", " "))
+    recipients = {item["id"]: item["name"] for item in records["professionals"]}
+    return render_template("health.html", title="Health", person=person,
+                           follow_ups=records["health_follow_ups"] if is_demo_member else [],
+                           packets=packets, recipients=recipients,
+                           has_demo_records=is_demo_member)
 
 
 # Check in screen: pick a mood and add an optional note, then Save (or Skip). After saving, a

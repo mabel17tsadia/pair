@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- My Plan introduction explains that the activities are demonstration records. -->
+  <h1>My Plan</h1>
+  <p class="note">A manageable view of activities for {{ person.first_name }}. You can change the filters any time.</p>
+
+  {% if has_demo_records %}
+    <!-- Time filters narrow activities by their due date while keeping the source choice. -->
+    <section class="plan-filters" aria-labelledby="time-filter-title">
+      <h2 id="time-filter-title">When</h2>
+      <nav class="filter-list" aria-label="Filter by time">
+        {% for key, label in [("today", "Today"), ("tomorrow", "Tomorrow"), ("this_week", "This Week"), ("later", "Later")] %}
+          <a class="filter-chip" href="{{ url_for('plan', time=key, source=source_filter) }}" {% if time_filter == key %}aria-current="true"{% endif %}>{{ label }}</a>
+        {% endfor %}
+      </nav>
+
+      <!-- Source filters separate member, coach, and accepted Health activities. -->
+      <h2 id="source-filter-title">From</h2>
+      <nav class="filter-list" aria-labelledby="source-filter-title">
+        {% for key, label in [("all", "All"), ("member", "Added by Me"), ("coach", "From My Coach"), ("health", "From Health")] %}
+          <a class="filter-chip" href="{{ url_for('plan', time=time_filter, source=key) }}" {% if source_filter == key %}aria-current="true"{% endif %}>{{ label }}</a>
+        {% endfor %}
+      </nav>
+    </section>
+
+    <!-- Each activity shows its source, date, time estimate, status, and one next action. -->
+    <section aria-label="Activities">
+      {% for activity in activities %}
+        <article class="card activity-card">
+          <div class="activity-heading">
+            <h2>{{ activity.title }}</h2>
+            <span class="chip activity-status">{{ activity.status_label }}</span>
+          </div>
+          <p class="activity-meta"><strong>{{ activity.source_label }}</strong> · {{ activity.date_label }} · About {{ activity.estimated_minutes }} minutes</p>
+          <p class="activity-next"><strong>Next action:</strong>
+            {% if activity.health_link %}<a href="{{ activity.health_link }}">{{ activity.next_action }}</a>
+            {% else %}{{ activity.next_action }}{% endif %}
+          </p>
+        </article>
+      {% else %}
+        <p class="card">{% if has_demo_records %}No activities match these filters.{% else %}Demo activities are available for Jordan Reyes only.{% endif %}</p>
+      {% endfor %}
+    </section>
+    <p class="note">Healthcare appointments stay in Health. Accepted follow-up actions can appear here and remain listed in Health.</p>
+  {% else %}
+    <!-- Keep Jordan's fixture records out of another demo member's plan. -->
+    <p class="card">Demo activities are available for Jordan Reyes only.</p>
+  {% endif %}
+{% endblock %}
