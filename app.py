@@ -43,8 +43,8 @@ ROLE_NAVIGATION = {
         ("Health", "health", "heart", ["health", "health_packets", "health_packet",
                                             "health_next_steps", "patterns", "body", "devices",
                                             "pair_device", "stop_pairing", "visit_start", "visit_page",
-                                            "visit_suggest", "visit_add_question", "visit_entry",
-                                            "visit_send", "visit_not_sure"]),
+                                            "visit_suggest", "visit_add_question", "visit_entry", "visit_review",
+                                            "visit_packet_review", "visit_send", "visit_not_sure"]),
         ("My Circle", "circle", "people", ["circle"]),
         ("Me", "me", "user", ["me", "settings", "climb",
                                 "climb_done", "climb_add", "routines", "routine_steps", "routine_edit"]),
@@ -71,7 +71,8 @@ ROLE_NAVIGATION = {
 HEALTH_ENDPOINTS = {
     "health", "health_packets", "health_packet", "health_next_steps", "patterns", "body",
     "devices", "pair_device", "stop_pairing", "visit_start", "visit_page", "visit_suggest",
-    "visit_add_question", "visit_entry", "visit_send", "visit_not_sure",
+    "visit_add_question", "visit_entry", "visit_review", "visit_packet_review", "visit_send",
+    "visit_not_sure",
 }
 
 # The five moods on the Check in page, each with its emoji (the one place for the whole app;
@@ -882,17 +883,21 @@ def visit_page(visit):
     devices = devices_for(person)
     patterns, body = get_patterns(pid, devices), get_body_signals(pid, devices)
     suggestions = saved("visit_suggestions", pid, None)
+    draft = saved("visit_packet_drafts", pid, {}).get(visit, {})
     return render_template("visit.html", title="Get ready for an appointment", person=person,
                            visit=visit, visit_label=VISITS[visit]["label"],
                            period=f"{start.day} {start:%B} to {end.day} {end:%B %Y}",
                            patterns=patterns, counts=feeling_counts(checkins),
                            summary=daily_cache("doctor", person, lambda: explain_for_doctor(person, patterns, checkins)),
-                           questions=saved("visit_questions", pid, ""),
+                           questions=draft.get("questions", saved("visit_questions", pid, "")),
                            suggestions=suggestions if suggestions and suggestions["visit"] == visit else None,
                            tell=things_to_tell(visit, patterns, body, devices),
                            entries=saved("visit_entries", pid, []),
-                           sources=[d["device"] for d in devices if d["paired"]] + ["My own check ins"],
-                           contacts=[m["name"] for m in circle_for(person) if m["access"] == "health"])
+                           reason=draft.get("reason", saved("visit_reasons", pid, {}).get(visit, "")),
+                           appointment_on=draft.get("appointment_on", ""),
+                           selected_changes=draft.get("changes", []),
+                           appointment_min=data.get_today(),
+                           sources=[d["device"] for d in devices if d["paired"]] + ["My own check ins"])
 
 
 # Suggest questions for this kind of appointment (AI, or 3 general questions for the visit type)
@@ -947,20 +952,71 @@ def visit_entry(visit):
     return redirect(url_for("visit_page", visit=visit if visit in VISITS else "other"))
 
 
-# Send to my health contact: only ticked Health summary members; a confirmation only,
-# nothing is really sent in the prototype
+# Save the member's selected reason, changes and questions as a draft for final review.
+@app.route("/visit/<visit>/review", methods=["POST"])
+def visit_review(visit):
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    if visit not in VISITS:
+        abort(404)
+    devices = devices_for(person)
+    changes = things_to_tell(visit, get_patterns(person["id"], devices),
+                             get_body_signals(person["id"], devices), devices)
+    selected = request.form.getlist("selected")
+    chosen = [changes[int(index)] for index in selected
+              if index.isdigit() and int(index) < len(changes)]
+    appointment_on = request.form.get("appointment_on", "").strip()
+    try:
+        if appointment_on:
+            date.fromisoformat(appointment_on)
+    except ValueError:
+        appointment_on = ""
+    draft = {"visit": visit, "appointment_type": VISITS[visit]["label"],
+             "appointment_on": appointment_on,
+             "reason": request.form.get("reason", "").strip()[:500],
+             "changes": chosen, "questions": request.form.get("questions", "").strip()[:1000]}
+    save("visit_packet_drafts", person["id"], {**saved("visit_packet_drafts", person["id"], {}), visit: draft})
+    return redirect(url_for("visit_packet_review", visit=visit))
+
+
+# Show selected packet contents so the member can choose a recipient and expiration.
+@app.route("/visit/<visit>/review", methods=["GET"])
+def visit_packet_review(visit):
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    if visit not in VISITS:
+        abort(404)
+    draft = saved("visit_packet_drafts", person["id"], {}).get(visit)
+    if not draft:
+        return redirect(url_for("visit_page", visit=visit))
+    contacts = [m for m in circle_for(person) if m["access"] == "health"]
+    return render_template("visit_review.html", title="Review appointment packet", person=person,
+                           draft=draft, contacts=contacts, today=data.get_today())
+
+
+# Confirm only after a reviewed packet, allowed recipient, and expiration date are submitted.
 @app.route("/visit/<visit>/send", methods=["POST"])
 def visit_send(visit):
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
-    names = [m["name"] for m in circle_for(person)
-             if m["access"] == "health" and m["name"] in request.form.getlist("send")]
-    if names:
-        flash(f"Prototype: nothing was really sent. In the real app, {words_filter(names)} would get this summary.")
-    else:
-        flash("No one was ticked, so nothing was sent.")
-    return redirect(url_for("visit_page", visit=visit if visit in VISITS else "other"))
+    if visit not in VISITS:
+        abort(404)
+    draft = saved("visit_packet_drafts", person["id"], {}).get(visit)
+    contacts = [m for m in circle_for(person) if m["access"] == "health"]
+    recipient = next((m for m in contacts if m["name"] == request.form.get("recipient")), None)
+    expiration = request.form.get("expires_on", "")
+    try:
+        valid_expiration = date.fromisoformat(expiration) >= date.fromisoformat(data.get_today())
+    except ValueError:
+        valid_expiration = False
+    if not draft or request.form.get("reviewed") != "yes" or not recipient or not valid_expiration:
+        flash("Review the packet, choose an approved recipient, and set a valid expiration date before continuing.")
+        return redirect(url_for("visit_packet_review", visit=visit))
+    flash(f"Reviewed for {recipient['name']} through {expiration}. This demo did not send or share the packet.")
+    return redirect(url_for("visit_page", visit=visit))
 
 
 # Not sure who to see? The person types how they have been feeling. Emergency words are checked

@@ -11,12 +11,13 @@
   <a class="text-link no-print" href="{{ url_for('visit_start') }}">‹ Who are you seeing?</a>
   <h1>Get ready for an appointment</h1>
   <p class="note">{{ person.first_name }} · {{ visit_label }} · {{ period }}</p>
-  <p class="no-print">Check this page first. Nothing is shared until you print it or send it.</p>
+  <p class="no-print">Step 2 of 5 · Add your reason, choose which changes to include, and prepare questions.</p>
+  <p class="note">Nothing is shared when you prepare this information. Review and approval happen on the next page.</p>
 
   <!-- Short paragraph for the professional (AI or rules, with a tiny label saying which) -->
   <section class="card visit-section">
     <p>{{ summary.text }}</p>
-    <p class="note">{{ "Written with AI" if summary.source == "ai" else "Written by rules" }}</p>
+    <p class="note">Source: {{ "AI summary of your patterns and check-ins" if summary.source == "ai" else "Pair's pattern and check-in summary" }}.</p>
   </section>
 
   <!-- What changed: the changes from get_patterns, in plain words -->
@@ -35,6 +36,7 @@
     <p><strong>Moods:</strong>
       {% for name, n in counts.moods %}{{ mood_emoji(name) }} {{ name }}: {{ n }} time{{ "s" if n != 1 }}{{ ", " if not loop.last }}{% else %}No check ins in these 14 days.{% endfor %}</p>
     {% if counts.body %}<p><strong>Body feelings:</strong> {{ counts_line(counts.body) }}</p>{% endif %}
+    <p class="note">Source: your check-ins during this 14-day period.</p>
   </section>
 
   <!-- Things to tell them: change and body sentences relevant to this visit, each with its source (read only) -->
@@ -71,17 +73,36 @@
     {% endif %}
   </section>
 
-  <!-- Questions I want to ask: the person's own list (added questions land here), editable and saved
-       in the session; printed as plain text -->
-  <section class="card visit-section">
-    <h2>Questions I want to ask</h2>
-    <form method="post" class="no-print">
-      <label for="questions" class="visually-hidden">Questions I want to ask</label>
+  <!-- Step 2 to 4: collect the member's reason, selected changes, and questions for review. -->
+  <form method="post" action="{{ url_for('visit_review', visit=visit) }}">
+    <section class="card visit-section">
+      <h2>Step 2: Reason for this visit</h2>
+      <label for="appointment-on">Appointment date (if known)</label>
+      <input type="date" id="appointment-on" name="appointment_on" min="{{ appointment_min }}" value="{{ appointment_on }}">
+      <label for="reason">What would you like help with?</label>
+      <textarea id="reason" name="reason" rows="3" maxlength="500" placeholder="In your own words">{{ reason }}</textarea>
+      <p class="note">Source: written by you. This is included only if you choose to continue to packet review.</p>
+    </section>
+
+    <section class="card visit-section">
+      <h2>Step 3: Changes to include</h2>
+      <p>Select only the changes you want in your packet. Each item shows its source.</p>
+      {% for item in tell %}
+        <label class="visit-packet-choice">
+          <input type="checkbox" name="selected" value="{{ loop.index0 }}" {% if item in selected_changes %}checked{% endif %}>
+          <span>{{ item.text }}<br><span class="note">Source: {{ item.source }}</span></span>
+        </label>
+      {% else %}<p>No change summaries are available for this appointment type.</p>{% endfor %}
+    </section>
+
+    <section class="card visit-section">
+      <h2>Step 4: Questions to ask</h2>
+      <label for="questions">Questions you want to bring</label>
       <textarea id="questions" name="questions" rows="5" maxlength="1000">{{ questions }}</textarea>
-      <button type="submit" class="btn-secondary">Save my questions</button>
-    </form>
-    <p class="print-only keep-lines">{{ questions or "None written yet." }}</p>
-  </section>
+      <p class="note">Source: written by you. Suggested questions can be added above.</p>
+    </section>
+    <button type="submit" class="btn-primary">Review my packet</button>
+  </form>
 
   <!-- Entered by the person: values from another app or from memory, kept apart from device readings -->
   <section class="card visit-section">
@@ -116,24 +137,14 @@
   <!-- Where this information came from: paired devices and the person's own check ins (read only) -->
   <section class="card visit-section">
     <h2>Where this information came from</h2>
-    <p>{{ sources | words }}.</p>
+    <ul>{% for source in sources %}<li>Source: {{ source }}</li>{% endfor %}</ul>
     <p class="note no-print">Readings from paired devices come straight from the device and cannot be edited.</p>
   </section>
 
-  <!-- Print or save as PDF (browser print), and send to Health summary members (all unticked) -->
+  <!-- Printing is separate; the packet review step controls any sharing decision. -->
   <div class="no-print">
     <button type="button" class="btn-primary" data-print>Print or save as PDF</button>
-
-    <form method="post" action="{{ url_for('visit_send', visit=visit) }}" class="card">
-      <h2>Send to my health contact</h2>
-      {% for name in contacts %}
-        <label class="share-pick"><input type="checkbox" name="send" value="{{ name }}"> {{ name }}</label>
-      {% else %}
-        <p>No one in your circle has the Health summary level yet. You can change this on the
-          <a href="{{ url_for('circle') }}">Circle</a> page.</p>
-      {% endfor %}
-      {% if contacts %}<button type="submit" class="btn-primary">Send</button>{% endif %}
-    </form>
+    <p class="note">Pair does not send or share this information from this page.</p>
   </div>
 
   <!-- Who prepared this, and what Pair is not -->

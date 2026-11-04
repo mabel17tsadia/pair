@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Link back to the preparation steps and show the final review stage. -->
+  <a class="text-link" href="{{ url_for('visit_page', visit=draft.visit) }}">‹ Edit appointment details</a>
+  <h1>Review your appointment packet</h1>
+  <p class="note">Step 5 of 5 · Check each item, choose a recipient, and set an expiration date.</p>
+
+  <!-- Appointment type and member-authored reason are shown before any sharing choice. -->
+  <section class="card visit-section">
+    <h2>{{ draft.appointment_type }}</h2>
+    <p><strong>Appointment date:</strong> {{ draft.appointment_on | long_day if draft.appointment_on else "Not added." }}</p>
+    <p><strong>Reason for visit</strong><br>{{ draft.reason or "No reason added." }}</p>
+    <p class="note">Source: written by you.</p>
+  </section>
+
+  <!-- Only the changes selected by the member on the previous page appear in this packet. -->
+  <section class="card visit-section">
+    <h2>Changes you selected</h2>
+    {% for item in draft.changes %}
+      <article class="packet-item">
+        <p>{{ item.text }}</p>
+        <p class="note">Source: {{ item.source }}</p>
+      </article>
+    {% else %}<p>No changes selected.</p>{% endfor %}
+  </section>
+
+  <!-- Questions remain member-authored and their source is visible. -->
+  <section class="card visit-section">
+    <h2>Questions to ask</h2>
+    <p class="keep-lines">{{ draft.questions or "No questions added." }}</p>
+    <p class="note">Source: written by you.</p>
+  </section>
+
+  <!-- The final action requires an approved health contact, a date, and explicit review. -->
+  <form method="post" action="{{ url_for('visit_send', visit=draft.visit) }}" class="card">
+    <h2>Choose who can receive this packet</h2>
+    {% if contacts %}
+      <label for="recipient">Recipient</label>
+      <select id="recipient" name="recipient" required>
+        <option value="">Choose a healthcare contact</option>
+        {% for contact in contacts %}
+          <option value="{{ contact.name }}">{{ contact.name }} · {{ contact.relationship }}</option>
+        {% endfor %}
+      </select>
+      <label for="expires-on">Access expires</label>
+      <input id="expires-on" type="date" name="expires_on" min="{{ today }}" required>
+      <label class="share-pick"><input type="checkbox" name="reviewed" value="yes" required> I reviewed the packet above and chose what to include.</label>
+      <p class="note">Pair will not share anything until you confirm below. This prototype does not deliver packet contents.</p>
+      <button type="submit" class="btn-primary">Confirm review and continue</button>
+    {% else %}
+      <p>No healthcare contact has permission to receive a selected packet. Update sharing in <a href="{{ url_for('circle') }}">My Circle</a>.</p>
+    {% endif %}
+  </form>
+{% endblock %}

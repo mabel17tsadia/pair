@@ -1340,6 +1340,10 @@ input::placeholder, textarea::placeholder {
   border-color: var(--primary);
 }
 
+/* Packet choices keep source text readable and leave a generous target for selecting each item. */
+.visit-packet-choice { display: flex; align-items: flex-start; gap: var(--space-3); min-height: var(--target-min); padding: var(--space-3) 0; border-top: var(--border-width) solid var(--border); cursor: pointer; }
+.visit-packet-choice input { width: 1.25rem; height: 1.25rem; margin-top: .2rem; flex: 0 0 auto; }
+
 /* Printing: black on white, no navigation, buttons or messages, small enough for one page */
 @media print {
   @page { margin: 1.5cm; }
