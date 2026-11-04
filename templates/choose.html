@@ -1,20 +1,44 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon %}
 
 {% block content %}
-  <!-- Page heading and demo note -->
-  <h1>Choose a demo person</h1>
-  <p class="note">Demo mode. Sample data.</p>
+  <!-- Introduce Pair and the prototype sign-in or new-member paths. -->
+  <section class="entry-hero">
+    <div class="entry-copy">
+      <p class="eyebrow">Independence, one clear step at a time</p>
+      <h1>Welcome to Pair</h1>
+      <p>Build life skills, prepare for healthcare visits, and choose what information you share.</p>
+      <div class="actions">
+        <a class="btn-primary" href="{{ url_for('signin') }}">Sign in</a>
+        <a class="btn-secondary" href="{{ url_for('start_begin') }}">New to Pair? Get started</a>
+      </div>
+    </div>
+    <!-- A calm mountain illustration echoes Pair's personal climb concept. -->
+    <svg class="entry-mountain" viewBox="0 0 360 220" aria-hidden="true">
+      <path class="entry-mountain-far" d="M8 210 112 70l60 74 48-54 132 120z"/>
+      <path class="entry-mountain-near" d="m70 210 102-116 100 116z"/>
+      <path class="entry-mountain-path" d="m118 196 20-22-15-20 25-21-8-23 31-25 25 23"/>
+      <path class="entry-mountain-flag" d="M194 108V66l34 10-34 11"/>
+    </svg>
+  </section>
 
-  <!-- One large card per person; tapping it picks that person -->
-  <div class="person-list">
-    {% for p in people %}
-      <a class="person-card" href="{{ url_for('choose_person', person_id=p.id) }}">
-        <span class="initials" aria-hidden="true">{{ p.first_name[0] }}{{ p.last_name[:1] }}</span>
-        <span class="person-name">{{ p.first_name }} {{ p.last_name }}</span>
-      </a>
-    {% endfor %}
-  </div>
-
-  <!-- Sign up for someone new -->
-  <p><a class="btn-primary" href="{{ url_for('start', step=1) }}">New to Pair? Get started</a></p>
+  <!-- Role cards open distinct demo workspaces, never real accounts or private member data. -->
+  <section class="entry-roles" aria-labelledby="role-choice-title">
+    <p class="eyebrow">Explore the prototype</p>
+    <h2 id="role-choice-title">Whose view would you like to explore?</h2>
+    <p>Each choice opens a focused sample workspace. Switching a demo view is not sign-in or permission.</p>
+    <div class="role-grid">
+      {% for role in role_cards %}
+        <form class="role-card" method="post" action="{{ url_for('set_demo_role') }}">
+          <input type="hidden" name="role" value="{{ role.key }}">
+          <span class="role-card-icon" aria-hidden="true">{{ icon(role.icon) }}</span>
+          <h3>{{ role.label }}</h3>
+          <p>{{ role.description }}</p>
+          <p class="role-demo-identity">Demonstration identity: <strong>{{ role.identity }}</strong></p>
+          <button type="submit" class="btn-secondary">Explore workspace</button>
+        </form>
+      {% endfor %}
+    </div>
+    <p class="entry-privacy">Pair does not diagnose. Members control what they share. This prototype does not authenticate anyone.</p>
+  </section>
 {% endblock %}

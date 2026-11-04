@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, signal_value %}
+{% from "macros.html" import icon, mood_emoji, signal_value %}
 
 {% block content %}
   <!-- Link back to Health and explain the pattern charts -->
@@ -14,16 +14,15 @@
     <p>Each card names the source and compares your recent average with your own usual average.</p>
   </section>
 
-  <!-- Each signal card pairs a pictogram and source with plain-language averages and its chart. -->
+  <!-- Each signal card pairs its source and pictogram with a comparison and a non-diagnostic explanation. -->
   {% for t in trends %}
-    {% set signal_icons = {"sleep_min": "moon", "steps": "footprints", "late_screen_min": "phone", "unlocks": "phone", "time_out_min": "door"} %}
-    {% set signal_sources = {"sleep_min": "Phone sleep estimate", "steps": "Phone activity estimate", "late_screen_min": "Phone screen-time estimate", "unlocks": "Phone pickup count", "time_out_min": "Phone time-away estimate (no map)"} %}
     <section class="card pattern-card">
       <header class="pattern-heading">
-        <span class="pattern-pictogram" aria-hidden="true">{{ icon(signal_icons[t.signal]) }}</span>
-        <div><h2>{{ t.name }}</h2><p class="note">Source: {{ signal_sources[t.signal] }}</p></div>
+        <span class="pattern-pictogram" aria-hidden="true">{{ icon(t.pictogram) }}</span>
+        <div><h2>{{ t.name }}</h2><p class="note">Source: {{ t.source_label }}</p></div>
       </header>
       <p class="pattern-summary">{{ t.sentence }}</p>
+      <p class="note">Comparison period: the last five days; usual range: earlier days. Pair shows a change in your own pattern, not its cause or a diagnosis.</p>
       <dl class="pattern-comparison">
         <div><dt>Your usual average</dt><dd>{{ signal_value(t.signal, t.usual | round | int) }}</dd></div>
         <div><dt>Last 5-day average</dt><dd>{{ signal_value(t.signal, t.recent | round | int) }}</dd></div>
@@ -33,6 +32,17 @@
   {% else %}
     <p class="card">No patterns to show yet. Pair needs a paired device and about 10 days of data.</p>
   {% endfor %}
+
+  <!-- Show recent private feelings with the same picture and label used in Check In. -->
+  <section class="card pattern-checkins" aria-labelledby="pattern-checkins-title">
+    <h2 id="pattern-checkins-title">Recent check-ins</h2>
+    <p class="note">Private to you. Check-ins are self-reports and are not device measurements.</p>
+    {% for checkin in checkins %}
+      <p class="pattern-checkin">{{ mood_emoji(checkin.mood) }} <strong>{{ checkin.mood }}</strong> · {{ checkin.date | long_day }}</p>
+    {% else %}
+      <p>No check-ins to show yet.</p>
+    {% endfor %}
+  </section>
 
   <!-- Link to get ready for an appointment -->
   <nav class="card link-list" aria-label="More">

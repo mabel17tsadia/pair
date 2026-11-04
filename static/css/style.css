@@ -63,12 +63,64 @@ body[data-picture-preference="pictures_first"] .instruction-picture { font-size:
 /* ===== Basic page look ===== */
 body {
   margin: 0;
-  background: var(--bg);
+  background: radial-gradient(circle at 100% 0, var(--alert-soft) 0, transparent 24rem),
+              radial-gradient(circle at 0 82%, var(--primary-soft) 0, transparent 28rem), var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-body);
   font-size: var(--font-body-size);
   line-height: var(--line-height);
 }
+
+/* The shared header keeps Pair identity and the current workspace easy to find. */
+.site-header { position: relative; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); }
+.header-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); max-width: var(--wide-content-width); margin: 0 auto; padding: var(--space-2) var(--space-4); }
+.site-header .brand { display: inline-flex; align-items: center; min-height: var(--target-min); color: var(--primary); font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; text-decoration: none; }
+.public-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.public-nav a { display: inline-flex; align-items: center; min-height: var(--target-min); color: var(--primary); font-weight: 700; }
+.role-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2) var(--space-4); }
+.active-role { margin: 0; color: var(--primary); font-weight: 700; }
+
+/* Staff roles get their own desktop navigation and a compact mobile navigation. */
+.workspace-shell { display: grid; grid-template-columns: 16rem minmax(0, 1fr); min-height: calc(100vh - 4.5rem); }
+.role-sidebar { position: sticky; top: 0; align-self: start; height: calc(100vh - 1px); overflow-y: auto; padding: var(--space-5) var(--space-4); border-right: 1px solid var(--border); background: var(--surface); }
+.role-identity { margin-bottom: var(--space-5); }
+.role-identity h2 { margin: 0; }
+.role-identity p { margin-bottom: var(--space-2); }
+.role-sidebar nav { display: grid; gap: var(--space-2); }
+.role-sidebar nav a, .role-sidebar .nav-unavailable { display: flex; align-items: center; gap: var(--space-3); min-height: var(--target-min); padding: 0 var(--space-3); border-radius: var(--radius-control); color: var(--muted); font-weight: 700; text-decoration: none; }
+.role-sidebar nav a[aria-current="page"] { background: var(--primary-soft); color: var(--primary); }
+.role-sidebar .nav-unavailable { opacity: .65; }
+.role-sidebar .nav-unavailable > span:last-child { display: grid; }
+.sidebar-note { margin-top: var(--space-7); padding: var(--space-4); border-radius: var(--radius-card); background: var(--primary); color: var(--on-primary); }
+.workspace-main { width: 100%; max-width: var(--wide-content-width); margin: 0 auto; padding: var(--space-6) var(--space-7) 4rem; }
+.mobile-role-nav { display: none; }
+
+/* Entry pages use spacious role cards and a calm mountain accent. */
+main.public-main { max-width: var(--wide-content-width); padding-bottom: var(--space-8); }
+.entry-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(14rem, .7fr); align-items: center; gap: var(--space-5); overflow: hidden; margin-bottom: var(--space-7); padding: clamp(1.5rem, 5vw, 3.5rem); border: 1px solid var(--border); border-radius: 1.5rem; background: linear-gradient(120deg, var(--surface), var(--primary-soft)); box-shadow: var(--card-shadow); }
+.entry-copy { position: relative; z-index: 1; max-width: 42rem; }
+.entry-copy h1 { margin: var(--space-2) 0; font-size: clamp(2rem, 5vw, 3.5rem); }
+.entry-copy > p:not(.eyebrow) { max-width: 42rem; color: var(--muted); font-size: 1.15rem; }
+.entry-mountain { width: 100%; max-height: 14rem; }
+.entry-mountain-far { fill: var(--surface2); }
+.entry-mountain-near { fill: var(--primary); opacity: .8; }
+.entry-mountain-path { fill: none; stroke: var(--surface); stroke-width: 5; stroke-dasharray: 2 10; stroke-linecap: round; }
+.entry-mountain-flag { fill: var(--celebrate); stroke: var(--celebrate); stroke-width: 4; stroke-linejoin: round; }
+.entry-roles h2 { margin: 0; font-size: clamp(1.5rem, 3vw, 2rem); }
+.entry-roles > p:not(.eyebrow) { color: var(--muted); }
+.role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--space-4); margin-top: var(--space-5); }
+.role-card { display: flex; flex-direction: column; align-items: flex-start; min-height: 18rem; padding: var(--space-5); border: 1px solid var(--border); border-radius: 1.25rem; background: var(--surface); box-shadow: var(--card-shadow); }
+.role-card h3 { margin: var(--space-3) 0 0; }
+.role-card > p { color: var(--muted); }
+.role-card-icon { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 1rem; background: var(--primary-soft); color: var(--primary); }
+.role-card-icon .icon { width: 1.8rem; height: 1.8rem; }
+.role-demo-identity { margin-top: auto; font-size: var(--font-small); }
+.role-card .btn-secondary { width: 100%; }
+.entry-privacy { margin-top: var(--space-5); padding: var(--space-4); border-left: 4px solid var(--celebrate); background: var(--alert-soft); }
+.sign-in-card { max-width: 42rem; }
+.sign-in-card label, .sign-in-card input { display: block; width: 100%; }
+.sign-in-card label { margin-top: var(--space-3); }
 
 /* Headings use Lexend */
 h1, h2, h3 {
@@ -889,7 +941,7 @@ label {
   font-weight: 700;
 }
 
-input[type="text"], input[type="time"], textarea, select {
+input[type="text"], input[type="email"], input[type="password"], input[type="time"], textarea, select {
   display: block;
   box-sizing: border-box;
   width: 100%;
@@ -1447,6 +1499,21 @@ input::placeholder, textarea::placeholder {
   .person-list, .card-grid { grid-template-columns: 1fr; }
   .actions > * { flex: 1 1 100%; }
   .pace-options, .pattern-comparison { grid-template-columns: 1fr; }
+}
+
+/* On phones, staff use a fixed compact nav and the public entry stacks its illustration. */
+@media (max-width: 899px) {
+  .workspace-shell { display: block; min-height: 0; }
+  .role-sidebar { display: none; }
+  .workspace-main { max-width: var(--content-width); padding: var(--space-5) var(--space-4) 7rem; }
+  .mobile-role-nav { position: fixed; z-index: 20; right: 0; bottom: 0; left: 0; display: flex; gap: var(--space-1); overflow-x: auto; padding: var(--space-2); border-top: 1px solid var(--border); background: var(--surface); }
+  .mobile-role-nav a { display: flex; flex: 1 0 6.5rem; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 3.75rem; padding: var(--space-1); border-radius: var(--radius-control); color: var(--muted); font-size: .72rem; text-align: center; text-decoration: none; }
+  .mobile-role-nav a[aria-current="page"] { background: var(--primary-soft); color: var(--primary); font-weight: 700; }
+  .mobile-role-nav .icon { width: 1.25rem; height: 1.25rem; }
+  .role-tools { width: 100%; justify-content: space-between; }
+  .role-preview { flex: 1 1 100%; }
+  .entry-hero { grid-template-columns: 1fr; }
+  .entry-mountain { max-height: 10rem; }
 }
 
 /* Reduced-motion settings apply to all transitions and animations. */

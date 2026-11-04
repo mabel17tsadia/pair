@@ -32,7 +32,7 @@ THEMES = ["ocean", "garden", "twilight"]
 # Keep saved theme choices from older browser sessions working
 OLD_THEMES = {"calm": "ocean", "bright": "garden", "dark": "twilight"}
 
-# These role choices change only which navigation links the demo shows.
+# The role cards select a sample workspace; authorization still belongs to the member's explicit sharing choices.
 DEMO_ROLES = {"member": "Pair member", "coach": "Coach or educator",
               "healthcare": "Healthcare professional", "trusted": "Trusted person",
               "admin": "Organization administrator"}
@@ -72,6 +72,41 @@ ROLE_NAVIGATION = {
         ("Invitations", None, "clipboard", []), ("Org Settings", "admin_settings", "home", ["admin_settings"]),
         ("Access Logs", None, "wave", []), ("Templates", None, "book", []),
     ],
+}
+ROLE_IDENTITIES = {"member": "Jordan Reyes", "coach": "Dana Brooks",
+                   "healthcare": "Dr. Priya Patel", "trusted": "Marisol Reyes",
+                   "admin": "Alex Morgan"}
+ROLE_HOME_ENDPOINTS = {"member": "today", "coach": "coach",
+                       "healthcare": "professional_packets", "trusted": "trusted",
+                       "admin": "admin_settings"}
+ROLE_CARDS = [
+    {"key": "member", "label": "Pair member", "identity": "Jordan Reyes", "icon": "user",
+     "description": "Explore your plan, check in, prepare for health visits, and choose what to share."},
+    {"key": "coach", "label": "Coach or educator", "identity": "Dana Brooks", "icon": "book",
+     "description": "Review shared learning progress and assign activities from a learner profile."},
+    {"key": "healthcare", "label": "Healthcare professional", "identity": "Dr. Priya Patel", "icon": "medical",
+     "description": "Review appointment packets that members choose to share with you."},
+    {"key": "trusted", "label": "Trusted person", "identity": "Marisol Reyes", "icon": "people",
+     "description": "See member-shared summaries and offer encouragement."},
+    {"key": "admin", "label": "Organization administrator", "identity": "Alex Morgan", "icon": "gear",
+     "description": "Manage organization settings and access records, not private member content."},
+]
+# Route ownership keeps demo workspaces separate without presenting demo switching as authentication.
+ROLE_ENDPOINTS = {
+    "member": {"choose_person", "today", "plan", "health", "health_packets", "health_packet",
+               "health_next_steps", "health_follow_up_action", "activity_detail", "checkin", "patterns",
+               "circle", "circle_save", "circle_remove", "circle_add", "circle_revoke_share", "share",
+               "doctor", "visit_start", "visit_page", "visit_suggest", "visit_add_question", "visit_entry",
+               "visit_review", "visit_packet_review", "visit_send", "visit_not_sure", "climb", "climb_done",
+               "climb_add", "routines", "routine_steps", "routine_finish", "routine_edit", "me", "me_edit",
+               "body", "settings_export", "settings_delete_data", "devices", "pair_device",
+               "stop_pairing", "set_celebrations", "save_theme", "google.login", "google.callback",
+               "google.disconnect", "google.test"},
+    "coach": {"coach", "coach_learners", "coach_learner", "coach_assign", "coach_library", "coach_settings"},
+    "healthcare": {"professional_packets", "professional_packet", "professional_next_steps",
+                   "professional_settings"},
+    "trusted": {"trusted", "trusted_encouragement", "trusted_settings"},
+    "admin": {"admin_settings"},
 }
 HEALTH_ENDPOINTS = {
     "health", "health_packets", "health_packet", "health_next_steps", "health_follow_up_action",
@@ -134,11 +169,33 @@ def add_settings():
             "theme": theme if theme in THEMES else "ocean",
             "demo_role": demo_role, "demo_roles": DEMO_ROLES,
             "role_navigation": ROLE_NAVIGATION[demo_role],
+            "role_identity": ROLE_IDENTITIES[demo_role],
+            "role_home": ROLE_HOME_ENDPOINTS[demo_role],
+            "public_view": request.endpoint in {"choose", "signin", "forgot_password",
+                                                 "organization_signin", "start_begin", "start", "terms"},
             "in_health_section": request.endpoint in HEALTH_ENDPOINTS,
             "data_source": session.get("data_source", "sample"),
             "celebrations": session.get("celebrations", "big"),
             "member_preferences": member_preferences(session.get("person_id")),
             "celebrations_chosen": "celebrations" in session}
+
+
+# Redirect a direct cross-role route request to the selected demo workspace with a clear notice.
+@app.before_request
+def enforce_demo_workspace():
+    endpoint = request.endpoint
+    required_role = next((role for role, endpoints in ROLE_ENDPOINTS.items() if endpoint in endpoints), None)
+    if not required_role:
+        return None
+    active_role = session.get("demo_role", "member")
+    if active_role not in DEMO_ROLES:
+        active_role = "member"
+    if endpoint == "trusted" and request.method == "GET" and request.args.get("preview") == "member" and active_role == "member":
+        return None
+    if active_role != required_role:
+        flash("That page belongs to another demonstration workspace. Switch view to explore it; this is not sign-in or authorization.")
+        return redirect(url_for(ROLE_HOME_ENDPOINTS[active_role]))
+    return None
 
 
 # Return this member's accessible display choices with calm defaults.
@@ -437,34 +494,54 @@ def shared_view(access, patterns, celebrations):
     return lines + celebrations
 
 
-# Home page: choose which demo person to use
+# Entry page: introduce Pair and show the five distinct demonstration workspaces.
 @app.route("/")
 def choose():
-    new_person = [session["new_person"]] if session.get("new_person") else []
-    return render_template("choose.html", title="Choose a demo person", people=data.get_people() + new_person)
+    return render_template("choose.html", title="Explore Pair", role_cards=ROLE_CARDS)
 
 
-# Save the chosen person in the session, then open Today
+# Keep the old member URL for compatibility, but never offer Maya or Theo as member entry accounts.
 @app.route("/choose/<person_id>")
 def choose_person(person_id):
-    if data.get_person(person_id) or (person_id == NEW_ID and session.get("new_person")):
+    primary_id = load_demo_data()["member"]["application_person_id"]
+    if person_id == primary_id or (person_id == NEW_ID and session.get("new_person")):
         session["person_id"] = person_id
+        session["demo_role"] = "member"
         return redirect(url_for("today"))
+    flash("Maya and Theo are sample learners inside authorized staff workspaces, not member entry accounts.")
     return redirect(url_for("choose"))
 
 
-# Change only the demo navigation preview; this does not authenticate anyone or grant permissions.
+# Select a sample workspace and return to that role's own landing page in this demonstration.
 @app.route("/demo/role", methods=["POST"])
 def set_demo_role():
     role = request.form.get("role")
     if role in DEMO_ROLES:
         session["demo_role"] = role
-        flash(f"Navigation preview: {DEMO_ROLES[role]}. No access permissions changed.")
-    next_page = request.form.get("next", "")
-    if (not next_page.startswith("/") or next_page.startswith("//") or
-            "\\" in next_page or any(char in next_page for char in "\r\n")):
-        next_page = url_for("today")
-    return redirect(next_page)
+        if role == "member":
+            session["person_id"] = load_demo_data()["member"]["application_person_id"]
+        flash(f"Demo view: {ROLE_IDENTITIES[role]} · {DEMO_ROLES[role]}. This does not verify identity or grant access to real member information.")
+        return redirect(url_for(ROLE_HOME_ENDPOINTS[role]))
+    flash("Choose one of the available demonstration views.")
+    return redirect(url_for("choose"))
+
+
+# Show the prototype sign-in choices without sending or validating the entered demo fields.
+@app.route("/signin")
+def signin():
+    return render_template("signin.html", title="Sign in to Pair")
+
+
+# Explain that password reset is not connected in this demonstration.
+@app.route("/forgot-password")
+def forgot_password():
+    return render_template("forgot_password.html", title="Forgot password")
+
+
+# Explain that partner authentication requires an approved organization identity provider.
+@app.route("/signin/organization")
+def organization_signin():
+    return render_template("organization_signin.html", title="Organization sign-in")
 
 
 # "New to Pair? Get started": always begin at step 1, so every step has its own address
@@ -532,6 +609,7 @@ def create_new_person(signup, trusted):
         ]}
     save("circle", NEW_ID, [trusted] if trusted else [])
     session["person_id"] = NEW_ID
+    session["demo_role"] = "member"
     session.modified = True
 
 
@@ -968,9 +1046,28 @@ def patterns():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
-    trends = get_trends(person["id"], devices_for(person))
+    presentation = {
+        "sleep_min": ("Sleep", "sleep", "My phone · sleep estimate"),
+        "steps": ("Daily steps", "footprints", "My phone · step count"),
+        "late_screen_min": ("Phone time late at night", "phone", "My phone · screen-time estimate"),
+        "unlocks": ("Phone pickups", "phone", "My phone · pickup count"),
+        "time_out_min": ("Time away from home", "home", "My phone · minutes only; no map"),
+    }
+    trends = []
+    for trend in get_trends(person["id"], devices_for(person)):
+        name, pictogram, source = presentation[trend["signal"]]
+        sentence = trend["sentence"].replace(trend["name"] + ":", name + ":", 1)
+        trends.append({**trend, "name": name, "pictogram": pictogram,
+                       "source_label": source, "sentence": sentence,
+                       "chart": trend_chart(trend["values"], trend["usual"])})
+    checkins = [{"mood": str(item.get("feeling", item.get("mood", "Okay"))).capitalize(),
+                 "date": item.get("date", data.get_today())}
+                for item in data.get_checkins(person["id"])]
+    checkins += [{"mood": item["feeling"], "date": item["date"]}
+                 for item in session.get("checkins", []) if item.get("person_id") == person["id"]]
+    checkins = sorted(checkins, key=lambda item: item["date"])[-4:]
     return render_template("patterns.html", title="Health Patterns",
-                           trends=[{**t, "chart": trend_chart(t["values"], t["usual"])} for t in trends])
+                           trends=trends, checkins=checkins, person=person)
 
 
 # Return only people who granted the demo's activity and learning preference sharing level.

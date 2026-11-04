@@ -6,73 +6,110 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ title }} · Pair</title>
 
-  <!-- Fonts: Atkinson Hyperlegible for body text, Lexend for headings -->
+  <!-- Load readable fonts and the shared Pair theme stylesheet. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;700&display=swap">
-
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body data-theme="{{ theme }}" data-density="{{ member_preferences.density }}"
       data-picture-preference="{{ member_preferences.picture_preference }}"
-      data-speech-rate="{{ member_preferences.speech_rate }}">
-  <!-- Navigation: a top bar on wide screens, a bottom bar on phones -->
+      data-speech-rate="{{ member_preferences.speech_rate }}" data-demo-role="{{ demo_role }}">
+  <!-- Show a small public header before entry, then the active workspace controls. -->
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href="{{ url_for('today') }}">Pair</a>
-      <!-- The selected demo role changes navigation labels only; it does not grant access. -->
-      <nav class="main-nav" aria-label="{{ demo_roles[demo_role] }} navigation">
-        {% for label, endpoint, icon_name, active_endpoints in role_navigation %}
-          {% if endpoint %}
-            <a href="{{ url_for(endpoint) }}" {% if request.endpoint in active_endpoints %}aria-current="page"{% endif %}>
-              {{ icon(icon_name) }}<span>{{ label }}</span>
-            </a>
-          {% else %}
-            <span class="nav-unavailable">
-              {{ icon(icon_name) }}<span>{{ label }}</span>
-              <span class="visually-hidden">Not available in this demo.</span>
-            </span>
-          {% endif %}
-        {% endfor %}
-      </nav>
-
-      <!-- A preview control for trying each role's navigation in the demo. -->
-      <form class="role-preview" method="post" action="{{ url_for('set_demo_role') }}">
-        <label for="demo-role">Demo role</label>
-        <select id="demo-role" name="role">
-          {% for key, label in demo_roles.items() %}
-            <option value="{{ key }}" {% if key == demo_role %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-        <input type="hidden" name="next" value="{{ request.path }}">
-        <button type="submit" class="btn-secondary">Preview</button>
-        <p class="role-preview-note">Navigation preview only; this does not grant data access or change permissions.</p>
-      </form>
+      <a class="brand" href="{{ url_for('choose') if public_view else url_for(role_home) }}">Pair</a>
+      {% if public_view %}
+        <nav class="public-nav" aria-label="Pair entry">
+          <a href="{{ url_for('signin') }}">Sign in</a>
+          <a href="{{ url_for('start_begin') }}">Get started</a>
+        </nav>
+      {% else %}
+        {% if demo_role == "member" %}
+          <!-- Member pages keep their six destinations in the shared top navigation. -->
+          <nav class="main-nav" aria-label="Pair member navigation">
+            {% for label, endpoint, icon_name, active_endpoints in role_navigation %}
+              <a href="{{ url_for(endpoint) }}" {% if request.endpoint in active_endpoints %}aria-current="page"{% endif %}>
+                {{ icon(icon_name) }}<span>{{ label }}</span>
+              </a>
+            {% endfor %}
+          </nav>
+        {% endif %}
+        <!-- Role switching explores sample workspaces; it is not authentication or consent. -->
+        <div class="role-tools">
+          <p class="active-role">{{ demo_roles[demo_role] }} · {{ role_identity }}</p>
+          <form class="role-preview" method="post" action="{{ url_for('set_demo_role') }}">
+            <label for="demo-role">Switch view</label>
+            <select id="demo-role" name="role">
+              {% for key, label in demo_roles.items() %}
+                <option value="{{ key }}" {% if key == demo_role %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn-secondary">Switch view</button>
+            <p class="role-preview-note">Demo mode only. This does not verify a role or grant access to member information.</p>
+          </form>
+        </div>
+      {% endif %}
     </div>
   </header>
 
-  <!-- Page content: each screen fills this in (Today adds the "dashboard" class for laptops) -->
-  <main class="{% block main_class %}{% endblock %}">
-    <!-- Short messages after an action, e.g. "Check in saved" -->
-    {% for message in get_flashed_messages() %}
-      <p class="flash" role="status">{{ message }}</p>
-    {% endfor %}
+  {% if not public_view and demo_role != "member" %}
+    <!-- Staff roles use a focused desktop sidebar and a compact mobile navigation below. -->
+    <div class="workspace-shell">
+      <aside class="role-sidebar">
+        <section class="role-identity">
+          <p class="eyebrow">{{ demo_roles[demo_role] }}</p>
+          <h2>{{ role_identity }}</h2>
+          <p class="note">Fictional demonstration workspace</p>
+        </section>
+        <nav aria-label="{{ demo_roles[demo_role] }} navigation">
+          {% for label, endpoint, icon_name, active_endpoints in role_navigation %}
+            {% if endpoint %}
+              <a href="{{ url_for(endpoint) }}" {% if request.endpoint in active_endpoints %}aria-current="page"{% endif %}>
+                {{ icon(icon_name) }}<span>{{ label }}</span>
+              </a>
+            {% else %}
+              <span class="nav-unavailable">{{ icon(icon_name) }}<span>{{ label }}<span class="note">Not available in this demo</span></span></span>
+            {% endif %}
+          {% endfor %}
+        </nav>
+        <p class="sidebar-note">Role preview changes the sample workspace. Member sharing still depends on specific member choices.</p>
+      </aside>
+      <main class="workspace-main">
+  {% else %}
+      <!-- Public and member screens share the same content landmark. -->
+      <main class="{% if public_view %}public-main{% endif %} {% block main_class %}{% endblock %}">
+  {% endif %}
+        <!-- Show brief feedback after a saved demo action or a protected-route redirect. -->
+        {% for message in get_flashed_messages() %}
+          <p class="flash" role="status">{{ message }}</p>
+        {% endfor %}
 
-    {% if in_health_section %}
-      <!-- Health subnavigation groups appointments, packets, next steps, patterns and sources. -->
-      <nav class="health-nav" aria-label="Health section">
-        <a href="{{ url_for('health') }}" {% if request.endpoint == 'health' %}aria-current="page"{% endif %}>Overview</a>
-        <a href="{{ url_for('visit_start') }}" {% if request.endpoint in ['visit_start', 'visit_page', 'visit_suggest', 'visit_add_question', 'visit_review', 'visit_packet_review', 'visit_send', 'visit_entry', 'visit_not_sure'] %}aria-current="page"{% endif %}>Prepare for an Appointment</a>
-        <a href="{{ url_for('health_packets') }}" {% if request.endpoint in ['health_packets', 'health_packet'] %}aria-current="page"{% endif %}>My Shared Packets</a>
-        <a href="{{ url_for('health_next_steps') }}" {% if request.endpoint == 'health_next_steps' %}aria-current="page"{% endif %}>Next Steps</a>
-        <a href="{{ url_for('patterns') }}" {% if request.endpoint == 'patterns' or request.endpoint == 'body' %}aria-current="page"{% endif %}>Health Patterns</a>
-        <a href="{{ url_for('devices') }}" {% if request.endpoint in ['devices', 'pair_device', 'stop_pairing'] %}aria-current="page"{% endif %}>Connected Data Sources</a>
-      </nav>
-    {% endif %}
+        {% if in_health_section %}
+          <!-- Keep member health destinations grouped under the Health navigation. -->
+          <nav class="health-nav" aria-label="Health section">
+            <a href="{{ url_for('health') }}" {% if request.endpoint == 'health' %}aria-current="page"{% endif %}>Overview</a>
+            <a href="{{ url_for('visit_start') }}" {% if request.endpoint in ['visit_start', 'visit_page', 'visit_suggest', 'visit_add_question', 'visit_packet_review', 'visit_send', 'visit_entry', 'visit_not_sure'] %}aria-current="page"{% endif %}>Prepare for an Appointment</a>
+            <a href="{{ url_for('health_packets') }}" {% if request.endpoint in ['health_packets', 'health_packet'] %}aria-current="page"{% endif %}>My Shared Packets</a>
+            <a href="{{ url_for('health_next_steps') }}" {% if request.endpoint in ['health_next_steps', 'health_follow_up_action'] %}aria-current="page"{% endif %}>Next Steps</a>
+            <a href="{{ url_for('patterns') }}" {% if request.endpoint in ['patterns', 'body'] %}aria-current="page"{% endif %}>Health Patterns</a>
+            <a href="{{ url_for('devices') }}" {% if request.endpoint in ['devices', 'pair_device', 'stop_pairing'] %}aria-current="page"{% endif %}>Connected Data Sources</a>
+          </nav>
+        {% endif %}
 
-    {% block content %}{% endblock %}
-  </main>
-
+        {% block content %}{% endblock %}
+      </main>
+  {% if not public_view and demo_role != "member" %}
+    </div>
+    <!-- Mobile staff navigation keeps every available destination reachable by touch. -->
+    <nav class="mobile-role-nav" aria-label="{{ demo_roles[demo_role] }} navigation">
+      {% for label, endpoint, icon_name, active_endpoints in role_navigation if endpoint %}
+        <a href="{{ url_for(endpoint) }}" {% if request.endpoint in active_endpoints %}aria-current="page"{% endif %}>
+          {{ icon(icon_name) }}<span>{{ label }}</span>
+        </a>
+      {% endfor %}
+    </nav>
+  {% endif %}
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

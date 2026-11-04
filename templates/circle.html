@@ -71,7 +71,7 @@
           {% if c.name in snapshots %}
             <div class="circle-shared-snapshot">
               <p class="note">One-time snapshot shared {{ snapshots[c.name].shared_on | long_day }}. It will not update automatically.</p>
-              {% if c.member_type in ["family", "friend"] %}<a class="text-link" href="{{ url_for('trusted', contact=c.name) }}">Preview trusted-person view</a>{% endif %}
+              {% if c.member_type in ["family", "friend"] %}<a class="text-link" href="{{ url_for('trusted', contact=c.name, preview='member') }}">Preview trusted-person view</a>{% endif %}
               <form method="post" action="{{ url_for('circle_revoke_share') }}">
                 <input type="hidden" name="name" value="{{ c.name }}">
                 <button type="submit" class="btn-secondary">Stop sharing this snapshot</button>

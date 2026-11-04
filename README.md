@@ -111,8 +111,10 @@ summaries are cached once per person per day.
 2. Turn it on: `venv\Scripts\Activate.ps1`
 3. Install the packages (first time only): `pip install -r requirements.txt`
 4. Start the app: `python app.py`
-5. Open http://127.0.0.1:5000, pick a demo person (Jordan, Maya or Theo), or tap
-   **New to Pair? Get started**.
+5. Open http://127.0.0.1:5000 and choose one of five demonstration workspaces. Jordan Reyes is the
+   Pair-member identity; Maya Chen and Theo Okafor appear only as sample learners in staff views.
+   **Sign in** and **Organization sign-in** are previews only: credentials are not checked, and no
+   password reset or magic-link email is sent. A demo role switch is not authentication or permission.
 
 API keys go in a `.env` file, which is never committed. It needs:
 ```

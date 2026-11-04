@@ -52,6 +52,62 @@ class PairExperienceTests(unittest.TestCase):
             state["demo_role"] = "member"
             state["signup"] = {"first_name": "Jordan"}
 
+    # Open each role card into its actual route and show the matching role shell.
+    def test_role_entry_opens_distinct_workspaces(self):
+        page = self.client.get("/")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b"Whose view would you like to explore?", page.data)
+        self.assertNotIn(b"Choose a demo person", page.data)
+        self.assertNotIn(b"Maya Chen", page.data)
+        self.assertNotIn(b"Theo Okafor", page.data)
+        destinations = {"member": ("/today", b"Jordan Reyes"),
+                        "coach": ("/coach", b"Dana Brooks"),
+                        "healthcare": ("/professional/packets", b"Dr. Priya Patel"),
+                        "trusted": ("/trusted", b"Marisol Reyes"),
+                        "admin": ("/admin/settings", b"Alex Morgan")}
+        for role, (path, identity) in destinations.items():
+            response = self.client.post("/demo/role", data={"role": role})
+            self.assertEqual(response.status_code, 302)
+            self.assertTrue(response.headers["Location"].endswith(path))
+            page = self.client.get(path)
+            self.assertEqual(page.status_code, 200, role)
+            self.assertIn(f'data-demo-role="{role}"'.encode(), page.data)
+            self.assertIn(identity, page.data)
+            if role == "member":
+                self.assertNotIn(b"role-sidebar", page.data)
+            else:
+                self.assertIn(b"role-sidebar", page.data)
+                self.assertIn(b"mobile-role-nav", page.data)
+
+    # Keep prototype sign-in links honest and never submit the displayed password fields.
+    def test_demo_sign_in_and_help_pages_are_transparent(self):
+        page = self.client.get("/signin")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b"name=\"role\" value=\"member\"", page.data)
+        self.assertIn(b"Forgot password?", page.data)
+        self.assertIn(b"Organization sign-in", page.data)
+        self.assertIn(b"not submitted or checked", page.data)
+        self.assertNotIn(b"Email me a link", page.data)
+        self.assertNotIn(b'name="sign-in-email"', page.data)
+        self.assertNotIn(b'name="sign-in-password"', page.data)
+        self.assertIn(b"not connected", self.client.get("/forgot-password").data)
+        self.assertIn(b"cannot verify an account", self.client.get("/signin/organization").data)
+
+    # Do not allow direct links to another role's route to bypass the selected demo workspace.
+    def test_cross_role_routes_redirect_to_active_workspace(self):
+        response = self.client.get("/coach")
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.headers["Location"].endswith("/today"))
+        self.client.post("/demo/role", data={"role": "healthcare"})
+        response = self.client.get("/my-plan")
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.headers["Location"].endswith("/professional/packets"))
+        self.assertEqual(self.client.get(response.headers["Location"]).status_code, 200)
+        response = self.client.get("/settings")
+        self.assertTrue(response.headers["Location"].endswith("/professional/settings"))
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "member"
+
     # Replace route variables with known safe demo fixture values.
     def route_path(self, rule):
         values = {"activity_id": self.records["activities"][0]["id"], "person_id": "p1",
@@ -126,13 +182,15 @@ class PairExperienceTests(unittest.TestCase):
         page = self.client.get("/patterns")
         self.assertEqual(page.status_code, 200)
         for label in [b"Usual range", b"Last 5 days", b"Your usual average",
-                      b"Last 5-day average", b"Source:"]:
+                      b"Last 5-day average", b"Source: My phone", b"Daily steps",
+                      b"not its cause or a diagnosis", b"Recent check-ins", b"Private to you"]:
             self.assertIn(label, page.data)
         self.assertIn(b"pattern-pictogram", page.data)
 
     # Keep coach views limited to activity progress and to members who shared wellness access.
     def test_coach_scope_excludes_private_and_health_information(self):
         with self.client.session_transaction() as state:
+            state["demo_role"] = "coach"
             state["checkins"] = [{"person_id": "p1", "note": "PRIVATE_CHECKIN_SENTINEL"}]
             state["visit_entries"] = {"p1": [{"label": "health", "value": "PRIVATE_HEALTH_SENTINEL"}]}
         response = self.client.get("/coach/learners/p1")
@@ -143,6 +201,8 @@ class PairExperienceTests(unittest.TestCase):
 
     # Require opening a consented learner profile before the coach assigns a library activity.
     def test_coach_must_open_learner_before_assignment(self):
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "coach"
         activity_id = self.records["activities"][0]["id"]
         url = "/coach/learners/p1/assign"
         self.assertEqual(self.client.post(url, data={"activity_id": activity_id}).status_code, 403)
@@ -173,13 +233,17 @@ class PairExperienceTests(unittest.TestCase):
 
     # Show healthcare professionals only the fixture packets with a current member authorization.
     def test_professional_packet_scope_and_member_health_boundary(self):
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "healthcare"
         packets = pair.professional_authorized_packets()
         self.assertTrue(packets)
         page = self.client.get("/professional/packets")
         self.assertEqual(page.status_code, 200)
         self.assertIn(packets[0]["id"].encode(), page.data)
         self.assertEqual(self.client.get("/professional/packets/packet-completed").status_code, 404)
-        self.client.get("/choose/p2")
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "member"
+            state["person_id"] = "p2"
         member_page = self.client.get("/health/packets")
         self.assertEqual(member_page.status_code, 200)
         self.assertNotIn(b"packet-upcoming", member_page.data)
@@ -210,6 +274,11 @@ class PairExperienceTests(unittest.TestCase):
 
     # Exercise mood choices, display settings, and every visual theme without third-party calls.
     def test_checkin_theme_and_motion_controls(self):
+        checkin_page = self.client.get("/checkin")
+        for label in [b"Calm", b"Okay", b"Tired", b"Worried", b"Overwhelmed",
+                      b"Quiet Break", b"Smaller Step", b"Message Someone", b"Read Aloud",
+                      b"Reduce Screen Content", b"Nothing Right Now"]:
+            self.assertIn(label, checkin_page.data)
         for display in ["pictures_words", "words_only", "pictures_first"]:
             response = self.client.post("/checkin", data={"action": "display", "display": display})
             self.assertEqual(response.status_code, 302)
@@ -225,10 +294,14 @@ class PairExperienceTests(unittest.TestCase):
 
     # Check semantic landmarks, labels, keyboard focus, responsive breakpoints, and theme contrast.
     def test_accessibility_and_responsive_contracts(self):
-        routes = ["/today", "/my-plan", "/checkin", "/circle", "/health", "/settings",
-                  "/activity/" + self.records["activities"][0]["id"], "/visit/primary",
-                  "/coach/library", "/professional/packets", "/trusted"]
-        for route in routes:
+        routes = [("member", route) for route in ["/today", "/my-plan", "/checkin", "/circle",
+                  "/health", "/settings", "/activity/" + self.records["activities"][0]["id"],
+                  "/visit/primary"]]
+        routes += [("coach", "/coach/library"), ("healthcare", "/professional/packets"),
+                   ("trusted", "/trusted")]
+        for role, route in routes:
+            with self.client.session_transaction() as state:
+                state["demo_role"] = role
             response = self.client.get(route)
             self.assertEqual(response.status_code, 200, route)
             parser = ControlNames()
@@ -244,6 +317,9 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn("@media (max-width: 899px)", css)
         self.assertIn("@media (min-width: 900px)", css)
         self.assertIn("@media (prefers-reduced-motion: reduce)", css)
+        self.assertIn(".workspace-shell", css)
+        self.assertIn(".role-sidebar", css)
+        self.assertIn(".mobile-role-nav", css)
         for theme in ["ocean", "garden", "twilight"]:
             colors = re.search(rf'\[data-theme="{theme}"\]\s*\{{([^}}]+)\}}', css).group(1)
             values = dict(re.findall(r"--([\w-]+):\s*(#[0-9A-Fa-f]{6})", colors))

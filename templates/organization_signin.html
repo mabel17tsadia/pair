@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Keep future organization authentication distinct from demo role switching. -->
+  <a class="text-link" href="{{ url_for('signin') }}">‹ Back to sign in</a>
+  <h1>Organization sign-in</h1>
+  <section class="card">
+    <p>Approved staff and partners sign in through their verified organization account.</p>
+    <p>This prototype has no organization identity provider, so it cannot verify an account or grant staff access.</p>
+    <a class="btn-primary" href="{{ url_for('choose') }}">Explore a sample workspace</a>
+  </section>
+{% endblock %}

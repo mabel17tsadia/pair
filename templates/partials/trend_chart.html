@@ -11,6 +11,6 @@
   {% for x, y in c.recent_dots %}<circle class="chart-dot" cx="{{ x }}" cy="{{ y }}" r="5"/>{% endfor %}
   <text x="56" y="{{ c.band_top - 6 if c.band_top > 30 else c.band_bottom + 18 }}">Usual range</text>
   <text x="{{ c.recent_x + 6 }}" y="28">Last 5 days</text>
-  <text x="50" y="197">{{ t.dates[0] | day }}</text>
-  <text x="580" y="197" text-anchor="end">{{ t.dates[-1] | day }}</text>
+  <text x="50" y="197">{{ t.dates[0] | long_day }}</text>
+  <text x="580" y="197" text-anchor="end">{{ t.dates[-1] | long_day }}</text>
 </svg>
