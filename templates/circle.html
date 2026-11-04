@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "macros.html" import icon, initials %}
 
-{% set access_icons = {"none": "lock", "celebrations": "flag", "summary": "calendar", "wellness": "chart", "health": "medical"} %}
+{% set access_icons = {"none": "lock", "celebrations": "heart", "summary": "calendar", "wellness": "book", "health": "medical"} %}
 
 {# Show a familiar pictogram beside every access label without hiding its words. #}
 {% macro access_badge(level, label) %}
@@ -47,7 +47,7 @@
               <strong>{{ c.name }}</strong>
               {% if c.relationship %}<span class="note">{{ c.relationship }}</span>{% endif %}
             </span>
-            {{ access_badge(c.access, levels[c.access][0]) }}
+              <span class="circle-access">{{ access_badge(c.access, levels[c.access][0]) }}<span class="note access-duration">{{ "Packet access is time limited" if c.access == "health" else "One-time snapshot" if c.access == "summary" else "Until you change this" if c.access != "none" else "No access" }}</span></span>
           </summary>
           <form method="post" action="{{ url_for('circle_save') }}" class="edit-panel">
             <input type="hidden" name="name" value="{{ c.name }}">

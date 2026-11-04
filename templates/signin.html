@@ -3,16 +3,17 @@
 {% block content %}
   <!-- Offer the personal demo entry without collecting or transmitting the fields. -->
   <h1>Welcome back</h1>
-  <p>Sign in to Pair or explore a sample workspace.</p>
+  <p class="signin-intro">Sign in to Pair or explore a sample workspace.</p>
+  <div class="signin-layout">
   <section class="card sign-in-card">
-    <h2>Personal sign-in</h2>
+    <p class="eyebrow">For members</p><h2>Personal sign-in</h2>
     <form method="post" action="{{ url_for('set_demo_role') }}">
       <input type="hidden" name="role" value="member">
       <label for="sign-in-email">Email address</label>
     <input id="sign-in-email" type="email" autocomplete="off">
       <label for="sign-in-password">Password</label>
     <input id="sign-in-password" type="password" autocomplete="off">
-      <p class="note">Prototype preview: these fields are not submitted or checked. No account is accessed.</p>
+      <p class="prototype-note">Prototype preview: these fields are not submitted or checked. No account is accessed.</p>
       <div class="actions">
         <button type="submit" class="btn-primary">Sign in</button>
         <a class="text-link" href="{{ url_for('forgot_password') }}">Forgot password?</a>
@@ -21,11 +22,12 @@
   </section>
 
   <!-- Approved partner authentication remains separate from the public role exploration. -->
-  <section class="card sign-in-card">
-    <h2>Organization sign-in</h2>
+  <section class="card sign-in-card organization-signin-card">
+    <p class="eyebrow">For approved staff and partners</p><h2>Organization sign-in</h2>
     <p>For approved staff and partners using their verified organization account.</p>
     <a class="btn-secondary" href="{{ url_for('organization_signin') }}">Continue with organization</a>
   </section>
+  </div>
 
   <!-- Keep the working member onboarding route available. -->
   <p><a class="text-link" href="{{ url_for('start_begin') }}">New to Pair? Get started</a></p>

@@ -1568,3 +1568,195 @@ input::placeholder, textarea::placeholder {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* The final polish layer aligns older pages with the approved Pair visual system. */
+:root {
+  --content-width: 72rem;
+  --wide-content-width: 86rem;
+  --font-body-size: 1.0625rem;
+  --font-small: 0.9375rem;
+  --card-padding: clamp(1.25rem, 2vw, 1.75rem);
+  --card-shadow: 0 8px 24px rgb(20 52 58 / 7%);
+}
+
+/* Shared page backgrounds add soft depth without covering text or controls. */
+body {
+  background:
+    radial-gradient(ellipse 34rem 24rem at 100% 0, var(--alert-soft) 0, transparent 72%),
+    radial-gradient(ellipse 42rem 32rem at 0 72%, var(--primary-soft) 0, transparent 74%),
+    linear-gradient(145deg, var(--bg), var(--surface2));
+  background-attachment: fixed;
+}
+
+/* Consistent heading scale and readable explanatory copy across every route. */
+h1 { margin: 0 0 var(--space-3); font-size: clamp(1.8rem, 3vw, 2.6rem); line-height: 1.16; }
+h2 { line-height: 1.25; }
+main > p:not(.note), .workspace-heading > p, .entry-copy > p:not(.eyebrow) { max-width: 66ch; }
+main > .card, .workspace-main > .card { border-radius: 1.25rem; }
+
+/* Pair's monogram makes the brand clear while leaving room for navigation. */
+.brand { display: inline-flex; gap: .65rem; align-items: center; color: var(--text) !important; }
+.brand-mark { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: .9rem; background: var(--primary); color: var(--on-primary); }
+
+/* The demo role badge and expandable switch keep the header from becoming a long form row. */
+.role-tools { display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .25rem .75rem; max-width: 23rem; }
+.active-role { padding: .4rem .8rem; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--primary-soft); font-size: var(--font-small); }
+.role-switcher { position: relative; }
+.role-switcher > summary { display: flex; align-items: center; min-height: 2.75rem; padding: 0 .8rem; border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--primary); font-weight: 700; cursor: pointer; }
+.role-switcher[open] { z-index: 10; }
+.role-preview { grid-template-columns: 1fr; min-width: 17rem; margin-top: .4rem; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); box-shadow: var(--card-shadow); }
+.role-preview-note { flex-basis: 100%; width: 100%; font-size: .8rem; }
+
+/* Staff sidebars stay calm and consistent, with scrolling only on short viewports. */
+.workspace-shell { grid-template-columns: 17rem minmax(0, 1fr); }
+.role-sidebar { top: 0; height: auto; min-height: calc(100vh - 5rem); overflow: visible; padding: var(--space-6) var(--space-4); background: color-mix(in srgb, var(--surface) 94%, var(--primary-soft)); }
+.role-sidebar nav a[aria-current="page"] { box-shadow: inset 3px 0 var(--primary); }
+.role-sidebar nav .icon { width: 1.4rem; height: 1.4rem; }
+.workspace-main { max-width: 90rem; padding-top: clamp(2rem, 4vw, 3.5rem); }
+.workspace-heading { position: relative; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--border); border-radius: 1.5rem; background: linear-gradient(115deg, var(--surface), var(--primary-soft)); box-shadow: var(--card-shadow); }
+.workspace-heading::after { position: absolute; top: 0; right: 0; width: 7rem; height: 100%; border-radius: 0 1.5rem 1.5rem 0; background: radial-gradient(ellipse at top right, var(--alert-soft), transparent 75%); content: ""; pointer-events: none; }
+.summary-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); }
+.summary-card { border-top: 3px solid var(--primary-soft); }
+.workspace-content-grid { align-items: start; }
+
+/* Public sign-in balances personal and organization entry on wider screens. */
+.signin-intro { margin-bottom: var(--space-5); color: var(--muted); font-size: 1.1rem; }
+.signin-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(18rem, .8fr); align-items: stretch; gap: var(--space-5); }
+.sign-in-card { width: auto; max-width: none; margin: 0; }
+.sign-in-card h2 { margin-top: 0; font-size: 1.35rem; }
+.organization-signin-card { background: linear-gradient(145deg, var(--surface), var(--primary-soft)); }
+.prototype-note { margin: var(--space-4) 0; padding: var(--space-3) var(--space-4); border-left: 4px solid var(--celebrate); border-radius: 0 var(--radius-control) var(--radius-control) 0; background: var(--alert-soft); color: var(--text); }
+
+/* Onboarding turns the original working forms into a clear, guided set of panels. */
+.onboarding-page { max-width: 58rem; margin: 0 auto; }
+.onboarding-page > h1 { margin-top: var(--space-4); }
+.onboarding-page > p { max-width: 62ch; color: var(--muted); }
+.onboarding-page > form > .card, .onboarding-page > .card { padding: clamp(1.25rem, 3vw, 2rem); }
+.start-top { margin-bottom: var(--space-4); padding: var(--space-3) 0; }
+.progress-dots li { width: 1rem; height: .65rem; border-radius: var(--radius-pill); }
+.progress-dots li.on { width: 2.25rem; }
+.theme-option { min-width: 0; }
+
+/* Member Home keeps the climb illustration and gives the next action visual priority. */
+.member-welcome { position: relative; overflow: hidden; padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid var(--border); border-radius: 1.5rem; background: linear-gradient(115deg, var(--surface), var(--primary-soft)); }
+.member-welcome::after { position: absolute; right: -3rem; bottom: -5rem; width: 18rem; height: 12rem; background: var(--alert-soft); clip-path: polygon(50% 0, 100% 100%, 0 100%); opacity: .8; content: ""; }
+.member-welcome > * { position: relative; z-index: 1; }
+.member-next-action { border-top-color: var(--celebrate); }
+.member-dashboard-grid { margin-bottom: var(--space-4); }
+
+/* Activity and My Pace cards pair a repeated icon with a clear action and status. */
+.pace-option { position: relative; align-items: flex-start; min-height: 8rem; padding: var(--space-4); }
+.pace-option.is-selected { box-shadow: inset 0 0 0 1px var(--primary); }
+.pace-icon { width: 4rem; height: 4rem; border-radius: 1rem; color: var(--primary); }
+.pace-icon .icon { width: 2.3rem; height: 2.3rem; }
+.pace-focus-icon { background: var(--primary-soft); }
+.pace-day-icon { background: var(--alert-soft); color: var(--text); }
+.pace-option > span:last-child strong { font-family: var(--font-heading); font-size: 1.05rem; }
+.activity-title { display: flex; align-items: center; gap: var(--space-3); }
+.activity-pictogram { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; border-radius: .85rem; background: var(--primary-soft); color: var(--primary); }
+.activity-pictogram .icon { width: 1.5rem; height: 1.5rem; }
+.activity-card { padding: clamp(1.25rem, 2.5vw, 2rem); }
+
+/* Check In choices remain pictorial and text-labeled at every display preference. */
+.checkin-privacy { border-left: 4px solid var(--primary); background: var(--surface); }
+.checkin-form { display: grid; gap: var(--space-5); }
+.checkin-form .choices { grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); }
+.checkin-form .choice-box { min-height: 7rem; justify-content: center; padding: var(--space-3); text-align: center; }
+.checkin-form .choice-icon { min-height: 2.5rem; font-size: 2.25rem; }
+.checkin-form.display-pictures_first .choice-box { min-height: 8rem; }
+.checkin-form .actions { padding-top: var(--space-2); }
+
+/* Pattern cards let members compare their own recent days with a labeled usual range. */
+.pattern-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+.pattern-card .chart { max-height: 16rem; }
+.pattern-card .pattern-summary { padding: var(--space-3) var(--space-4); border-radius: var(--radius-control); background: var(--primary-soft); }
+.pattern-comparison div { border: 1px solid var(--border); }
+.pattern-pictogram { width: 3.5rem; height: 3.5rem; border: 1px solid var(--border); }
+
+/* Circle access rows keep the permission pictogram, duration and edit control together. */
+.circle-list > li.card { padding: var(--space-4); }
+.circle-row { flex-wrap: wrap; gap: var(--space-3); padding: var(--space-2); }
+.circle-access { display: grid; justify-items: start; gap: .2rem; }
+.access-duration { padding-left: .25rem; }
+.access-badge { min-height: 3rem; }
+
+/* Health and appointment pages share a quiet guide style without duplicating tab cards. */
+.health-nav { padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); }
+.health-nav a { flex: 1 1 9rem; border-color: transparent; background: transparent; }
+.health-nav a[aria-current="page"] { border-color: var(--primary); }
+.visit-section h2 { padding-bottom: var(--space-2); border-bottom: 1px solid var(--border); }
+.visit-choices { gap: var(--space-3); }
+.visit-choice { justify-content: flex-start; min-height: 5rem; padding: var(--space-4); background: linear-gradient(110deg, var(--surface), var(--primary-soft)); }
+
+/* Shared actions, charts, badges and empty states stay readable at all screen sizes. */
+.status-label, .chip { min-height: 2rem; padding: .3rem .8rem; white-space: normal; }
+.chart { min-width: 0; overflow: visible; }
+.chart-band { stroke-width: 2; }
+.chart-recent { stroke: var(--primary); stroke-width: 1; stroke-dasharray: 3 3; }
+.pictogram-label { display: inline-flex; align-items: center; gap: var(--space-2); }
+.pictogram-mark { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; border-radius: .85rem; background: var(--primary-soft); color: var(--primary); }
+.pictogram-mark .icon { width: 1.5rem; height: 1.5rem; }
+button, input, select, textarea { font: inherit; }
+button, a, summary { touch-action: manipulation; }
+
+/* The desktop shell keeps workspaces wide while avoiding an oversized line length. */
+@media (min-width: 900px) {
+  .header-inner { flex-wrap: wrap; padding: .65rem clamp(1rem, 3vw, 2.5rem); }
+  .main-nav { flex: 1 1 auto; justify-content: center; }
+  .main-nav a, .main-nav .nav-unavailable { padding-inline: .7rem; }
+  .role-tools { flex: 0 1 22rem; }
+  main:not(.public-main) { max-width: var(--wide-content-width); padding: clamp(2rem, 4vw, 3.5rem) clamp(1rem, 4vw, 3.5rem) 4rem; }
+  .role-sidebar { position: sticky; top: 0; }
+}
+
+/* Mobile navigation and forms stack without shrinking labels or covering content. */
+@media (max-width: 899px) {
+  .header-inner { align-items: center; }
+  .brand { display: inline-flex; }
+  .role-tools { width: auto; max-width: calc(100% - 4rem); }
+  .active-role { max-width: 13rem; overflow-wrap: anywhere; }
+  .role-preview-note { display: none; }
+  .role-preview { position: absolute; top: 100%; right: 0; min-width: min(20rem, calc(100vw - 2rem)); }
+  .main-nav { z-index: 15; padding-bottom: env(safe-area-inset-bottom); }
+  .main-nav a, .main-nav .nav-unavailable { min-width: 0; font-size: .75rem; }
+  .main-nav span { overflow-wrap: anywhere; }
+  .signin-layout { grid-template-columns: 1fr; }
+  .workspace-main { padding-top: var(--space-5); }
+  .workspace-heading::after { width: 4rem; }
+}
+
+/* Tablet and phone widths preserve the same spacious cards and useful touch targets. */
+@media (max-width: 767px) {
+  .entry-hero { padding: var(--space-5); }
+  .role-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
+  .role-card { min-height: 15rem; }
+  .workspace-content-grid, .health-overview-grid { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Compact phones keep activity controls, icons and filters from overflowing. */
+@media (max-width: 480px) {
+  main.public-main, main:not(.public-main) { padding: var(--space-4) var(--space-3) 8.5rem; }
+  .workspace-main { padding-inline: var(--space-3); }
+  .header-inner { padding-inline: var(--space-3); }
+  .role-tools { gap: .25rem; }
+  .active-role { max-width: 9rem; font-size: .8rem; }
+  .role-switcher > summary { min-height: 2.5rem; padding-inline: .6rem; font-size: .9rem; }
+  .entry-hero { gap: var(--space-2); }
+  .entry-mountain { max-height: 8rem; }
+  .summary-grid, .member-dashboard-grid, .pace-options, .pattern-comparison { grid-template-columns: 1fr; }
+  .circle-row { align-items: flex-start; }
+  .circle-access { width: 100%; margin-left: 4rem; }
+  .activity-title { align-items: flex-start; }
+  .activity-heading { align-items: flex-start; }
+  .activity-heading .activity-status { margin-left: 3.5rem; }
+  .checkin-form .choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .checkin-form .actions > * { flex: 1 1 100%; }
+  .filter-chip { flex: 1 1 auto; justify-content: center; }
+  .chart text { font-size: 11px; }
+}
+
+/* A genuinely short viewport may scroll its sidebar; normal desktop layouts do not. */
+@media (min-width: 900px) and (max-height: 650px) {
+  .role-sidebar { height: calc(100vh - 1rem); overflow-y: auto; }
+}

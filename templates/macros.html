@@ -28,6 +28,8 @@
   {% elif name == "gear" %}<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>
   {% elif name == "flag" %}<path d="M6 21V4M6 4h11l-2 4 2 4H6"/>
   {% elif name == "leaf" %}<path d="M5 19C5 10 10 5 20 4c0 10-5 15-14 15M5 19l7-7"/>
+  {% elif name == "stairs" %}<path d="M4 20h4v-4h4v-4h4V8h4V4"/><path d="M4 4v16"/>
+  {% elif name == "sequence" %}<rect x="3" y="4" width="5" height="5" rx="1"/><rect x="10" y="4" width="5" height="5" rx="1"/><rect x="17" y="4" width="4" height="5" rx="1"/><path d="M5.5 12v7M12.5 12v7M19 12v7M3 19h18"/>
   {% else %}<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>
   {% endif %}
 </svg>
@@ -92,5 +94,10 @@
 {%- elif signal == "glucose_avg" %}{{ value }} mg/dL
 {%- elif value < 60 %}{{ value }} min
 {%- else %}{{ value | hours }}{% endif -%}
+{% endmacro %}
+
+{# Draw a named icon beside a readable label for access and summary rows. #}
+{% macro pictogram(name, label) %}
+<span class="pictogram-label"><span class="pictogram-mark" aria-hidden="true">{{ icon(name) }}</span><span>{{ label }}</span></span>
 {% endmacro %}
 

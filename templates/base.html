@@ -18,7 +18,7 @@
   <!-- Show a small public header before entry, then the active workspace controls. -->
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href="{{ url_for('choose') if public_view else url_for(role_home) }}">Pair</a>
+      <a class="brand" href="{{ url_for('choose') if public_view else url_for(role_home) }}"><span class="brand-mark" aria-hidden="true">P</span><span>Pair</span></a>
       {% if public_view %}
         <nav class="public-nav" aria-label="Pair entry">
           <a href="{{ url_for('signin') }}">Sign in</a>
@@ -37,17 +37,20 @@
         {% endif %}
         <!-- Role switching explores sample workspaces; it is not authentication or consent. -->
         <div class="role-tools">
-          <p class="active-role">{{ demo_roles[demo_role] }} · {{ role_identity }}</p>
-          <form class="role-preview" method="post" action="{{ url_for('set_demo_role') }}">
-            <label for="demo-role">Switch view</label>
-            <select id="demo-role" name="role">
-              {% for key, label in demo_roles.items() %}
-                <option value="{{ key }}" {% if key == demo_role %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-            <button type="submit" class="btn-secondary">Switch view</button>
-            <p class="role-preview-note">Demo mode only. This does not verify a role or grant access to member information.</p>
-          </form>
+          <p class="active-role">{{ demo_roles[demo_role] }} <span aria-hidden="true">·</span> {{ role_identity }}</p>
+          <details class="role-switcher">
+            <summary>Switch view</summary>
+            <form class="role-preview" method="post" action="{{ url_for('set_demo_role') }}">
+              <label for="demo-role">Choose a sample workspace</label>
+              <select id="demo-role" name="role">
+                {% for key, label in demo_roles.items() %}
+                  <option value="{{ key }}" {% if key == demo_role %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn-secondary">Open workspace</button>
+            </form>
+          </details>
+          <p class="role-preview-note">Demo view only. Switching does not verify a role or grant information access.</p>
         </div>
       {% endif %}
     </div>

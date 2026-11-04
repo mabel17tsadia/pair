@@ -2,6 +2,7 @@
 {% from "macros.html" import theme_choices %}
 
 {% block content %}
+<div class="onboarding-page">
   <!-- Back button and progress dots for the four screens (not on the finish screen) -->
   {% if step <= 4 %}
     <div class="start-top">
@@ -89,4 +90,5 @@
     </section>
     <a class="btn-primary" href="{{ url_for('today') }}">Go to Today</a>
   {% endif %}
+</div>
 {% endblock %}

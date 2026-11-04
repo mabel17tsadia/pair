@@ -57,6 +57,7 @@ class PairExperienceTests(unittest.TestCase):
         page = self.client.get("/")
         self.assertEqual(page.status_code, 200)
         self.assertIn(b"Whose view would you like to explore?", page.data)
+        self.assertIn(b"brand-mark", page.data)
         self.assertNotIn(b"Choose a demo person", page.data)
         self.assertNotIn(b"Maya Chen", page.data)
         self.assertNotIn(b"Theo Okafor", page.data)
@@ -87,11 +88,16 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"Forgot password?", page.data)
         self.assertIn(b"Organization sign-in", page.data)
         self.assertIn(b"not submitted or checked", page.data)
+        self.assertIn(b"signin-layout", page.data)
+        self.assertIn(b"prototype-note", page.data)
         self.assertNotIn(b"Email me a link", page.data)
         self.assertNotIn(b'name="sign-in-email"', page.data)
         self.assertNotIn(b'name="sign-in-password"', page.data)
         self.assertIn(b"not connected", self.client.get("/forgot-password").data)
         self.assertIn(b"cannot verify an account", self.client.get("/signin/organization").data)
+        onboarding = self.client.get("/start/1")
+        self.assertIn(b"onboarding-page", onboarding.data)
+        self.assertIn(b"progress-dots", onboarding.data)
 
     # Do not allow direct links to another role's route to bypass the selected demo workspace.
     def test_cross_role_routes_redirect_to_active_workspace(self):
@@ -137,6 +143,12 @@ class PairExperienceTests(unittest.TestCase):
             self.assertIn(label, page.data)
         self.assertNotIn(b"Your usual average", page.data)
         self.assertNotIn(b"Last 5-day average", page.data)
+        plan_page = self.client.get("/my-plan")
+        self.assertIn(b"One thing at a time", plan_page.data)
+        self.assertIn(b"Show my full day", plan_page.data)
+        self.assertIn(b"pace-focus-icon", plan_page.data)
+        self.assertIn(b"pace-day-icon", plan_page.data)
+        self.assertIn(b"activity-pictogram", plan_page.data)
 
     # Keep the coach dashboard useful while excluding private and unrelated member details.
     def test_coach_dashboard_uses_learning_only_signals(self):
@@ -294,6 +306,8 @@ class PairExperienceTests(unittest.TestCase):
                       b"Wellness details", b"Health summary"]:
             self.assertIn(label, page.data)
         self.assertIn(b"access-pictogram", page.data)
+        self.assertIn(b"One-time snapshot", page.data)
+        self.assertIn(b"Packet access is time limited", page.data)
 
     # Explain pattern charts with pictograms, source names, plain-language comparisons and a legend.
     def test_patterns_explain_sources_and_usual_ranges(self):
@@ -438,6 +452,8 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(":focus-visible", css)
         self.assertIn("@media (max-width: 899px)", css)
         self.assertIn("@media (min-width: 900px)", css)
+        self.assertIn("@media (max-width: 767px)", css)
+        self.assertIn("@media (max-width: 480px)", css)
         self.assertIn("@media (prefers-reduced-motion: reduce)", css)
         self.assertIn(".workspace-shell", css)
         self.assertIn(".role-sidebar", css)
