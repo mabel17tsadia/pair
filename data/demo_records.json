@@ -1,0 +1,313 @@
+{
+  "member": {
+    "id": "member-jordan",
+    "name": "Jordan Reyes",
+    "role": "member",
+    "fictional": true
+  },
+  "professionals": [
+    {
+      "id": "coach-dana",
+      "name": "Dana Brooks",
+      "role": "life_coach",
+      "fictional": true
+    },
+    {
+      "id": "health-priya",
+      "name": "Dr. Priya Patel",
+      "role": "healthcare_professional",
+      "fictional": true
+    }
+  ],
+  "circle": [
+    {
+      "id": "coach-dana",
+      "name": "Dana Brooks",
+      "relationship": "Life coach",
+      "permission": "weekly_summary",
+      "status": "active",
+      "starts_on": "2026-10-01",
+      "expires_on": "2026-12-31"
+    },
+    {
+      "id": "health-priya",
+      "name": "Dr. Priya Patel",
+      "relationship": "Healthcare professional",
+      "permission": "selected_health_packet",
+      "status": "active",
+      "starts_on": "2026-10-01",
+      "expires_on": "2026-11-30"
+    },
+    {
+      "id": "circle-lee",
+      "name": "Morgan Lee",
+      "relationship": "Sibling",
+      "permission": "celebrations_only",
+      "status": "active",
+      "starts_on": "2026-10-01",
+      "expires_on": null
+    },
+    {
+      "id": "circle-avery",
+      "name": "Avery Kim",
+      "relationship": "Friend",
+      "permission": "none",
+      "status": "invited",
+      "starts_on": null,
+      "expires_on": null
+    }
+  ],
+  "activities": [
+    {
+      "id": "activity-coach-01",
+      "title": "Practice a simple meal",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "scheduled_for": "2026-11-05T16:00:00-07:00",
+      "due_on": "2026-11-05",
+      "estimated_minutes": 25,
+      "status": "in_progress",
+      "next_action": "Continue with step 2",
+      "objective": "Practice preparing a simple meal safely",
+      "steps": [
+        {
+          "order": 1,
+          "instruction": "Choose a meal you would like to make."
+        },
+        {
+          "order": 2,
+          "instruction": "Gather the ingredients and tools."
+        },
+        {
+          "order": 3,
+          "instruction": "Follow the recipe one step at a time."
+        }
+      ]
+    },
+    {
+      "id": "activity-coach-02",
+      "title": "Plan a bus trip",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "scheduled_for": "2026-11-06T10:00:00-07:00",
+      "due_on": "2026-11-06",
+      "estimated_minutes": 20,
+      "status": "not_started",
+      "next_action": "Open the route information",
+      "objective": "Practice planning a familiar trip",
+      "steps": [
+        {
+          "order": 1,
+          "instruction": "Choose the place you want to visit."
+        },
+        {
+          "order": 2,
+          "instruction": "Check the bus route and times."
+        },
+        {
+          "order": 3,
+          "instruction": "Write down where you will get on and off."
+        }
+      ]
+    },
+    {
+      "id": "activity-coach-03",
+      "title": "Practice a laundry routine",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "scheduled_for": "2026-11-08T11:00:00-07:00",
+      "due_on": "2026-11-08",
+      "estimated_minutes": 30,
+      "status": "not_started",
+      "next_action": "Gather clothes and supplies",
+      "objective": "Practice the steps in a laundry routine",
+      "steps": [
+        {
+          "order": 1,
+          "instruction": "Gather clothes for one load."
+        },
+        {
+          "order": 2,
+          "instruction": "Add the clothes and detergent."
+        },
+        {
+          "order": 3,
+          "instruction": "Choose a cycle and start the machine."
+        }
+      ]
+    },
+    {
+      "id": "activity-member-01",
+      "title": "Tidy my desk",
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "scheduled_for": "2026-11-05T18:00:00-07:00",
+      "due_on": "2026-11-05",
+      "estimated_minutes": 10,
+      "status": "not_started",
+      "next_action": "Clear one small area",
+      "objective": "Make the desk easier to use",
+      "steps": [
+        {
+          "order": 1,
+          "instruction": "Choose one small area of the desk."
+        },
+        {
+          "order": 2,
+          "instruction": "Put away items you want to keep."
+        }
+      ]
+    },
+    {
+      "id": "activity-member-02",
+      "title": "Choose music for tomorrow",
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "scheduled_for": "2026-11-06T19:00:00-07:00",
+      "due_on": "2026-11-06",
+      "estimated_minutes": 5,
+      "status": "completed",
+      "next_action": "No next step",
+      "objective": "Pick music for a preferred activity",
+      "steps": [
+        {
+          "order": 1,
+          "instruction": "Open your music app."
+        },
+        {
+          "order": 2,
+          "instruction": "Save a song or playlist you like."
+        }
+      ]
+    }
+  ],
+  "health_follow_ups": [
+    {
+      "id": "follow-up-01",
+      "packet_id": "packet-upcoming",
+      "source_id": "health-priya",
+      "source_name": "Dr. Priya Patel",
+      "instruction": "Bring your questions about sleep to your next appointment.",
+      "due_on": "2026-11-12",
+      "status": "proposed",
+      "supporting_detail": "A member-selected sleep pattern from the phone demo data."
+    },
+    {
+      "id": "follow-up-02",
+      "packet_id": "packet-upcoming",
+      "source_id": "health-priya",
+      "source_name": "Dr. Priya Patel",
+      "instruction": "Ask the clinic which follow-up time works for you.",
+      "due_on": "2026-11-10",
+      "status": "question_asked",
+      "supporting_detail": "Fictional follow-up suggestion; no appointment has been booked."
+    },
+    {
+      "id": "follow-up-03",
+      "packet_id": "packet-completed",
+      "source_id": "health-priya",
+      "source_name": "Dr. Priya Patel",
+      "instruction": "Write down any questions before your next visit.",
+      "due_on": "2026-11-18",
+      "status": "accepted",
+      "supporting_detail": "Member-reviewed fictional next step."
+    }
+  ],
+  "check_ins": [
+    {
+      "id": "checkin-01",
+      "member_id": "member-jordan",
+      "date": "2026-11-01",
+      "feeling": "calm",
+      "help_choice": "nothing_right_now",
+      "visibility": "private"
+    },
+    {
+      "id": "checkin-02",
+      "member_id": "member-jordan",
+      "date": "2026-11-02",
+      "feeling": "okay",
+      "help_choice": "quiet_break",
+      "visibility": "private"
+    },
+    {
+      "id": "checkin-03",
+      "member_id": "member-jordan",
+      "date": "2026-11-03",
+      "feeling": "tired",
+      "help_choice": "smaller_step",
+      "visibility": "private"
+    },
+    {
+      "id": "checkin-04",
+      "member_id": "member-jordan",
+      "date": "2026-11-04",
+      "feeling": "okay",
+      "help_choice": "nothing_right_now",
+      "visibility": "private"
+    }
+  ],
+  "connected_sources": [
+    {
+      "id": "source-phone",
+      "member_id": "member-jordan",
+      "kind": "phone",
+      "signals": [
+        "daily steps",
+        "phone activity"
+      ],
+      "consent": "optional_demo_consent",
+      "status": "simulated_connected",
+      "fictional": true
+    },
+    {
+      "id": "source-sleep",
+      "member_id": "member-jordan",
+      "kind": "sleep_pattern",
+      "signals": [
+        "approximate sleep duration"
+      ],
+      "consent": "optional_demo_consent",
+      "status": "simulated_connected",
+      "fictional": true
+    }
+  ],
+  "appointment_packets": [
+    {
+      "id": "packet-upcoming",
+      "member_id": "member-jordan",
+      "appointment_type": "Primary care",
+      "appointment_on": "2026-11-12T14:30:00-07:00",
+      "status": "upcoming",
+      "recipient_id": "health-priya",
+      "review_status": "member_reviewed_demo_only",
+      "access_expires_on": "2026-11-13",
+      "selected_items": [
+        {
+          "label": "Sleep pattern summary",
+          "source": "Simulated phone data"
+        },
+        {
+          "label": "Questions for the visit",
+          "source": "Jordan Reyes"
+        }
+      ]
+    },
+    {
+      "id": "packet-completed",
+      "member_id": "member-jordan",
+      "appointment_type": "Primary care follow-up",
+      "appointment_on": "2026-10-20T09:00:00-07:00",
+      "status": "completed",
+      "recipient_id": "health-priya",
+      "review_status": "completed_demo_only",
+      "access_expires_on": "2026-10-21",
+      "selected_items": [
+        {
+          "label": "Questions about daily routines",
+          "source": "Jordan Reyes"
+        }
+      ]
+    }
+  ]
+}

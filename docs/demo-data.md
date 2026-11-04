@@ -37,6 +37,8 @@ These are logical fields to guide a later data model, not a mandate to add a dat
 
 The repository currently has CSVs for people, signals, devices, vitals, check-ins, circle members, goals, and routines. They currently include Jordan, Maya, and Theo; the target four-circle-member and activity / appointment counts above are not all represented. Do not replace or rewrite the current CSVs as part of documentation work. Current session changes do not persist back to the CSVs.
 
+The Prompt 6 target records are in [`data/demo_records.json`](../data/demo_records.json). [`demo_data.py`](../demo_data.py) exposes them as typed record groups through `DemoDataProvider`; the current JSON provider can be replaced by an API or database provider implementing the same `load()` interface. Existing screens continue to use the original CSV-backed `data.py` functions until their individual feature prompts connect them to these records. The JSON fixture is fictional, simulated demo content and is not connected to a real person or service.
+
 ## Privacy and demo behavior
 
 Keep check-in notes private. Do not place real personal data or credentials in the repository. Clearly label simulated readings and prototype-only sharing. Never imply that a demo packet, activity, or sharing confirmation was delivered to a real person.
