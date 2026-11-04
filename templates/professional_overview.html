@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Identify the clinician workspace and summarize only authorized workflow metadata. -->
+  <header class="workspace-heading">
+    <p class="eyebrow">Healthcare workspace · Dr. Priya Patel</p>
+    <h1>Professional Overview</h1>
+    <p>Review the packets members chose to share and propose next steps for their review.</p>
+  </header>
+
+  <!-- Show packet and follow-up counts without exposing information beyond those packets. -->
+  <section class="summary-grid" aria-label="Professional workflow summary">
+    <article class="card summary-card"><p class="eyebrow">New appointment packets</p><strong>{{ packets | length }}</strong><a href="{{ url_for('professional_packets') }}">Shared by members and awaiting your review</a></article>
+    <article class="card summary-card"><p class="eyebrow">Follow-ups awaiting member action</p><strong>{{ actions | selectattr('status', 'equalto', 'proposed') | list | length }}</strong><a href="{{ url_for('professional_next_steps') }}">Review proposed next steps</a></article>
+    <article class="card summary-card"><p class="eyebrow">Access expiring within 14 days</p><strong>{{ expiring_count }}</strong><span>Authorized packet access</span></article>
+    <article class="card summary-card"><p class="eyebrow">Completed packet reviews</p><strong>{{ completed_reviews }}</strong><span>Program demo summary only</span></article>
+  </section>
+
+  <!-- List currently authorized packets with a direct route to their limited contents. -->
+  <section class="card" aria-labelledby="professional-packets-title">
+    <h2 id="professional-packets-title">Shared Appointment Packets</h2>
+    {% for packet in packets %}
+      <article class="role-list-row"><div><h3>{{ packet.appointment_type }}</h3><p>{{ packet.appointment_on[:10] | long_day }} · Jordan Reyes · Access through {{ packet.access_expires_on | long_day }}</p></div><a class="btn-secondary" href="{{ url_for('professional_packet', packet_id=packet.id) }}">Review packet</a></article>
+    {% else %}<p>No appointment packets are currently shared with this demonstration account.</p>{% endfor %}
+  </section>
+
+  <!-- Keep proposed next steps distinct from accepted member actions. -->
+  <section class="card" aria-labelledby="professional-followup-title">
+    <h2 id="professional-followup-title">Proposed Next Steps</h2>
+    {% for action in actions %}
+      <article class="role-list-row"><div><h3>{{ action.instruction }}</h3><p>Submitted by {{ action.source_name }} · {{ action.status.replace("_", " ").capitalize() }}</p></div></article>
+    {% else %}<p>No follow-up actions are linked to a currently authorized packet.</p>{% endfor %}
+    <a class="text-link" href="{{ url_for('professional_next_steps') }}">Open Proposed Next Steps</a>
+  </section>
+
+  <!-- State the packet-only boundary for professional access. -->
+  <p class="privacy-note">You can view only the information in a member-submitted packet during its authorization period. This workspace does not open full accounts, Circle details, raw device history, or unrelated health information.</p>
+{% endblock %}

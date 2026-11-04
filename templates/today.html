@@ -1,148 +1,94 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, signal_value, week_card, initials, mood_emoji %}
-
-{% block main_class %}dashboard{% endblock %}
+{% from "macros.html" import icon, mood_emoji %}
 
 {% block content %}
-  <!-- Greeting banner (laptops only): "Hi Jordan" and the date over a simple mountain scene:
-       a far range, a near peak with a snow cap, and a small gold flag on top -->
-  <section class="banner desktop-only">
-    <svg class="banner-art" viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-      <rect class="sky" width="1200" height="200"/>
-      <path class="far" d="M0 200 V170 L250 150 L420 162 L640 105 L760 135 L880 95 L1040 140 L1200 110 V200 Z"/>
-      <path class="near" d="M600 200 L780 130 L840 150 L960 75 L1200 200 Z"/>
-      <path class="snow" d="M960 75 L933 92 L948 89 L961 97 L974 89 L994 92 Z"/>
-      <line class="pole" x1="960" y1="75" x2="960" y2="45"/>
-      <path class="flag" d="M960 45 L988 52 L960 59 Z"/>
-    </svg>
-    <div class="banner-text">
-      <p class="banner-greeting">Hi {{ person.first_name }}</p>
-      <p>{{ day }}</p>
-    </div>
+  <!-- Welcome Jordan and orient the page around a manageable next step. -->
+  <section class="member-welcome">
+    <p class="eyebrow">Pair member · {{ person.first_name }} {{ person.last_name }}</p>
+    <h1>Hi {{ person.first_name }}. What feels like a good next step?</h1>
+    <p>{{ day }} · Your choices and information stay under your control.</p>
   </section>
 
-  <!-- Greeting and date on phones (on laptops the banner shows them instead) -->
-  <div class="phone-only">
-    <h1>Hi {{ person.first_name }}</h1>
-    <p class="note">{{ day }}</p>
-  </div>
+  <!-- Make one activity the clearest action and keep its next step visible. -->
+  <section class="card member-next-action">
+    <p class="eyebrow">Your next action</p>
+    {% if next_action_activity %}
+      <h2>{{ next_action_activity.title }}</h2>
+      <p>{{ next_action_activity.next_action }} · About {{ next_action_activity.estimated_minutes }} minutes</p>
+      <a class="btn-primary" href="{{ url_for('activity_detail', activity_id=next_action_activity.id) }}">Open this activity</a>
+    {% else %}
+      <h2>Choose a small step when you are ready</h2>
+      <p>Your plan is clear for now.</p>
+      <a class="btn-primary" href="{{ url_for('plan') }}">Open My Plan</a>
+    {% endif %}
+  </section>
 
-  <!-- Two columns on laptops (one on phones): Pair's cards on the left, circle and last check in on the right -->
-  <div class="dashboard-grid">
-    <!-- Left column (all of Today on phones) -->
-    <div>
-      <!-- Your week: the status in large text; its colour shows how much changed (never red) -->
-      {{ week_card("Your week", patterns.status) }}
+  <!-- Summarize today, next and later without copying the full plan onto Home. -->
+  <section class="member-dashboard-grid" aria-label="Plan overview">
+    <article class="card">
+      <h2>Today</h2>
+      {% if today_activities %}
+        <p>{{ today_activities | length }} activity{{ "ies" if today_activities | length != 1 else "" }} in your plan.</p>
+        <a class="text-link" href="{{ url_for('plan', time='today') }}">See today's plan</a>
+      {% else %}<p>No activities are scheduled for today.</p>{% endif %}
+    </article>
+    <article class="card">
+      <h2>Up next</h2>
+      {% if next_activity %}<p>{{ next_activity.title }} · {{ next_activity.due_on | long_day }}</p>
+      {% else %}<p>Nothing else is scheduled soon.</p>{% endif %}
+      <a class="text-link" href="{{ url_for('plan', time='this_week') }}">Open My Plan</a>
+    </article>
+    <article class="card">
+      <h2>Later</h2>
+      {% if later_activity %}<p>{{ later_activity[0].title }} · {{ later_activity[0].due_on | long_day }}</p>
+      {% else %}<p>Your later activities are ready when you need them.</p>{% endif %}
+      <a class="text-link" href="{{ url_for('plan', time='later') }}">See later activities</a>
+    </article>
+  </section>
 
-      <!-- My climb: a mini mountain and how many flags are reached (the whole card links to My climb);
-           with no goals yet, an empty mountain and a button to add the first goal -->
-      {% if climb.total %}
-        <a class="card climb-mini" href="{{ url_for('climb') }}">
-          {% include "partials/climb_mountain.html" %}
-          <span><strong>My climb</strong><br>{{ climb.reached }} of {{ climb.total }} flags</span>
-        </a>
-      {% else %}
-        <section class="card climb-mini">
-          {% include "partials/climb_mountain.html" %}
-          <span><strong>My climb</strong><br>
-            <a class="btn-secondary" href="{{ url_for('climb') }}#add-goal">Add a first goal</a></span>
-        </section>
-      {% endif %}
-
-      <!-- What Pair noticed: a short summary (AI or rules, with a tiny label saying which), then
-           one row per change with its icon, usual and recent values (no rows on a steady week) -->
-      {% set icons = {"sleep_min": "moon", "steps": "footprints", "late_screen_min": "phone",
-                      "unlocks": "phone", "time_out_min": "door"} %}
-      {% set written_by = "Written with AI" if week.source == "ai" else "Written by rules" %}
-      <section class="card">
-        <h2>What Pair noticed</h2>
-        <p class="week-summary">{{ week.summary }}</p>
-        <p class="note">{{ written_by }}</p>
-        {% if patterns.status not in ["Still learning your usual", "Steady week"] %}
-          <ul class="noticed">
-            {% for c in patterns.changes %}
-              <li>
-                {{ icon(icons[c.signal]) }}
-                <div>
-                  <strong>{{ c.words }}</strong><br>
-                  <span class="note">Usual {{ signal_value(c.signal, c.usual) }}. Last 5 days {{ signal_value(c.signal, c.recent) }}.</span>
-                </div>
-              </li>
-            {% endfor %}
-          </ul>
-        {% endif %}
-        <a class="text-link" href="{{ url_for('patterns') }}">See my patterns</a>
-      </section>
-
-      <!-- Body signals (only if a ring, watch or glucose monitor is paired): one sentence each and a
-           link to My body signals. They never change the week status. -->
-      {% if body_signals %}
-        <section class="card">
-          <h2>Body signals</h2>
-          <ul class="noticed">
-            {% for v in body_signals %}<li>{{ icon("heart" if v.signal == "resting_hr" else "health device") }} {{ v.sentence }}</li>{% endfor %}
-          </ul>
-          <a class="text-link" href="{{ url_for('body') }}">See my body signals</a>
-        </section>
-      {% endif %}
-
-      <!-- Positive notes as soft cards -->
-      {% for note in patterns.positive_notes %}
-        <section class="card soft-card">
-          <p class="icon-line">{{ icon("footprints") }} {{ note }}</p>
-        </section>
-      {% endfor %}
-
-      <!-- Routine notes as soft cards (for now only laundry), with a button that opens the Laundry routine -->
-      {% for note in patterns.routine_notes %}
-        <section class="card soft-card">
-          <p class="icon-line">{{ icon("calendar") }} {{ note }}</p>
-          {% if laundry_index is not none %}
-            <a class="btn-secondary" href="{{ url_for('routine_steps', index=laundry_index) }}">Show me the steps</a>
-          {% endif %}
-        </section>
-      {% endfor %}
-
-      <!-- One gentle step: one small suggestion from the person's own calms list, with the same label -->
-      <section class="card">
-        <h2>One gentle step</h2>
-        <p class="icon-line">{{ icon("heart") }} {{ week.gentle_step }}</p>
-        <p class="note">{{ written_by }}</p>
-      </section>
-
-      <!-- Two buttons: check in, or preview what to share with the trust circle -->
-      <div class="actions">
-        <a class="btn-primary" href="{{ url_for('checkin') }}">Check in now</a>
-        <a class="btn-secondary" href="{{ url_for('share') }}">Share with my circle</a>
-      </div>
-
-      <!-- What Pair is and is not -->
-      <p class="note">Pair describes changes. It does not diagnose. You decide what to do.</p>
+  <!-- Keep pattern details private on Home and link to the detailed Health Patterns page. -->
+  <section class="card member-pattern-summary">
+    <div><p class="eyebrow">Private pattern notice</p>
+      <h2>A short summary, for you</h2><p>{{ week.summary }}</p>
+      <p class="note">{{ "Adapted with AI" if week.source == "ai" else "Using built-in guidance" }} · Pair does not diagnose.</p>
     </div>
+    <a class="btn-secondary" href="{{ url_for('patterns') }}">Open Patterns</a>
+  </section>
 
-    <!-- Right column (laptops only) -->
-    <aside class="desktop-only">
-      <!-- My trust circle: initials of each person and a link to the Circle page -->
-      <section class="card">
-        <h2>My trust circle</h2>
-        <div class="initials-row">
-          {% for c in circle %}{{ initials(c.name) }}{% endfor %}
-          <span class="visually-hidden">{{ circle | map(attribute="name") | join(", ") }}</span>
-        </div>
-        <a class="btn-secondary" href="{{ url_for('circle') }}">Open my circle</a>
-      </section>
+  <!-- Keep My Climb focused on Jordan's own progress, never comparisons with other members. -->
+  <section class="member-dashboard-grid">
+    <article class="card climb-home-card">
+      {% include "partials/climb_mountain.html" %}
+      <div><p class="eyebrow">My Climb</p>
+        {% if climb.total %}<h2>{{ climb.reached }} of {{ climb.total }} steps reached</h2>
+        {% else %}<h2>Your personal goals start here</h2>{% endif %}
+        <p>Small steps toward day-to-day independence. This progress is yours alone.</p>
+        <a class="text-link" href="{{ url_for('climb') }}">Open My Climb</a>
+      </div>
+    </article>
+    <article class="card">
+      <p class="eyebrow">My Circle</p><h2>{{ circle | length }} people in your circle</h2>
+      <p>You choose what each person can see.</p><a class="text-link" href="{{ url_for('circle') }}">Review sharing choices</a>
+    </article>
+  </section>
 
-      <!-- Last check in: the newest one saved, or a link to check in -->
-      <section class="card">
-        <h2>Last check in</h2>
-        {% if last_checkin %}
-          <p>{{ mood_emoji(last_checkin.feeling) }} <strong>{{ last_checkin.feeling }}</strong> · {{ last_checkin.time }}</p>
-          {% if last_checkin.note %}<p>{{ last_checkin.note }}</p>{% endif %}
-        {% else %}
-          <p>No check in yet today.</p>
-        {% endif %}
-        <a class="text-link" href="{{ url_for('checkin') }}">Check in</a>
-      </section>
-    </aside>
-  </div>
+  <!-- Show a private check-in reminder without revealing any optional note. -->
+  <section class="member-dashboard-grid">
+    <article class="card">
+      <p class="eyebrow">Last Check In</p>
+      {% if last_checkin %}<h2>{{ mood_emoji(last_checkin.feeling) }} {{ last_checkin.feeling }}</h2><p>{{ last_checkin.date | long_day }} · Private to you</p>
+      {% else %}<h2>No check-in yet</h2><p>Check-ins stay private unless you choose to share one.</p>{% endif %}
+      <a class="btn-secondary" href="{{ url_for('checkin') }}">Check In</a>
+    </article>
+    {% if upcoming_appointment %}
+      <article class="card">
+        <p class="eyebrow">Upcoming appointment</p><h2>{{ upcoming_appointment.appointment_type }}</h2>
+        <p>{{ upcoming_appointment.date_label }} · Shared packet access ends {{ upcoming_appointment.access_expires_on | long_day }}</p>
+        <a class="text-link" href="{{ url_for('health') }}">Open Health</a>
+      </article>
+    {% endif %}
+  </section>
+
+  <!-- Keep the member-controlled health disclaimer visible but quiet. -->
+  <p class="note">Pair describes information and learning steps. It does not diagnose. You choose what to do and what to share.</p>
 {% endblock %}

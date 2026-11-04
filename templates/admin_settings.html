@@ -1,10 +1,22 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <!-- Organization Settings does not expose member or healthcare controls to this demo role. -->
-  <h1>Organization Settings</h1>
+  <!-- Identify the organization and explain that changes are a local demo only. -->
+  <header class="workspace-heading"><p class="eyebrow">Organization administrator · Alex Morgan</p><h1>Organization Settings</h1><p>{{ organization.name }} · Preferences are stored in this browser session only.</p></header>
+
+  <!-- Save a few fictional organization-wide review preferences without external effects. -->
   <section class="card">
-    <p>Organization-wide controls are not available in this demo.</p>
-    <p class="note">Member settings, health sources, appointment packets, and Circle permissions remain member controlled. The role preview does not grant account or organization access.</p>
+    <form method="post">
+      <label for="access-review">Access review schedule</label>
+      <select id="access-review" name="access_review"><option {% if settings.access_review == "Quarterly" %}selected{% endif %}>Quarterly</option><option {% if settings.access_review == "Monthly" %}selected{% endif %}>Monthly</option></select>
+      <label for="invitation-expiry">Invitation expiry</label>
+      <select id="invitation-expiry" name="invitation_expiry"><option {% if settings.invitation_expiry == "14 days" %}selected{% endif %}>14 days</option><option {% if settings.invitation_expiry == "7 days" %}selected{% endif %}>7 days</option></select>
+      <label for="template-review">Activity template review</label>
+      <select id="template-review" name="template_review"><option {% if settings.template_review == "Before publication" %}selected{% endif %}>Before publication</option><option {% if settings.template_review == "Quarterly" %}selected{% endif %}>Quarterly</option></select>
+      <button type="submit" class="btn-primary">Save demo settings</button>
+    </form>
   </section>
+
+  <!-- Prominently preserve the boundary between account management and member content. -->
+  <p class="privacy-note">Role assignment grants product capabilities, not access to individual member content. These settings cannot open member Check Ins, health patterns, appointment packets, activity answers, private notes, or Circle content.</p>
 {% endblock %}

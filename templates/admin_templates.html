@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Name this view as governance for approved reusable activity templates. -->
+  <header class="workspace-heading"><p class="eyebrow">First Place demonstration program · Alex Morgan</p><h1>Activity Template Governance</h1><p>Review reusable activity templates approved for program use.</p></header>
+
+  <!-- Show activity learning objectives and steps, never learner responses or progress. -->
+  <section class="card" aria-label="Approved activity templates">
+    <p class="eyebrow">{{ organization.approved_template_count }} approved templates in the sample program</p>
+    {% for activity in templates %}
+      <article class="role-list-row"><div><h2>{{ activity.title }}</h2><p>{{ activity.objective }}</p></div><span class="status-label">Approved sample</span></article>
+    {% endfor %}
+  </section>
+
+  <!-- State that template governance grants no access to individual learner information. -->
+  <p class="privacy-note">This workspace does not show activity answers, completion details, private notes, Check Ins, health information, packets, or Circle content.</p>
+{% endblock %}

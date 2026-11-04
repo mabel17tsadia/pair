@@ -54,9 +54,10 @@ ROLE_NAVIGATION = {
         ("Overview", "coach", "wave", ["coach"]),
         ("Learners", "coach_learners", "people", ["coach_learners", "coach_learner", "coach_assign"]),
         ("Activity Library", "coach_library", "book", ["coach_library"]),
-        ("Coach Settings", "coach_settings", "gear", ["coach_settings"]),
+        ("Settings", "coach_settings", "gear", ["coach_settings"]),
     ],
     "healthcare": [
+        ("Overview", "professional_overview", "sun", ["professional_overview"]),
         ("Shared Appointment Packets", "professional_packets", "clipboard",
          ["professional_packets", "professional_packet"]),
         ("Proposed Next Steps", "professional_next_steps", "flag", ["professional_next_steps"]),
@@ -68,17 +69,20 @@ ROLE_NAVIGATION = {
         ("Support Settings", "trusted_settings", "gear", ["trusted_settings"]),
     ],
     "admin": [
-        ("Accounts", None, "people", []), ("Verify Roles", None, "check", []),
-        ("Invitations", None, "clipboard", []), ("Org Settings", "admin_settings", "home", ["admin_settings"]),
-        ("Access Logs", None, "wave", []), ("Templates", None, "book", []),
+        ("Overview", "admin_overview", "sun", ["admin_overview"]),
+        ("People and Roles", "admin_people", "people", ["admin_people"]),
+        ("Invitations", "admin_invitations", "clipboard", ["admin_invitations"]),
+        ("Consent and Audit", "admin_consent", "check", ["admin_consent"]),
+        ("Activity Templates", "admin_templates", "book", ["admin_templates"]),
+        ("Organization Settings", "admin_settings", "home", ["admin_settings"]),
     ],
 }
 ROLE_IDENTITIES = {"member": "Jordan Reyes", "coach": "Dana Brooks",
                    "healthcare": "Dr. Priya Patel", "trusted": "Marisol Reyes",
                    "admin": "Alex Morgan"}
 ROLE_HOME_ENDPOINTS = {"member": "today", "coach": "coach",
-                       "healthcare": "professional_packets", "trusted": "trusted",
-                       "admin": "admin_settings"}
+                       "healthcare": "professional_overview", "trusted": "trusted",
+                       "admin": "admin_overview"}
 ROLE_CARDS = [
     {"key": "member", "label": "Pair member", "identity": "Jordan Reyes", "icon": "user",
      "description": "Explore your plan, check in, prepare for health visits, and choose what to share."},
@@ -103,10 +107,11 @@ ROLE_ENDPOINTS = {
                "stop_pairing", "set_celebrations", "save_theme", "google.login", "google.callback",
                "google.disconnect", "google.test"},
     "coach": {"coach", "coach_learners", "coach_learner", "coach_assign", "coach_library", "coach_settings"},
-    "healthcare": {"professional_packets", "professional_packet", "professional_next_steps",
+    "healthcare": {"professional_overview", "professional_packets", "professional_packet", "professional_next_steps",
                    "professional_settings"},
     "trusted": {"trusted", "trusted_encouragement", "trusted_settings"},
-    "admin": {"admin_settings"},
+    "admin": {"admin_overview", "admin_people", "admin_invitations", "admin_consent",
+              "admin_templates", "admin_settings"},
 }
 HEALTH_ENDPOINTS = {
     "health", "health_packets", "health_packet", "health_next_steps", "health_follow_up_action",
@@ -164,12 +169,17 @@ def add_settings():
     demo_role = session.get("demo_role", "member")
     if demo_role not in DEMO_ROLES:
         demo_role = "member"
+    identity = ROLE_IDENTITIES[demo_role]
+    if demo_role == "member":
+        person = current_person()
+        if person:
+            identity = f"{person['first_name']} {person['last_name']}".strip()
     return {"themes": THEMES,
             # Old saved theme names are mapped to their closest new theme
             "theme": theme if theme in THEMES else "ocean",
             "demo_role": demo_role, "demo_roles": DEMO_ROLES,
             "role_navigation": ROLE_NAVIGATION[demo_role],
-            "role_identity": ROLE_IDENTITIES[demo_role],
+            "role_identity": identity,
             "role_home": ROLE_HOME_ENDPOINTS[demo_role],
             "public_view": request.endpoint in {"choose", "signin", "forgot_password",
                                                  "organization_signin", "start_begin", "start", "terms"},
@@ -450,6 +460,26 @@ def clear_circle_snapshot(person_id, name):
 
 # Return only one-time snapshots explicitly shared with a family member or friend.
 def trusted_shared_contacts(person):
+    sample_view = session.get("demo_role") == "trusted" or (
+        session.get("demo_role") == "member" and request.args.get("preview") == "member")
+    if sample_view and not session.get("trusted_summary_revoked"):
+        records = load_demo_data()
+        sample = records.get("trusted_summary", {})
+        today = data.get_today()
+        member = next((item for item in circle_for(person)
+                       if item["name"] == sample.get("recipient_name")
+                       and item["member_type"] in ["family", "friend"]
+                       and item["access"] == "summary"), None)
+        snapshots = session.get("circle_shared_snapshots", {}).get(person["id"], {})
+        snapshot = snapshots.get(sample.get("recipient_name"))
+        if not snapshot and (sample.get("member_id") == records.get("member", {}).get("id")
+                             and sample.get("starts_on", "0000-00-00") <= today <= sample.get("expires_on", "0000-00-00")):
+            snapshot = {"member_name": sample["member_name"], "access": "summary",
+                        "shared_on": sample["shared_on"], "items": sample["items"],
+                        "starts_on": sample["starts_on"], "expires_on": sample["expires_on"],
+                        "permission": sample["permission"]}
+        if member and snapshot and snapshot.get("access") == "summary":
+            return [{**member, "snapshot": snapshot}]
     snapshots = session.get("circle_shared_snapshots", {}).get(person["id"], {})
     contacts = []
     for member in circle_for(person):
@@ -518,7 +548,7 @@ def set_demo_role():
     role = request.form.get("role")
     if role in DEMO_ROLES:
         session["demo_role"] = role
-        if role == "member":
+        if role in ["member", "trusted"]:
             session["person_id"] = load_demo_data()["member"]["application_person_id"]
         flash(f"Demo view: {ROLE_IDENTITIES[role]} · {DEMO_ROLES[role]}. This does not verify identity or grant access to real member information.")
         return redirect(url_for(ROLE_HOME_ENDPOINTS[role]))
@@ -633,12 +663,43 @@ def today():
     # The Laundry routine, opened from the "No laundry" note (None if this person has none)
     laundry = next((i for i, r in enumerate(routines_for(person)) if r["routine"] == "Laundry"), None)
     patterns = get_patterns(pid, devices_for(person))
+    records = load_demo_data()
+    demo_member = pid == records["member"]["application_person_id"]
+    activities = records["activities"] + session.get("coach_assignments", {}).get(pid, []) if demo_member else []
+    home_records = {**records, "activities": activities,
+                    "health_follow_ups": health_follow_ups_for(person, records) if demo_member else []}
+    today_activities = plan_activities(home_records, data.get_today(), "today", "all",
+                                       session.get("activity_progress", {}))
+    week_activities = plan_activities(home_records, data.get_today(), "this_week", "all",
+                                      session.get("activity_progress", {}))
+    today_ids = {item["id"] for item in today_activities}
+    next_activity = next((item for item in week_activities
+                          if item["id"] not in today_ids and item["status"] != "completed"), None)
+    later_activity = plan_activities(home_records, data.get_today(), "later", "all",
+                                     session.get("activity_progress", {}))
+    later_activity = [item for item in later_activity if item["status"] != "completed"]
+    next_action_activity = next((item for item in today_activities if item["status"] != "completed"),
+                                next_activity or (later_activity[0] if later_activity else None))
+    upcoming = next((item for item in records["appointment_packets"]
+                     if item["member_id"] == records["member"]["id"] and item["status"] == "upcoming"), None) if demo_member else None
+    if upcoming:
+        appointment_date = datetime.fromisoformat(upcoming["appointment_on"])
+        upcoming = {**upcoming, "date_label": f"{appointment_date:%A}, {appointment_date:%B} {appointment_date.day}"}
+    history = data.get_checkins(pid)
+    history += [{"date": item["date"], "mood": item["feeling"].lower(), "note": ""}
+                for item in session.get("checkins", []) if item.get("person_id") == pid]
+    last_checkin = max(history, key=lambda item: item["date"]) if history else None
+    if last_checkin:
+        last_checkin = {"feeling": str(last_checkin.get("feeling", last_checkin.get("mood", "Okay")).capitalize()),
+                        "date": last_checkin["date"], "time": "Private check-in"}
     return render_template("today.html", title="Today", person=person, climb=climb_for(person),
                            day=f"{d:%A} {d.day} {d:%B}", patterns=patterns,
                            week=week_text(person, patterns),
-                           body_signals=get_body_signals(pid, devices_for(person)),
                            laundry_index=laundry, circle=circle_for(person),
-                           last_checkin=checkins[-1] if checkins else None)
+                           last_checkin=last_checkin, today_activities=today_activities,
+                           next_activity=next_activity, later_activity=later_activity[:1],
+                           next_action_activity=next_action_activity,
+                           upcoming_appointment=upcoming)
 
 
 # My Plan: show the Jordan demo activities and accepted Health follow-ups through the shared data provider.
@@ -759,6 +820,25 @@ def professional_authorized_packets():
             and packet["recipient_id"] == DEMO_HEALTHCARE_PROFESSIONAL_ID
             and packet["review_status"] == "member_reviewed_demo_only"
             and packet.get("authorization_starts_on", "0000-00-00") <= today <= packet["access_expires_on"]]
+
+
+# Summarize currently authorized packets and proposed actions without expanding packet contents.
+@app.route("/professional")
+def professional_overview():
+    records = load_demo_data()
+    packets = professional_authorized_packets()
+    packet_ids = {packet["id"] for packet in packets}
+    member = data.get_person(records["member"]["application_person_id"])
+    actions = [item for item in health_follow_ups_for(member, records)
+               if item.get("packet_id") in packet_ids]
+    today = date.fromisoformat(data.get_today())
+    expiring = [item for item in packets
+                if date.fromisoformat(item["access_expires_on"]) <= today + timedelta(days=14)]
+    completed_reviews = sum(item.get("review_status") == "completed_demo_only"
+                            for item in records["appointment_packets"])
+    return render_template("professional_overview.html", title="Professional Overview",
+                           packets=packets, actions=actions, expiring_count=len(expiring),
+                           completed_reviews=completed_reviews)
 
 
 # List new member-shared packets that are still inside their authorization period.
@@ -951,7 +1031,8 @@ def activity_detail(activity_id):
         elif action == "next" and step_number < len(activity["steps"]):
             step_number += 1
         elif action == "next":
-            activity_progress.update(status="completed", next_action="No next step")
+            activity_progress.update(status="completed", next_action="No next step",
+                                     completed_on=data.get_today())
             flash(f"You finished {activity['title']}.")
             progress[activity_id] = activity_progress
             session["activity_progress"] = progress
@@ -963,6 +1044,16 @@ def activity_detail(activity_id):
 
         if activity_progress.get("status") != "completed":
             activity_progress["next_action"] = f"Continue with step {step_number}"
+        request_labels = {"help": "Help requested", "fewer": "Fewer words requested",
+                          "different": "Different explanation requested", "example": "Example requested",
+                          "pictures": "Picture support requested"}
+        if action in request_labels and activity.get("assigned_to") == person["id"]:
+            requests = session.get("learning_requests", [])
+            requests.append({"id": f"session-request-{len(requests) + 1}", "learner_id": person["id"],
+                             "activity_id": activity_id, "activity_title": activity["title"],
+                             "request": request_labels[action], "kind": request_labels[action],
+                             "status": "Needs coach review"})
+            session["learning_requests"] = requests
         state.update(step_modes=modes, examples=examples, feedback=feedback, current_step=step_number)
         activity_ui[activity_id] = state
         progress[activity_id] = {**activity_progress, "step": step_number}
@@ -1102,15 +1193,41 @@ def coach_learner_activities(learner_id):
     return samples + session.get("coach_assignments", {}).get(learner_id, [])
 
 
+# Keep help and adaptation requests limited to learners who shared learning information.
+def coach_learning_requests(learner_id=None):
+    allowed = {person["id"] for person in coach_shared_learners()}
+    records = load_demo_data()
+    requests = records.get("learning_requests", []) + session.get("learning_requests", [])
+    return [item for item in requests if item.get("learner_id") in allowed
+            and (learner_id is None or item.get("learner_id") == learner_id)]
+
+
 # Coach Overview shows activity-only counts for learners who shared this demo view.
 @app.route("/coach")
 def coach():
     learners = coach_learner_summaries()
-    total_assignments = sum(p["activity_count"] for p in learners)
+    progress = session.get("activity_progress", {})
+    all_activities = [item for learner in learners for item in coach_learner_activities(learner["id"])]
+    requests = [item for item in coach_learning_requests() if item.get("status", "Needs coach review") == "Needs coach review"]
+    today = date.fromisoformat(data.get_today())
+    week_start = today - timedelta(days=today.weekday())
+    completed_this_week = sum(
+        progress.get(item["id"], {}).get("status", item["status"]) == "completed"
+        and week_start <= date.fromisoformat(progress.get(item["id"], {}).get("completed_on", item.get("completed_on", data.get_today()))) <= today
+        for item in all_activities)
+    recent_signals = [{"learner": f"{person['first_name']} {person['last_name']}",
+                       "title": item["title"],
+                       "status": progress.get(item["id"], {}).get("status", item["status"]).replace("_", " ").capitalize()}
+                      for person in learners for item in coach_learner_activities(person["id"])[:2]]
+    drafts = load_demo_data().get("coach_draft_templates", [])
     return render_template("coach.html", title="Coach Overview", learners=learners,
-                           assigned_count=total_assignments,
+                           assigned_count=len(all_activities),
                            library_count=len(coach_library_items()),
-                           active_count=sum(p["activity_count"] - p["completed_count"] for p in learners))
+                           active_count=sum(p["activity_count"] - p["completed_count"] for p in learners),
+                           attention_count=sum(progress.get(item["id"], {}).get("status", item["status"]) != "completed"
+                                              for item in all_activities),
+                           completed_this_week=completed_this_week, drafts=drafts, draft_count=len(drafts),
+                           requests=requests, recent_signals=recent_signals[:5])
 
 
 # List learners who shared activity progress and learning preferences with a coach.
@@ -1142,7 +1259,8 @@ def coach_learner(learner_id):
     preferences = records.get("learning_preferences", {}).get(learner_id, {})
     return render_template("coach_learner.html", title=f"{learner['first_name']} {learner['last_name']}",
                            learner=learner, activities=activities, preferences=preferences,
-                           library=coach_library_items(), can_assign=learner_id in session.get("coach_opened_learners", []))
+                           requests=coach_learning_requests(learner_id), library=coach_library_items(),
+                           can_assign=learner_id in session.get("coach_opened_learners", []))
 
 
 # Assign a reusable activity only after this browser session has opened that learner profile.
@@ -1249,6 +1367,8 @@ def circle_save():
         relationship = request.form.get("relationship", "").strip()[:40] or CIRCLE_TYPES[member_type]
         member.update(member_type=member_type, access=access, routines="routines" in request.form,
                       relationship=relationship)
+        if member["name"] == "Marisol Reyes":
+            session["trusted_summary_revoked"] = not (member_type in ["family", "friend"] and access == "summary")
         save("circle", person["id"], members)
         flash(f"Saved. {member['name']}: {LEVELS[member['access']][0]}.")
     return redirect(url_for("circle"))
@@ -1261,6 +1381,8 @@ def circle_remove():
     if not person:
         return redirect(url_for("choose"))
     name = request.form.get("name")
+    if name == "Marisol Reyes":
+        session["trusted_summary_revoked"] = True
     clear_circle_snapshot(person["id"], name)
     save("circle", person["id"], [m for m in circle_for(person) if m["name"] != name])
     flash(f"{name} removed from your circle.")
@@ -1302,6 +1424,8 @@ def circle_revoke_share():
     if not person:
         return redirect(url_for("choose"))
     name = request.form.get("name", "")
+    if name == "Marisol Reyes":
+        session["trusted_summary_revoked"] = True
     clear_circle_snapshot(person["id"], name)
     flash(f"Stopped sharing the saved snapshot with {name}.")
     return redirect(url_for("circle"))
@@ -1319,6 +1443,8 @@ def share():
     if request.method == "POST":
         selected = [m for m in members if m["name"] in request.form.getlist("share")
                     and m["access"] not in ["none", "health"]]
+        if any(member["name"] == "Marisol Reyes" for member in selected):
+            session["trusted_summary_revoked"] = False
         snapshots = session.get("circle_shared_snapshots", {})
         person_snapshots = snapshots.get(person["id"], {})
         for member in selected:
@@ -1376,7 +1502,7 @@ def trusted_encouragement():
         received.append({"from": selected["name"], "message": options[option], "date": data.get_today()})
         messages[person["id"]] = received
         session["trusted_encouragements"] = messages
-        flash("Encouragement sent in this demo. No additional member information was shared.")
+        flash("Encouragement saved only in this demonstration session. It was not delivered, and no additional member information was shared.")
         return redirect(url_for("trusted_encouragement", contact=selected["name"]))
     return render_template("trusted_encouragement.html", title="Send Encouragement",
                            contacts=contacts, selected=selected, options=options)
@@ -1394,10 +1520,69 @@ def trusted_settings():
     return render_template("trusted_settings.html", title="Support Settings", settings=settings)
 
 
-# Explain that organization-wide controls are not available in this demonstration.
-@app.route("/admin/settings")
+# Load only fictional organization account and policy metadata for the admin workspace.
+def organization_demo():
+    return load_demo_data()["organization_demo"]
+
+
+# Show program-level administration tasks without opening member content.
+@app.route("/admin")
+def admin_overview():
+    organization = organization_demo()
+    return render_template("admin_overview.html", title="Organization Overview",
+                           organization=organization)
+
+
+# List account status and role-verification metadata only.
+@app.route("/admin/people")
+def admin_people():
+    organization = organization_demo()
+    return render_template("admin_people.html", title="People and Roles",
+                           organization=organization)
+
+
+# Review invitation status without sending or delivering invitations.
+@app.route("/admin/invitations")
+def admin_invitations():
+    organization = organization_demo()
+    return render_template("admin_invitations.html", title="Invitations",
+                           organization=organization)
+
+
+# Review consent and access-event metadata without exposing the underlying content.
+@app.route("/admin/consent")
+def admin_consent():
+    organization = organization_demo()
+    return render_template("admin_consent.html", title="Consent and Audit",
+                           organization=organization)
+
+
+# Show approved template governance metadata, not learner answers or activity progress.
+@app.route("/admin/templates")
+def admin_templates():
+    organization = organization_demo()
+    return render_template("admin_templates.html", title="Activity Template Governance",
+                           organization=organization,
+                           templates=coach_library_items()[:3])
+
+
+# Save a small organization preference in this browser session only.
+@app.route("/admin/settings", methods=["GET", "POST"])
 def admin_settings():
-    return render_template("admin_settings.html", title="Organization Settings")
+    organization = organization_demo()
+    settings = session.get("organization_settings", organization["settings"])
+    if request.method == "POST":
+        review = request.form.get("access_review")
+        invite_expiry = request.form.get("invitation_expiry")
+        template_review = request.form.get("template_review")
+        if review in ["Monthly", "Quarterly"] and invite_expiry in ["7 days", "14 days"] and template_review in ["Before publication", "Quarterly"]:
+            settings = {"access_review": review, "invitation_expiry": invite_expiry,
+                        "template_review": template_review}
+            session["organization_settings"] = settings
+            flash("Organization settings saved for this demonstration session only.")
+        return redirect(url_for("admin_settings"))
+    return render_template("admin_settings.html", title="Organization Settings",
+                           organization=organization, settings=settings)
 
 
 # The old address /doctor opens the Visit companion

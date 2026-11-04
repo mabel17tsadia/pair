@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Name this account and role review as a fictional administration view. -->
+  <header class="workspace-heading"><p class="eyebrow">First Place demonstration program · Alex Morgan</p><h1>People and Roles</h1><p>Review fictional account status and role-verification status.</p></header>
+
+  <!-- Display administrative account metadata without member activity or health content. -->
+  <section class="card" aria-label="Fictional accounts">
+    {% for person in organization.people %}
+      <article class="role-list-row"><div><h2>{{ person.name }}</h2><p>{{ person.role }} · {{ person.verification }}</p></div><span class="status-label">{{ person.account_status }}</span></article>
+    {% endfor %}
+  </section>
+
+  <!-- Clarify that organization role records do not grant access to member information. -->
+  <p class="privacy-note">Role assignment grants product capabilities, not access to individual member content. This page shows no Check Ins, health information, packets, activity answers, notes, or Circle details.</p>
+{% endblock %}

@@ -2,8 +2,9 @@
 
 {% block content %}
   <!-- Shared with Me contains only snapshots that the member explicitly shared. -->
+  <p class="eyebrow">Trusted person · Marisol Reyes</p>
   <h1>Shared with Me</h1>
-  <p class="note">Trusted-person demo preview. Choosing this role does not grant access. A summary appears only after the member shares it.</p>
+  <p class="note">Support without surveillance. Jordan shared this fictional summary for this demonstration.</p>
 
   <!-- The contact selector can choose only an existing member-shared snapshot. -->
   {% if contacts %}
@@ -16,12 +17,16 @@
   {% if selected %}
     <section class="card">
       <h2>Shared by {{ selected.snapshot.member_name }}</h2>
-      <p class="note">{{ levels[selected.snapshot.access][0] }} · Shared {{ selected.snapshot.shared_on | long_day }}</p>
-      <p>This is a one-time snapshot. New information will not appear unless the member shares it again.</p>
+      <p class="note">{{ selected.snapshot.permission or levels[selected.snapshot.access][0] }} · Shared {{ selected.snapshot.shared_on | long_day }}</p>
+      {% if selected.snapshot.starts_on and selected.snapshot.expires_on %}<p>Sharing period: {{ selected.snapshot.starts_on | long_day }} through {{ selected.snapshot.expires_on | long_day }}.</p>{% endif %}
+      <p>This is a one-time summary. Jordan can change or end sharing in My Circle. New information will not appear unless Jordan shares it again.</p>
       <ul>{% for item in selected.snapshot["items"] %}<li>{{ item }}</li>{% else %}<li>Nothing is included in this snapshot.</li>{% endfor %}</ul>
-      {% if support_enabled and demo_role != "member" %}<a class="btn-secondary" href="{{ url_for('trusted_encouragement', contact=selected.name) }}">Send encouragement</a>{% elif demo_role == "member" %}<p class="note">This is a read-only preview of the information you shared.</p>{% else %}<p class="note">Encouragement options are hidden in Support Settings.</p>{% endif %}
+      {% if support_enabled and demo_role != "member" %}<a class="btn-primary" href="{{ url_for('trusted_encouragement', contact=selected.name) }}">Send encouragement</a>{% elif demo_role == "member" %}<p class="note">This is a read-only preview of the information you shared.</p>{% else %}<p class="note">Encouragement options are hidden in Support Settings.</p>{% endif %}
     </section>
   {% else %}
     <p class="card">No summary has been shared with this trusted person. The member controls what is shared and when.</p>
   {% endif %}
+
+  <!-- Repeat the trusted-person boundary beside the shared summary. -->
+  <p class="privacy-note">Private Check Ins, health patterns, appointment packets, coach feedback, daily activity tracking, and private Circle information are not included.</p>
 {% endblock %}

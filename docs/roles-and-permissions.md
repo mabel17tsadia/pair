@@ -18,11 +18,11 @@ For each invited person, the member can review, change, revoke, and time-limit p
 
 ## Current prototype boundary
 
-The existing app is a single-browser demo with demo-person selection, not account authentication. Its circle levels control sample previews and the coach demo; they do not establish real identities or secure external access. The `/share` and appointment send actions show confirmation text but do not transmit information. The coach view is built from sample data. These behaviors must not be described as production authorization or delivery.
+The app offers five fictional, role-specific demonstration workspaces. The role selector changes the sample workspace and server routes redirect requests to other roles' demo pages. This is presentation behavior only: it does not authenticate a person, verify employment, establish consent, or provide production authorization. Session changes and invitations are temporary. Share, encouragement, packet, and administration actions do not send messages or manage a real organization.
 
-The shell's demo role selector changes navigation labels only. It does not authenticate a role, protect routes, or change permissions.
+The coach workspace is limited to fictional learners whose sample Circle data enables learning sharing. It displays learning activities, progress, preferences, and learning requests; private Check Ins, health patterns, raw device readings, appointment packets, and Circle information are excluded. The healthcare workspace displays only the currently authorized sample packet fields, its authorization window, and associated proposed actions. The trusted-person workspace shows a fixed fictional summary explicitly marked as shared by Jordan; encouragement is stored only in the demo session. The administrator workspace contains fictional account, role, invitation, consent, audit, and template metadata, not member content.
 
-Health demo screens are scoped to the active member's own sample profile. Packet detail also checks the packet's member ID and member-reviewed demo state before showing selected items. These checks protect the demo's record boundaries; they are not production authentication or recipient authorization.
+Member Health screens are scoped to the active member's own sample profile. Professional packet detail checks recipient, member-reviewed state, and current authorization dates before showing selected fields. These checks protect the demo's record boundaries; they are not production authentication or recipient authorization.
 
 ## Access review questions for implementation
 

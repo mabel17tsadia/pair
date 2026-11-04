@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Describe the metadata-only consent and access review. -->
+  <header class="workspace-heading"><p class="eyebrow">First Place demonstration program · Alex Morgan</p><h1>Consent and Audit</h1><p>Review who changed access, the scope metadata, and the event result.</p></header>
+
+  <!-- Show event metadata without opening the shared item or its underlying content. -->
+  <section class="card" aria-label="Consent and access event records">
+    {% for event in organization.consent_records %}
+      <article class="role-list-row"><div><h2>{{ event.event }}</h2><p>{{ event.date | long_day }} · {{ event.person }} · {{ event.scope }}</p></div><span class="status-label">{{ event.result }}</span></article>
+    {% endfor %}
+  </section>
+
+  <!-- Keep the member-content boundary explicit. -->
+  <p class="privacy-note">Audit metadata does not include Check In responses, health patterns, appointment packet contents, activity answers, private notes, or Circle content.</p>
+{% endblock %}

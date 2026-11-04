@@ -62,9 +62,9 @@ class PairExperienceTests(unittest.TestCase):
         self.assertNotIn(b"Theo Okafor", page.data)
         destinations = {"member": ("/today", b"Jordan Reyes"),
                         "coach": ("/coach", b"Dana Brooks"),
-                        "healthcare": ("/professional/packets", b"Dr. Priya Patel"),
+                        "healthcare": ("/professional", b"Dr. Priya Patel"),
                         "trusted": ("/trusted", b"Marisol Reyes"),
-                        "admin": ("/admin/settings", b"Alex Morgan")}
+                        "admin": ("/admin", b"Alex Morgan")}
         for role, (path, identity) in destinations.items():
             response = self.client.post("/demo/role", data={"role": role})
             self.assertEqual(response.status_code, 302)
@@ -101,12 +101,130 @@ class PairExperienceTests(unittest.TestCase):
         self.client.post("/demo/role", data={"role": "healthcare"})
         response = self.client.get("/my-plan")
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.headers["Location"].endswith("/professional/packets"))
+        self.assertTrue(response.headers["Location"].endswith("/professional"))
         self.assertEqual(self.client.get(response.headers["Location"]).status_code, 200)
         response = self.client.get("/settings")
         self.assertTrue(response.headers["Location"].endswith("/professional/settings"))
         with self.client.session_transaction() as state:
             state["demo_role"] = "member"
+
+    # Open every role navigation destination and verify mobile navigation is present.
+    def test_role_navigation_destinations_and_overviews(self):
+        pages = {
+            "coach": ["/coach", "/coach/learners", "/coach/library", "/coach/settings", "/coach/learners/p1"],
+            "healthcare": ["/professional", "/professional/packets", "/professional/next-steps", "/professional/settings",
+                           "/professional/packets/packet-upcoming"],
+            "trusted": ["/trusted", "/trusted/encouragement", "/trusted/settings"],
+            "admin": ["/admin", "/admin/people", "/admin/invitations", "/admin/consent",
+                      "/admin/templates", "/admin/settings"],
+        }
+        for role, routes in pages.items():
+            with self.client.session_transaction() as state:
+                state["demo_role"] = role
+                state["person_id"] = "p1"
+            for route in routes:
+                response = self.client.get(route)
+                self.assertEqual(response.status_code, 200, f"{role}: {route}")
+                self.assertIn(b"mobile-role-nav", response.data)
+                self.assertIn(f'data-demo-role="{role}"'.encode(), response.data)
+
+    # Keep the member Home brief and focused on next actions and private summaries.
+    def test_member_home_summarizes_without_showing_all_pattern_details(self):
+        page = self.client.get("/today")
+        self.assertEqual(page.status_code, 200)
+        for label in [b"Your next action", b"Today", b"Up next", b"Later", b"My Climb",
+                      b"Private pattern notice", b"Upcoming appointment", b"Last Check In", b"My Circle"]:
+            self.assertIn(label, page.data)
+        self.assertNotIn(b"Your usual average", page.data)
+        self.assertNotIn(b"Last 5-day average", page.data)
+
+    # Keep the coach dashboard useful while excluding private and unrelated member details.
+    def test_coach_dashboard_uses_learning_only_signals(self):
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "coach"
+            state["checkins"] = [{"person_id": "p1", "note": "COACH_PRIVATE_CHECKIN_SENTINEL"}]
+            state["visit_entries"] = {"p1": [{"value": "COACH_PRIVATE_HEALTH_SENTINEL"}]}
+        page = self.client.get("/coach")
+        for label in [b"Authorized learners", b"Activities needing attention", b"Completed this week",
+                      b"Draft activity templates", b"Jordan Reyes", b"Theo Okafor", b"Maya Chen",
+                      b"Help and adaptation requests", b"Show one step at a time with a picture"]:
+            self.assertIn(label, page.data)
+        self.assertNotIn(b"COACH_PRIVATE_CHECKIN_SENTINEL", page.data)
+        self.assertNotIn(b"COACH_PRIVATE_HEALTH_SENTINEL", page.data)
+
+    # Keep administrator pages on fictional account and audit metadata, not member content.
+    def test_admin_pages_exclude_member_content(self):
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "admin"
+            state["checkins"] = [{"person_id": "p1", "note": "ADMIN_PRIVATE_CHECKIN_SENTINEL"}]
+            state["visit_entries"] = {"p1": [{"value": "ADMIN_PRIVATE_HEALTH_SENTINEL"}]}
+            state["activity_answers"] = {"p1": "ADMIN_PRIVATE_ANSWER_SENTINEL"}
+        for route in ["/admin", "/admin/people", "/admin/invitations", "/admin/consent",
+                      "/admin/templates", "/admin/settings"]:
+            page = self.client.get(route)
+            self.assertEqual(page.status_code, 200, route)
+            if route in ["/admin", "/admin/people", "/admin/settings"]:
+                self.assertIn(b"Role assignment grants product capabilities, not access to individual member content", page.data)
+            for sentinel in [b"ADMIN_PRIVATE_CHECKIN_SENTINEL", b"ADMIN_PRIVATE_HEALTH_SENTINEL",
+                             b"ADMIN_PRIVATE_ANSWER_SENTINEL"]:
+                self.assertNotIn(sentinel, page.data)
+        self.assertIn(b"First Place demonstration program", self.client.get("/admin").data)
+
+    # Show Marisol only the weekly summary Jordan chose to share and keep encouragement session-only.
+    def test_trusted_person_sees_only_shared_summary_and_safe_encouragement(self):
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "trusted"
+            state["checkins"] = [{"person_id": "p1", "note": "TRUSTED_PRIVATE_CHECKIN_SENTINEL"}]
+            state["visit_entries"] = {"p1": [{"value": "TRUSTED_PRIVATE_HEALTH_SENTINEL"}]}
+        page = self.client.get("/trusted")
+        for label in [b"Jordan Reyes", b"3 of 5 personal goals completed", b"3 November through 30 November",
+                      b"Support without surveillance", b"Encouragement"]:
+            self.assertIn(label, page.data)
+        self.assertNotIn(b"TRUSTED_PRIVATE_CHECKIN_SENTINEL", page.data)
+        self.assertNotIn(b"TRUSTED_PRIVATE_HEALTH_SENTINEL", page.data)
+        response = self.client.post("/trusted/encouragement", data={"contact": "Jordan Reyes", "encouragement": "cheer"})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(b"not delivered", self.client.get(response.headers["Location"]).data)
+
+    # Keep the sample permission visible in Circle and make its revoke action remove trusted access.
+    def test_member_can_end_the_sample_trusted_summary(self):
+        page = self.client.get("/circle")
+        self.assertIn(b"Marisol Reyes", page.data)
+        self.assertIn(b"Weekly summary", page.data)
+        response = self.client.post("/circle/revoke-share", data={"name": "Marisol Reyes"})
+        self.assertEqual(response.status_code, 302)
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "trusted"
+        page = self.client.get("/trusted")
+        self.assertIn(b"No summary has been shared", page.data)
+
+    # Keep professional review limited to packet fields, selected questions, and current authorization.
+    def test_professional_overview_and_packet_boundary(self):
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "healthcare"
+            state["checkins"] = [{"person_id": "p1", "note": "PRO_PACKET_PRIVATE_CHECKIN_SENTINEL"}]
+            state["visit_entries"] = {"p1": [{"value": "PRO_PACKET_PRIVATE_HEALTH_SENTINEL"}]}
+        overview = self.client.get("/professional")
+        for label in [b"New appointment packets", b"Shared by members and awaiting your review",
+                      b"Follow-ups awaiting member action", b"Access expiring within 14 days",
+                      b"Completed packet reviews"]:
+            self.assertIn(label, overview.data)
+        packet = self.client.get("/professional/packets/packet-upcoming")
+        for label in [b"Jordan Reyes", b"Primary care", b"Dr. Priya Patel", b"Authorization period",
+                      b"Communication and accommodation preferences", b"Questions the member chose to include",
+                      b"Not included in this packet", b"Source:"]:
+            self.assertIn(label, packet.data)
+        self.assertNotIn(b"PRO_PACKET_PRIVATE_CHECKIN_SENTINEL", packet.data)
+        self.assertNotIn(b"PRO_PACKET_PRIVATE_HEALTH_SENTINEL", packet.data)
+
+    # Keep coach adaptation requests available only for learners with the relevant sharing level.
+    def test_member_adaptation_request_appears_in_authorized_coach_view(self):
+        activity_id = self.records["activities"][0]["id"]
+        self.client.post(f"/activity/{activity_id}", data={"step": "1", "action": "help"})
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "coach"
+        page = self.client.get("/coach")
+        self.assertIn(b"Help requested", page.data)
 
     # Replace route variables with known safe demo fixture values.
     def route_path(self, rule):
@@ -197,7 +315,7 @@ class PairExperienceTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotIn(b"PRIVATE_CHECKIN_SENTINEL", response.data)
         self.assertNotIn(b"PRIVATE_HEALTH_SENTINEL", response.data)
-        self.assertEqual(self.client.get("/coach/learners/p2").status_code, 404)
+        self.assertEqual(self.client.get("/coach/learners/p4").status_code, 404)
 
     # Require opening a consented learner profile before the coach assigns a library activity.
     def test_coach_must_open_learner_before_assignment(self):
@@ -297,8 +415,12 @@ class PairExperienceTests(unittest.TestCase):
         routes = [("member", route) for route in ["/today", "/my-plan", "/checkin", "/circle",
                   "/health", "/settings", "/activity/" + self.records["activities"][0]["id"],
                   "/visit/primary"]]
-        routes += [("coach", "/coach/library"), ("healthcare", "/professional/packets"),
-                   ("trusted", "/trusted")]
+        routes += [("coach", route) for route in ["/coach", "/coach/library", "/coach/settings"]]
+        routes += [("healthcare", route) for route in ["/professional", "/professional/packets",
+                   "/professional/next-steps", "/professional/settings"]]
+        routes += [("trusted", route) for route in ["/trusted", "/trusted/encouragement", "/trusted/settings"]]
+        routes += [("admin", route) for route in ["/admin", "/admin/people", "/admin/invitations",
+                   "/admin/consent", "/admin/templates", "/admin/settings"]]
         for role, route in routes:
             with self.client.session_transaction() as state:
                 state["demo_role"] = role

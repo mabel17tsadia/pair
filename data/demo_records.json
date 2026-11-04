@@ -14,7 +14,96 @@
     "p3": {
       "instruction_display": "Pictures First",
       "helpful_formats": ["Written checklist", "Practice with one example first"]
+    },
+    "p2": {
+      "instruction_display": "Words Only",
+      "helpful_formats": ["Short written steps", "Choose from two options"]
     }
+  },
+  "learning_requests": [
+    {
+      "id": "learning-request-jordan-01",
+      "learner_id": "p1",
+      "activity_id": "activity-coach-03",
+      "activity_title": "Practice a laundry routine",
+      "request": "Show one step at a time with a picture.",
+      "kind": "Picture and smaller steps",
+      "status": "Needs coach review",
+      "fictional": true
+    },
+    {
+      "id": "learning-request-theo-01",
+      "learner_id": "p3",
+      "activity_id": "activity-coach-theo-01",
+      "activity_title": "Plan a bus trip",
+      "request": "Could you show an example of the first step?",
+      "kind": "Example requested",
+      "status": "Needs coach review",
+      "fictional": true
+    },
+    {
+      "id": "learning-request-maya-01",
+      "learner_id": "p2",
+      "activity_id": "activity-coach-maya-01",
+      "activity_title": "Plan a quiet morning routine",
+      "request": "Could the instructions stay short and written?",
+      "kind": "Fewer words requested",
+      "status": "Needs coach review",
+      "fictional": true
+    }
+  ],
+  "coach_draft_templates": [
+    {"id": "draft-grocery-list", "title": "Make a short grocery list", "objective": "Choose a few items for a simple meal", "status": "Draft", "fictional": true}
+  ],
+  "trusted_summary": {
+    "member_id": "member-jordan",
+    "member_name": "Jordan Reyes",
+    "recipient_name": "Marisol Reyes",
+    "shared_on": "2026-11-03",
+    "starts_on": "2026-11-03",
+    "expires_on": "2026-11-30",
+    "permission": "Weekly plan summary and encouragement",
+    "items": [
+      "This week: 3 of 5 personal goals completed.",
+      "Shared plan focus: practice a simple meal.",
+      "Encouragement is welcome after a completed goal."
+    ],
+    "fictional": true
+  },
+  "organization_demo": {
+    "name": "First Place demonstration program",
+    "member_count": 42,
+    "staff_count": 11,
+    "pending_invitation_count": 5,
+    "access_alert_count": 1,
+    "administrative_tasks": [
+      {"title": "Review staff role verification", "detail": "2 staff profiles await review", "status": "To review"},
+      {"title": "Complete quarterly access review", "detail": "Due November 30", "status": "Upcoming"}
+    ],
+    "people": [
+      {"name": "Jordan Reyes", "role": "Pair member", "account_status": "Active", "verification": "Member account"},
+      {"name": "Dana Brooks", "role": "Coach or educator", "account_status": "Active", "verification": "Verified"},
+      {"name": "Dr. Priya Patel", "role": "Healthcare professional", "account_status": "Active", "verification": "Verified"},
+      {"name": "Marisol Reyes", "role": "Trusted person", "account_status": "Active", "verification": "Not applicable"},
+      {"name": "Alex Morgan", "role": "Organization administrator", "account_status": "Active", "verification": "Verified"}
+    ],
+    "invitations": [
+      {"recipient": "Sample coach account", "role": "Coach or educator", "status": "Awaiting response", "sent_on": "2026-11-02"},
+      {"recipient": "Sample healthcare account", "role": "Healthcare professional", "status": "Role review needed", "sent_on": "2026-11-01"},
+      {"recipient": "Sample trusted person", "role": "Trusted person", "status": "Awaiting response", "sent_on": "2026-10-30"}
+    ],
+    "consent_records": [
+      {"date": "2026-11-03", "person": "Jordan Reyes", "event": "Shared a weekly plan summary with Marisol Reyes", "scope": "Summary metadata", "result": "Active until Nov 30"},
+      {"date": "2026-11-03", "person": "Jordan Reyes", "event": "Shared an appointment packet with Dr. Priya Patel", "scope": "Member-selected packet metadata", "result": "Expires Nov 13"},
+      {"date": "2026-11-02", "person": "Theo Okafor", "event": "Learning progress sharing reviewed", "scope": "Assigned activity progress", "result": "Active"}
+    ],
+    "approved_template_count": 24,
+    "settings": {
+      "access_review": "Quarterly",
+      "invitation_expiry": "14 days",
+      "template_review": "Before publication"
+    },
+    "fictional": true
   },
   "professionals": [
     {
@@ -59,13 +148,13 @@
       "expires_on": null
     },
     {
-      "id": "circle-avery",
-      "name": "Avery Kim",
+      "id": "circle-marisol",
+      "name": "Marisol Reyes",
       "relationship": "Friend",
-      "permission": "none",
-      "status": "invited",
-      "starts_on": null,
-      "expires_on": null
+      "permission": "weekly_summary",
+      "status": "active",
+      "starts_on": "2026-11-03",
+      "expires_on": "2026-11-30"
     }
   ],
   "activities": [
@@ -258,6 +347,41 @@
           "picture_label": "headphones"
         }
       ]
+    },
+    {
+      "id": "activity-coach-theo-01",
+      "assigned_to": "p3",
+      "title": "Plan a bus trip",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "scheduled_for": "2026-11-03T10:00:00-07:00",
+      "due_on": "2026-11-03",
+      "estimated_minutes": 20,
+      "status": "completed",
+      "next_action": "No next step",
+      "completed_on": "2026-11-03",
+      "objective": "Practice planning a familiar trip",
+      "steps": [
+        {"order": 1, "instruction": "Choose the place you want to visit.", "picture": "🏁", "short_instruction": "Pick a place.", "different_explanation": "Choose where you want to go.", "example": "For example, the library.", "picture_label": "a destination"},
+        {"order": 2, "instruction": "Check the bus route and times.", "picture": "🚌", "short_instruction": "Check the bus route.", "different_explanation": "Look up the route and when the bus comes.", "example": "For example, note the number 12 bus and its time.", "picture_label": "a bus"}
+      ]
+    },
+    {
+      "id": "activity-coach-maya-01",
+      "assigned_to": "p2",
+      "title": "Plan a quiet morning routine",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "scheduled_for": "2026-11-06T08:00:00-07:00",
+      "due_on": "2026-11-06",
+      "estimated_minutes": 15,
+      "status": "in_progress",
+      "next_action": "Choose a first step",
+      "objective": "Practice planning a morning routine that feels manageable",
+      "steps": [
+        {"order": 1, "instruction": "Choose one thing you want to do first.", "picture": "📝", "short_instruction": "Choose one first step.", "different_explanation": "Pick the first small part of your morning.", "example": "For example, get dressed before breakfast.", "picture_label": "a short list"},
+        {"order": 2, "instruction": "Write the next step after that.", "picture": "➡️", "short_instruction": "Write the next step.", "different_explanation": "Add one thing you would do after the first step.", "example": "For example, eat breakfast after getting dressed.", "picture_label": "an arrow"}
+      ]
     }
   ],
   "health_follow_ups": [
@@ -370,16 +494,21 @@
       "access_expires_on": "2026-11-13",
       "communication_preferences": {
         "preferred_channel": "Discuss questions during the appointment",
-        "contact_boundary": "Ask Jordan before contacting anyone outside the clinic"
+        "contact_boundary": "Ask Jordan before contacting anyone outside the clinic",
+        "accommodations": ["Use plain language", "Allow time to read questions"]
       },
+      "member_questions": ["What could help me keep a more consistent sleep routine?"],
+      "excluded_categories": ["Private check-ins", "Full device history", "Circle information"],
       "selected_items": [
         {
           "label": "Sleep pattern summary",
-          "source": "Simulated phone data"
+          "source": "Simulated phone data",
+          "detail": "A short comparison with Jordan's usual pattern; raw device history is not included."
         },
         {
           "label": "Questions for the visit",
-          "source": "Jordan Reyes"
+          "source": "Jordan Reyes",
+          "detail": "Jordan's question about a more consistent sleep routine."
         }
       ]
     },

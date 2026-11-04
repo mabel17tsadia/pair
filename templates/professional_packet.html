@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <!-- Packet Detail shows only the packet submitted to this professional while it is authorized. -->
+  <!-- Keep a clear route back to the packet list. -->
   <a class="text-link" href="{{ url_for('professional_packets') }}">‹ Shared Appointment Packets</a>
+  <!-- Identify the member, appointment, and selected recipient at the top of review. -->
+  <p class="eyebrow">Healthcare workspace · Authorized packet</p>
   <h1>Packet Detail</h1>
-  <p class="note">{{ packet.appointment_type }} · {{ packet.appointment_on[:10] | long_day }} · Shared by {{ member.name }}</p>
+  <p class="note">{{ member.name }} · {{ packet.appointment_type }} · {{ packet.appointment_on[:10] | long_day }} · Recipient: {{ professional.name }}</p>
 
   <!-- The authorization window and member's communication preferences are part of this packet. -->
   <section class="card">
@@ -12,12 +14,13 @@
     <p>{{ packet.authorization_starts_on | long_day }} through {{ packet.access_expires_on | long_day }}</p>
     <p class="note">Packet access is limited to this period and the submitted information below.</p>
   </section>
+  <!-- Display only communication and accommodation preferences included by the member. -->
   <section class="card">
-    <h2>Communication preferences</h2>
+    <h2>Communication and accommodation preferences</h2>
     <p><strong>Preferred channel:</strong> {{ packet.communication_preferences.preferred_channel }}</p>
     <p><strong>Contact boundary:</strong> {{ packet.communication_preferences.contact_boundary }}</p>
+    {% if packet.communication_preferences.accommodations %}<ul>{% for item in packet.communication_preferences.accommodations %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
   </section>
-
   <!-- Only member-selected items in this packet are displayed, each with its source. -->
   <section class="card" aria-labelledby="submitted-items-title">
     <h2 id="submitted-items-title">Information shared in this packet</h2>
@@ -25,8 +28,20 @@
       <article class="packet-item">
         <h3>{{ item.label }}</h3>
         <p class="note">Source: {{ item.source }}</p>
+        {% if item.detail %}<p>{{ item.detail }}</p>{% endif %}
       </article>
     {% else %}<p>No information was selected for this packet.</p>{% endfor %}
   </section>
-  <p class="note">This demo does not provide access to other health records, check-ins, or device data.</p>
+  <!-- Keep member-selected questions separate so they are easy to review during the visit. -->
+  <section class="card">
+    <h2>Questions the member chose to include</h2>
+    {% for question in packet.member_questions %}<p>{{ question }}</p>{% else %}<p>No questions were included.</p>{% endfor %}
+  </section>
+
+  <!-- Name excluded information at a high level without opening it. -->
+  <section class="card">
+    <h2>Not included in this packet</h2>
+    <ul>{% for item in packet.excluded_categories %}<li>{{ item }}</li>{% endfor %}</ul>
+  </section>
+  <p class="privacy-note">This review stays within the member's submitted packet and authorized period. It does not provide access to the full account or raw device history.</p>
 {% endblock %}

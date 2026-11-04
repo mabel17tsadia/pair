@@ -96,6 +96,36 @@ body {
 .workspace-main { width: 100%; max-width: var(--wide-content-width); margin: 0 auto; padding: var(--space-6) var(--space-7) 4rem; }
 .mobile-role-nav { display: none; }
 
+/* Role dashboards share a clear heading and compact summary cards. */
+.workspace-heading { margin: 0 0 var(--space-5); }
+.workspace-heading h1 { margin: var(--space-1) 0 var(--space-2); }
+.workspace-heading > p:last-child { max-width: 48rem; color: var(--muted); }
+.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-5); }
+.summary-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); min-width: 0; }
+.summary-card .eyebrow { margin: 0; }
+.summary-card strong { color: var(--text); font-family: var(--font-heading); font-size: clamp(1.6rem, 3vw, 2.25rem); line-height: 1.1; }
+.summary-card a, .summary-card span { color: var(--muted); font-size: var(--font-small); }
+.workspace-content-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.role-list-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) 0; border-top: 1px solid var(--border); }
+.role-list-row h2, .role-list-row h3 { margin: 0 0 var(--space-1); font-size: 1.05rem; }
+.role-list-row p { margin: 0; color: var(--muted); }
+.status-label { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 2rem; padding: 0 var(--space-3); border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-weight: 700; }
+.privacy-note { margin: var(--space-4) 0; padding: var(--space-3) var(--space-4); border-left: 4px solid var(--primary); border-radius: 0 var(--radius-control) var(--radius-control) 0; background: var(--surface); color: var(--muted); }
+
+/* The member Home shows one clear action and short summaries before detail links. */
+.member-welcome { margin-bottom: var(--space-5); }
+.member-welcome h1 { margin: var(--space-1) 0; font-size: clamp(1.8rem, 4vw, 2.75rem); }
+.member-welcome > p:last-child { color: var(--muted); }
+.member-next-action { padding: clamp(1.25rem, 3vw, 2rem); border-top: 5px solid var(--primary); }
+.member-next-action h2 { margin: 0; }
+.member-dashboard-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+.member-dashboard-grid > .card { min-width: 0; }
+.member-pattern-summary { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.member-pattern-summary h2 { margin: 0; }
+.climb-home-card { display: flex; align-items: center; gap: var(--space-4); }
+.climb-home-card .climb-art { flex: 0 0 7rem; max-width: 7rem; margin: 0; }
+.climb-home-card h2 { margin: 0; }
+
 /* Entry pages use spacious role cards and a calm mountain accent. */
 main.public-main { max-width: var(--wide-content-width); padding-bottom: var(--space-8); }
 .entry-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(14rem, .7fr); align-items: center; gap: var(--space-5); overflow: hidden; margin-bottom: var(--space-7); padding: clamp(1.5rem, 5vw, 3.5rem); border: 1px solid var(--border); border-radius: 1.5rem; background: linear-gradient(120deg, var(--surface), var(--primary-soft)); box-shadow: var(--card-shadow); }
@@ -1514,6 +1544,19 @@ input::placeholder, textarea::placeholder {
   .role-preview { flex: 1 1 100%; }
   .entry-hero { grid-template-columns: 1fr; }
   .entry-mountain { max-height: 10rem; }
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-content-grid { grid-template-columns: 1fr; }
+  .member-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .member-pattern-summary { align-items: flex-start; flex-direction: column; }
+}
+
+/* Small phones stack summary cards and keep role actions from widening the page. */
+@media (max-width: 599px) {
+  .summary-grid, .member-dashboard-grid { grid-template-columns: 1fr; }
+  .role-list-row { align-items: flex-start; flex-direction: column; }
+  .role-list-row .btn-secondary { width: 100%; }
+  .member-next-action .btn-primary, .member-pattern-summary .btn-secondary { width: 100%; }
+  .climb-home-card { align-items: flex-start; }
 }
 
 /* Reduced-motion settings apply to all transitions and animations. */

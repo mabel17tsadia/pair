@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Identify this as invitation status review for the fictional program. -->
+  <header class="workspace-heading"><p class="eyebrow">First Place demonstration program · Alex Morgan</p><h1>Invitations</h1><p>Review invitation status and the intended product role.</p></header>
+
+  <!-- Show invitation metadata only; the demonstration does not send email. -->
+  <section class="card" aria-label="Invitation status list">
+    {% for invite in organization.invitations %}
+      <article class="role-list-row"><div><h2>{{ invite.recipient }}</h2><p>{{ invite.role }} · Added {{ invite.sent_on | long_day }}</p></div><span class="status-label">{{ invite.status }}</span></article>
+    {% endfor %}
+    <p class="note">These are fictional invitation records. No email or external invitation is delivered.</p>
+  </section>
+{% endblock %}

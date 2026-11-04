@@ -6,13 +6,13 @@ This walkthrough distinguishes what can be shown in the current local prototype 
 
 Start the app with `python app.py` and open <http://127.0.0.1:5000>.
 
-1. **Choose a demo person.** The current sample people are Jordan, Maya, and Theo. Choose Jordan to see the existing sample profile and circle.
-2. **Open Today.** Review the simulated week summary, paired-signal changes, any body signals or routine note, the gentle step, and climb card. Text generation may use AI when configured or the rule-based backup otherwise.
-3. **Open Climb.** Review weekly goals, mark a manual goal done, or add a personal goal. Changes are session-only.
-4. **Open Check In.** Select a mood and optionally enter a note. The response compares the choice with simulated patterns; the note remains private in the demo. The emergency-word flow is a prototype aid and not a replacement for emergency services.
-5. **Open Circle.** Review sample circle levels, add or edit a member, and open Share to inspect the member-specific preview. The preview starts with no selections. Submitting it only displays a prototype confirmation; nothing is sent.
-6. **Open Me.** Visit routines, patterns, body signals, paired-device controls, appointment preparation, and settings. Device readings are sample data. Google Health is an optional test integration and its returned readings are not used in pattern calculations.
-7. **Open appointment preparation.** Review the generated or rule-based summary, add questions or manually entered items, and use browser print if desired. The send form only displays a prototype confirmation.
+1. **Explore the five workspaces.** Jordan is the member demo; Dana is the coach; Dr. Priya Patel is the healthcare professional; Marisol is the trusted person; Alex is the organization administrator. Demo switching does not authenticate anyone or grant access to real information.
+2. **Review Jordan's Home.** Find one next action, Today / Up next / Later summaries, personal My Climb progress, a short private pattern notice, appointment reminder, last Check In, and Circle link. Detailed patterns remain in Health.
+3. **Explore Coach Overview.** Jordan, Maya, and Theo appear only with sample learning sharing enabled. Review activities, completion, learning preferences, and help or adaptation requests. Open a learner profile before assigning an activity. Health details and private Check Ins are not shown.
+4. **Explore the professional workspace.** Review the new appointment packet inbox, open the active packet to see the selected information and authorization window, and review proposed next steps. Professional access does not include other account information.
+5. **Explore the trusted-person workspace.** Marisol sees only Jordan's fictional weekly summary for its displayed period. Encouragement is saved only in this browser session and is not delivered.
+6. **Explore organization administration.** Alex can review sample account and role status, invitation metadata, consent and audit metadata, approved activity-template governance, and session-only settings. The admin workspace does not show member content.
+7. **Continue to inspect member features.** Check In remains picture-supported and private by default. My Plan, My Climb, Circle, Health, patterns, connected sources, appointment preparation, and settings remain available. Google Health is an optional test integration.
 
 ## Intended design walkthrough (future implementation)
 
@@ -22,4 +22,4 @@ For healthcare, the member opens Health, prepares a packet through the guided st
 
 ## Current prototype versus target
 
-The target role workspaces, full My Plan, coach activity assignments, professional packet inbox, real packet delivery, accepted healthcare follow-up actions, and persistent accounts are not implemented in the current demo. Use this future flow to explain the design direction, not to claim working behavior.
+The role pages, coach assignments, packet review, member acceptance of follow-up steps, and organization metadata pages are available as demonstration workflows. Account identity, production authorization, external invitation or message delivery, real packet sharing, durable organization management, and production integrations remain unimplemented. Session-only changes and fictional fixture records must not be presented as production behavior.

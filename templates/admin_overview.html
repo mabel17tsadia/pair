@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Identify the organization program and the administrator's metadata-only workspace. -->
+  <header class="workspace-heading">
+    <p class="eyebrow">Organization administrator · Alex Morgan</p>
+    <h1>{{ organization.name }}</h1>
+    <p>Manage account status, role verification, invitations, consent metadata, and program settings.</p>
+  </header>
+
+  <!-- Summarize organization operations without exposing member content. -->
+  <section class="summary-grid" aria-label="Organization summary">
+    <article class="card summary-card"><p class="eyebrow">Member accounts</p><strong>{{ organization.member_count }}</strong><span>Fictional program total</span></article>
+    <article class="card summary-card"><p class="eyebrow">Staff accounts</p><strong>{{ organization.staff_count }}</strong><span>Fictional program total</span></article>
+    <article class="card summary-card"><p class="eyebrow">Pending invitations</p><strong>{{ organization.pending_invitation_count }}</strong><a href="{{ url_for('admin_invitations') }}">Review invitation status</a></article>
+    <article class="card summary-card"><p class="eyebrow">Access alerts</p><strong>{{ organization.access_alert_count }}</strong><a href="{{ url_for('admin_consent') }}">Review audit metadata</a></article>
+  </section>
+
+  <!-- Make current program tasks actionable through the matching admin pages. -->
+  <div class="workspace-content-grid">
+    <section class="card" aria-labelledby="admin-tasks-title">
+      <h2 id="admin-tasks-title">Administrative tasks</h2>
+      {% for task in organization.administrative_tasks %}
+        <article class="role-list-row"><div><h3>{{ task.title }}</h3><p>{{ task.detail }}</p></div><span class="status-label">{{ task.status }}</span></article>
+      {% endfor %}
+      <div class="actions"><a class="btn-secondary" href="{{ url_for('admin_people') }}">People and Roles</a><a class="btn-secondary" href="{{ url_for('admin_invitations') }}">Invitations</a></div>
+    </section>
+    <section class="card" aria-labelledby="admin-privacy-title">
+      <h2 id="admin-privacy-title">Privacy posture</h2>
+      <p class="privacy-note">Role assignment grants product capabilities, not access to individual member content.</p>
+      <p>Administrators review access and consent metadata. Member Check Ins, health patterns, appointment packets, activity answers, private notes, and Circle content stay outside this workspace.</p>
+      <a class="text-link" href="{{ url_for('admin_consent') }}">Review consent and audit records</a>
+    </section>
+  </div>
+
+  <!-- Link the remaining organization work areas. -->
+  <section class="card">
+    <h2>Program management</h2>
+    <div class="actions"><a class="text-link" href="{{ url_for('admin_templates') }}">Activity template governance</a><a class="text-link" href="{{ url_for('admin_settings') }}">Organization settings</a></div>
+  </section>
+{% endblock %}

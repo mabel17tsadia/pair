@@ -1,25 +1,56 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <!-- Overview gives a quick activity-only snapshot and links to the coach's work areas. -->
-  <h1>Coach Overview</h1>
-  <p class="note">Demo preview only. Learners appear here when sample sharing is enabled. Choosing a demo role does not verify identity or grant access.</p>
+  <!-- Identify the coach workspace and its fictional program context. -->
+  <header class="workspace-heading">
+    <p class="eyebrow">Coach workspace · Dana Brooks</p>
+    <h1>Coach Overview</h1>
+    <p>Learning progress and requests shared by learners who authorized this view.</p>
+  </header>
 
-  <!-- These counts describe assigned activities and reusable learning materials only. -->
-  <div class="card-grid">
-    <article class="card"><h2>Learners</h2><p class="coach-count">{{ learners | length }}</p><a class="text-link" href="{{ url_for('coach_learners') }}">Open Learners</a></article>
-    <article class="card"><h2>Assigned activities</h2><p class="coach-count">{{ assigned_count }}</p><p>{{ active_count }} in progress or not started</p></article>
-    <article class="card"><h2>Activity Library</h2><p class="coach-count">{{ library_count }}</p><a class="text-link" href="{{ url_for('coach_library') }}">Open Activity Library</a></article>
-  </div>
-
-  <!-- The coach can open a specific learner before assigning an activity. -->
-  <section class="card">
-    <h2>Learners who shared activity information</h2>
-    {% for learner in learners %}
-      <p><a class="text-link" href="{{ url_for('coach_learner', learner_id=learner.id) }}">{{ learner.first_name }} {{ learner.last_name }} · {{ learner.activity_count }} assigned activity{{ "s" if learner.activity_count != 1 }}</a></p>
-    {% else %}<p>No learners have shared activity information in this demo.</p>{% endfor %}
+  <!-- Summarize learning activity without importing health or check-in information. -->
+  <section class="summary-grid" aria-label="Coach activity summary">
+    <article class="card summary-card"><p class="eyebrow">Authorized learners</p><strong>{{ learners | length }}</strong><a href="{{ url_for('coach_learners') }}">Open learner list</a></article>
+    <article class="card summary-card"><p class="eyebrow">Activities needing attention</p><strong>{{ attention_count }}</strong><a href="{{ url_for('coach_learners') }}">Review progress</a></article>
+    <article class="card summary-card"><p class="eyebrow">Completed this week</p><strong>{{ completed_this_week }}</strong><span>Learning activities</span></article>
+    <article class="card summary-card"><p class="eyebrow">Draft activity templates</p><strong>{{ draft_count }}</strong><a href="{{ url_for('coach_library') }}">Open Activity Library</a></article>
   </section>
 
-  <!-- This boundary is visible on every coach screen in the demo. -->
-  <p class="note">This view excludes private check-ins, health patterns, medical data, and appointment packets.</p>
+  <!-- Put shared learner profiles and recent progress in the main work area. -->
+  <div class="workspace-content-grid">
+    <section class="card" aria-labelledby="coach-learners-title">
+      <h2 id="coach-learners-title">Learners who shared learning information</h2>
+      {% for learner in learners %}
+        <article class="role-list-row">
+          <div><h3>{{ learner.first_name }} {{ learner.last_name }}</h3><p>{{ learner.completed_count }} of {{ learner.activity_count }} learning activities completed</p></div>
+          <a class="btn-secondary" href="{{ url_for('coach_learner', learner_id=learner.id) }}">Open learner profile</a>
+        </article>
+      {% else %}<p>No learners have shared learning information in this demo.</p>{% endfor %}
+    </section>
+    <section class="card" aria-labelledby="coach-signals-title">
+      <h2 id="coach-signals-title">Recent learning signals</h2>
+      {% for signal in recent_signals %}
+        <p class="role-list-row"><span><strong>{{ signal.learner }}</strong><br>{{ signal.title }}</span><span class="status-label">{{ signal.status }}</span></p>
+      {% else %}<p>No learning progress has been recorded yet.</p>{% endfor %}
+      <a class="text-link" href="{{ url_for('coach_library') }}">Open reusable activity library</a>
+    </section>
+  </div>
+
+  <!-- Preview fictional coach drafts that can be completed in the Activity Library. -->
+  <section class="card" aria-labelledby="coach-drafts-title">
+    <h2 id="coach-drafts-title">Draft activity templates</h2>
+    {% for draft in drafts %}<article class="role-list-row"><div><h3>{{ draft.title }}</h3><p>{{ draft.objective }}</p></div><span class="status-label">{{ draft.status }}</span></article>{% endfor %}
+    <a class="text-link" href="{{ url_for('coach_library') }}">Continue in Activity Library</a>
+  </section>
+
+  <!-- Show only learner-selected help and presentation requests. -->
+  <section class="card" aria-labelledby="coach-requests-title">
+    <h2 id="coach-requests-title">Help and adaptation requests</h2>
+    {% for item in requests %}
+      <article class="role-list-row"><div><h3>{{ item.activity_title }}</h3><p>{{ item.request }}</p></div><span class="status-label">{{ item.status }}</span></article>
+    {% else %}<p>No pending learning requests.</p>{% endfor %}
+  </section>
+
+  <!-- Make the boundary clear without exposing member health details. -->
+  <p class="privacy-note">You can see shared learning activities, progress, preferences, requests, and feedback. Private Check Ins, health patterns, device readings, medical information, appointment packets, and Circle details are not available here.</p>
 {% endblock %}
