@@ -65,7 +65,7 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
             rows.append({
                 "id": follow_up["id"], "title": follow_up["instruction"], "source": "health",
                 "source_name": follow_up["source_name"], "source_label": "From Health",
-                "due_on": follow_up["due_on"], "scheduled_for": "",
+                "due_on": follow_up.get("due_on", ""), "scheduled_for": "",
                 "estimated_minutes": follow_up.get("estimated_minutes", 10),
                 "status": "accepted", "next_action": "Review the details in Health",
                 "health_link": f"/health/next-steps#{follow_up['id']}",
@@ -73,19 +73,22 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
 
     visible = []
     for item in rows:
-        planned_day = date.fromisoformat(item["due_on"] or item["scheduled_for"][:10])
-        if time_filter == "today" and planned_day != current:
+        planned_text = item["due_on"] or item["scheduled_for"][:10]
+        planned_day = date.fromisoformat(planned_text) if planned_text else None
+        if planned_day is None and time_filter != "later":
             continue
-        if time_filter == "tomorrow" and planned_day != tomorrow:
+        if planned_day and time_filter == "today" and planned_day != current:
             continue
-        if time_filter == "this_week" and not current <= planned_day <= week_end:
+        if planned_day and time_filter == "tomorrow" and planned_day != tomorrow:
             continue
-        if time_filter == "later" and planned_day <= week_end:
+        if planned_day and time_filter == "this_week" and not current <= planned_day <= week_end:
+            continue
+        if planned_day and time_filter == "later" and planned_day <= week_end:
             continue
         if source_filter != "all" and item["source"] != source_filter:
             continue
 
-        item["date_label"] = f"{planned_day:%A}, {planned_day:%B} {planned_day.day}"
+        item["date_label"] = f"{planned_day:%A}, {planned_day:%B} {planned_day.day}" if planned_day else "No due date"
         if item["scheduled_for"]:
             scheduled = datetime.fromisoformat(item["scheduled_for"])
             item["date_label"] += f" · {scheduled:%I:%M %p}".replace(" 0", " ")
@@ -93,4 +96,4 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
         visible.append(item)
 
     return sorted(visible,
-                  key=lambda item: (item["due_on"] or item["scheduled_for"][:10], item["scheduled_for"]))
+                  key=lambda item: (item["due_on"] or item["scheduled_for"][:10] or "9999-12-31", item["scheduled_for"]))

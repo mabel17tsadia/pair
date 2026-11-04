@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <!-- Next Steps keeps proposed, questioned and accepted healthcare actions together in Health. -->
+  <!-- Next Steps keeps proposed, questioned, accepted and declined healthcare actions in Health. -->
   <h1>Next Steps</h1>
-  <p class="note">Appointments stay in Health. Only accepted follow-up actions also appear in My Plan.</p>
+  <p class="note">A healthcare professional's suggestions are optional. Only steps you accept also appear in My Plan.</p>
   {% if has_demo_records %}
     {% for action in follow_ups %}
       <article class="card health-record-card" id="{{ action.id }}">
@@ -11,13 +11,38 @@
           <h2>{{ action.instruction }}</h2>
           <span class="chip">{{ action.status.replace("_", " ").capitalize() }}</span>
         </div>
-        <p><strong>From {{ action.source_name }}</strong> · Due {{ action.due_on | long_day }}</p>
+        <p><strong>Type:</strong> {{ action.action_type_label }} · <strong>Submitted by:</strong> {{ action.source_name }}</p>
+        <p><strong>Due:</strong> {% if action.due_on %}{{ action.due_on | long_day }}{% else %}No due date set{% endif %}</p>
         <details>
-          <summary>More about this next step</summary>
+          <summary>Supporting details</summary>
           <p>{{ action.supporting_detail }}</p>
           {% if action.packet_id %}<a class="text-link" href="{{ url_for('health_packet', packet_id=action.packet_id) }}">Open related packet</a>{% endif %}
         </details>
-        {% if action.status == "accepted" %}<a class="text-link" href="{{ url_for('plan', time='later', source='health') }}">Find this accepted step in My Plan</a>{% endif %}
+        {% if action.member_question %}
+          <p><strong>Your question (saved only in this demo):</strong> {{ action.member_question }}</p>
+          <p class="note">It was not sent to {{ action.source_name }}.</p>
+        {% endif %}
+        {% if action.status == "accepted" %}
+          <a class="text-link" href="{{ url_for('plan', time='later', source='health') }}">Find this accepted step in My Plan</a>
+        {% elif action.status != "declined" %}
+          <!-- Each choice is separate so the member can accept or decline without writing a question. -->
+          <div class="health-action-choices">
+            <form method="post" action="{{ url_for('health_follow_up_action', action_id=action.id) }}">
+              <input type="hidden" name="choice" value="accept">
+              <button type="submit" class="btn-primary">Accept</button>
+            </form>
+            <form method="post" action="{{ url_for('health_follow_up_action', action_id=action.id) }}">
+              <input type="hidden" name="choice" value="ask_question">
+              <label for="question-{{ action.id }}">Ask a question</label>
+              <textarea id="question-{{ action.id }}" name="question" rows="2" maxlength="500" required></textarea>
+              <button type="submit" class="btn-secondary">Save question</button>
+            </form>
+            <form method="post" action="{{ url_for('health_follow_up_action', action_id=action.id) }}">
+              <input type="hidden" name="choice" value="decline">
+              <button type="submit" class="btn-secondary">Decline</button>
+            </form>
+          </div>
+        {% endif %}
       </article>
     {% else %}<p class="card">No healthcare follow-up actions yet.</p>{% endfor %}
   {% else %}

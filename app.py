@@ -41,7 +41,7 @@ ROLE_NAVIGATION = {
         ("My Plan", "plan", "calendar", ["plan"]),
         ("Check In", "checkin", "check", ["checkin"]),
         ("Health", "health", "heart", ["health", "health_packets", "health_packet",
-                                            "health_next_steps", "patterns", "body", "devices",
+                                            "health_next_steps", "health_follow_up_action", "patterns", "body", "devices",
                                             "pair_device", "stop_pairing", "visit_start", "visit_page",
                                             "visit_suggest", "visit_add_question", "visit_entry", "visit_review",
                                             "visit_packet_review", "visit_send", "visit_not_sure"]),
@@ -69,7 +69,8 @@ ROLE_NAVIGATION = {
     ],
 }
 HEALTH_ENDPOINTS = {
-    "health", "health_packets", "health_packet", "health_next_steps", "patterns", "body",
+    "health", "health_packets", "health_packet", "health_next_steps", "health_follow_up_action",
+    "patterns", "body",
     "devices", "pair_device", "stop_pairing", "visit_start", "visit_page", "visit_suggest",
     "visit_add_question", "visit_entry", "visit_review", "visit_packet_review", "visit_send",
     "visit_not_sure",
@@ -510,7 +511,9 @@ def plan():
     if not person:
         return redirect(url_for("choose"))
     records = load_demo_data()
-    is_demo_member = f"{person['first_name']} {person['last_name']}".strip() == records["member"]["name"]
+    is_demo_member = person["id"] == records["member"]["application_person_id"]
+    if is_demo_member:
+        records = {**records, "health_follow_ups": health_follow_ups_for(person, records)}
     time_filter = request.args.get("time", "today")
     source_filter = request.args.get("source", "all")
     activities = plan_activities(records, data.get_today(), time_filter, source_filter,
@@ -526,6 +529,19 @@ def health_demo_records(person):
     """Return only Health records linked to the current sample member's stable app ID."""
     records = load_demo_data()
     return records if person["id"] == records["member"]["application_person_id"] else None
+
+
+# Apply this member's session-only decisions to their simulated Health follow-up actions.
+def health_follow_ups_for(person, records=None):
+    records = records or health_demo_records(person)
+    if not records:
+        return []
+    saved_states = session.get("health_action_states", {}).get(person["id"], {})
+    return [{**action,
+             "status": saved_states.get(action["id"], {}).get("status", action["status"]),
+             "member_question": saved_states.get(action["id"], {}).get("question", ""),
+             "action_type_label": action.get("action_type", "other_instruction").replace("_", " ").capitalize()}
+            for action in records["health_follow_ups"]]
 
 
 # Health overview: summarize appointments, follow-ups, patterns and connected sources.
@@ -545,7 +561,7 @@ def health():
                                 f"{appointment:%I:%M %p}".replace(" 0", " "))
     upcoming = next((packet for packet in packets if packet["status"] == "upcoming"), None)
     return render_template("health.html", title="Health", person=person,
-                           upcoming=upcoming, next_steps=records["health_follow_ups"][:2],
+                           upcoming=upcoming, next_steps=health_follow_ups_for(person, records)[:2],
                            packet_count=len(packets), patterns=get_patterns(person["id"], devices_for(person)),
                            connected_count=sum(device["paired"] for device in devices_for(person)),
                            has_demo_records=True)
@@ -581,6 +597,43 @@ def health_packet(packet_id):
                            recipient=recipient, person=person)
 
 
+# Let the member accept, question, or decline one of their own proposed Health actions.
+@app.route("/health/next-steps/<action_id>", methods=["POST"])
+def health_follow_up_action(action_id):
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    records = health_demo_records(person)
+    action = next((item for item in records["health_follow_ups"] if item["id"] == action_id), None) if records else None
+    if not action:
+        abort(404)
+    states = session.get("health_action_states", {}).get(person["id"], {})
+    current_status = states.get(action_id, {}).get("status", action["status"])
+    if current_status in ["accepted", "declined"]:
+        flash("This follow-up already has a final choice.")
+        return redirect(url_for("health_next_steps", _anchor=action_id))
+    choice = request.form.get("choice")
+    if choice == "ask_question":
+        question = request.form.get("question", "").strip()[:500]
+        if not question:
+            flash("Write your question before saving it.")
+            return redirect(url_for("health_next_steps", _anchor=action_id))
+        status, saved_question = "question_asked", question
+        message = "Your question is saved in this demo. It was not sent to the healthcare professional."
+    elif choice == "accept":
+        status, saved_question, message = "accepted", "", "You accepted this step. It now appears in My Plan."
+    elif choice == "decline":
+        status, saved_question, message = "declined", "", "You declined this step. It will not appear in My Plan."
+    else:
+        abort(400)
+    states[action_id] = {"status": status, "question": saved_question}
+    all_states = session.get("health_action_states", {})
+    all_states[person["id"]] = states
+    session["health_action_states"] = all_states
+    flash(message)
+    return redirect(url_for("health_next_steps", _anchor=action_id))
+
+
 # Show all healthcare follow-up statuses in the Health section.
 @app.route("/health/next-steps")
 def health_next_steps():
@@ -589,7 +642,7 @@ def health_next_steps():
         return redirect(url_for("choose"))
     records = health_demo_records(person)
     return render_template("health_next_steps.html", title="Next Steps", person=person,
-                           follow_ups=records["health_follow_ups"] if records else [],
+                           follow_ups=health_follow_ups_for(person, records),
                            has_demo_records=bool(records))
 
 
