@@ -1,152 +1,51 @@
 {% extends "base.html" %}
-{% from "macros.html" import mood_emoji %}
-
-{# "Tired: 4 times, Headache: 2 times" from a list of (name, count) pairs #}
-{% macro counts_line(items) %}
-{%- for name, n in items %}{{ name }}: {{ n }} time{{ "s" if n != 1 }}{{ ", " if not loop.last }}{% endfor -%}
-{% endmacro %}
+{% from "macros.html" import icon, mood_emoji %}
 
 {% block content %}
-  <!-- Link back to step 1 (hidden when printing), page title, who the person is seeing and the 14 days -->
-  <a class="text-link no-print" href="{{ url_for('visit_start') }}">‹ Who are you seeing?</a>
-  <h1>Get ready for an appointment</h1>
-  <p class="note">{{ person.first_name }} · {{ visit_label }} · {{ period }}</p>
-  <p class="no-print">Step 2 of 5 · Add your reason, choose which changes to include, and prepare questions.</p>
-  <p class="note">Nothing is shared when you prepare this information. Review and approval happen on the next page.</p>
+  <!-- Keep the appointment type and one-stage progress visible throughout preparation. -->
+  <a class="text-link" href="{{ url_for('visit_start') }}">‹ Appointments</a>
+  <h1>Prepare for {{ visit_label }}</h1>
+  <p class="note">Step {{ step }} of 5 · Nothing is shared while you prepare.</p>
+  <div class="progress" role="progressbar" aria-label="Appointment preparation progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="{{ step }}"><div class="progress-fill" style="width: {{ step * 20 }}%"></div></div>
+  <p class="privacy-reminder">You choose what to include. Pair does not diagnose.</p>
 
-  <!-- Short paragraph for the professional (AI or rules, with a tiny label saying which) -->
-  <section class="card visit-section">
-    <p>{{ summary.text }}</p>
-    <p class="note">Source: {{ "AI summary of your patterns and check-ins" if summary.source == "ai" else "Pair's pattern and check-in summary" }}.</p>
-  </section>
-
-  <!-- What changed: the changes from get_patterns, in plain words -->
-  <section class="card visit-section">
-    <h2>What changed</h2>
-    {% if patterns.changes %}
-      <ul>{% for c in patterns.changes %}<li>{{ c.words }}</li>{% endfor %}</ul>
-    {% else %}
-      <p>No large changes in my daily patterns.</p>
-    {% endif %}
-  </section>
-
-  <!-- How I have been feeling: how often each mood and body feeling came up in check ins -->
-  <section class="card visit-section">
-    <h2>How I have been feeling</h2>
-    <p><strong>Moods:</strong>
-      {% for name, n in counts.moods %}{{ mood_emoji(name) }} {{ name }}: {{ n }} time{{ "s" if n != 1 }}{{ ", " if not loop.last }}{% else %}No check ins in these 14 days.{% endfor %}</p>
-    {% if counts.body %}<p><strong>Body feelings:</strong> {{ counts_line(counts.body) }}</p>{% endif %}
-    <p class="note">Source: your check-ins during this 14-day period.</p>
-  </section>
-
-  <!-- Things to tell them: change and body sentences relevant to this visit, each with its source (read only) -->
-  <section class="card visit-section">
-    <h2>Things to tell them</h2>
-    {% if tell %}
-      <ul class="goal-list">
-        {% for t in tell %}<li><span>{{ t.text }}<br><span class="note">From: {{ t.source }}</span></span></li>{% endfor %}
-      </ul>
-    {% else %}
-      <p>Nothing from your devices stands out for this visit.</p>
-    {% endif %}
-  </section>
-
-  <!-- Questions to ask: suggested questions (AI or rules, with a label), each with Add -->
-  <section class="card no-print">
-    <h2>Questions to ask</h2>
-    <form method="post" action="{{ url_for('visit_suggest', visit=visit) }}">
-      <button type="submit" class="btn-secondary">Suggest questions</button>
+  <!-- Ask for basic appointment details without suggesting a diagnosis. -->
+  {% if step == 1 %}
+    <form method="post" class="card appointment-wizard">
+      <h2>Appointment</h2><p>Provider and appointment details help organize your notes.</p>
+      <p><strong>Appointment type:</strong> {{ visit_label }}</p>
+      <label for="appointment-on">Date, if known</label><input id="appointment-on" name="appointment_on" type="date" min="{{ appointment_min }}" value="{{ draft.get('appointment_on', '') }}">
+      <label for="reason">Reason for the visit</label><textarea id="reason" name="reason" rows="3" maxlength="500">{{ draft.get('reason', '') }}</textarea>
+      <label for="help-with">What would you like help with?</label><textarea id="help-with" name="help_with" rows="3" maxlength="300">{{ draft.get('help_with', '') }}</textarea>
+      <div class="wizard-actions"><a class="btn-secondary" href="{{ url_for('visit_start') }}">Back</a><button class="btn-primary" name="action" value="continue">Continue</button><button class="btn-secondary" name="action" value="save">Save and finish later</button></div>
     </form>
-    {% if suggestions %}
-      <ul class="goal-list">
-        {% for q in suggestions.questions %}
-          <li>
-            <span>{{ q }}</span>
-            <form method="post" action="{{ url_for('visit_add_question', visit=visit) }}">
-              <input type="hidden" name="question" value="{{ q }}">
-              <button type="submit" class="btn-secondary">Add</button>
-            </form>
-          </li>
-        {% endfor %}
-      </ul>
-      <p class="note">{{ "Written with AI" if suggestions.source == "ai" else "Written by rules" }}</p>
-    {% endif %}
-  </section>
-
-  <!-- Step 2 to 4: collect the member's reason, selected changes, and questions for review. -->
-  <form method="post" action="{{ url_for('visit_review', visit=visit) }}">
-    <section class="card visit-section">
-      <h2>Step 2: Reason for this visit</h2>
-      <label for="appointment-on">Appointment date (if known)</label>
-      <input type="date" id="appointment-on" name="appointment_on" min="{{ appointment_min }}" value="{{ appointment_on }}">
-      <label for="reason">What would you like help with?</label>
-      <textarea id="reason" name="reason" rows="3" maxlength="500" placeholder="In your own words">{{ reason }}</textarea>
-      <p class="note">Source: written by you. This is included only if you choose to continue to packet review.</p>
-    </section>
-
-    <section class="card visit-section">
-      <h2>Step 3: Changes to include</h2>
-      <p>Select only the changes you want in your packet. Each item shows its source.</p>
-      {% for item in tell %}
-        <label class="visit-packet-choice">
-          <input type="checkbox" name="selected" value="{{ loop.index0 }}" {% if item in selected_changes %}checked{% endif %}>
-          <span>{{ item.text }}<br><span class="note">Source: {{ item.source }}</span></span>
-        </label>
-      {% else %}<p>No change summaries are available for this appointment type.</p>{% endfor %}
-    </section>
-
-    <section class="card visit-section">
-      <h2>Step 4: Questions to ask</h2>
-      <label for="questions">Questions you want to bring</label>
-      <textarea id="questions" name="questions" rows="5" maxlength="1000">{{ questions }}</textarea>
-      <p class="note">Source: written by you. Suggested questions can be added above.</p>
-    </section>
-    <button type="submit" class="btn-primary">Review my packet</button>
-  </form>
-
-  <!-- Entered by the person: values from another app or from memory, kept apart from device readings -->
-  <section class="card visit-section">
-    <h2>Entered by {{ person.first_name }}, not from a paired device</h2>
-    {% if entries %}
-      <ul class="goal-list">
-        {% for e in entries %}
-          <li>
-            <span><strong>{{ e.label }}:</strong> {{ e.value }}</span>
-            <form method="post" action="{{ url_for('visit_entry', visit=visit) }}" class="no-print">
-              <input type="hidden" name="remove" value="{{ loop.index0 }}">
-              <button type="submit" class="btn-secondary">Remove</button>
-            </form>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p>Nothing entered.</p>
-    {% endif %}
-
-    <!-- Add something from another app or from memory: a label and a value (never a device reading) -->
-    <form method="post" action="{{ url_for('visit_entry', visit=visit) }}" class="no-print">
-      <h3>Add something from another app or from memory</h3>
-      <label for="entry-label">What it is</label>
-      <input type="text" id="entry-label" name="label" maxlength="40" placeholder="For example: Blood pressure at the pharmacy" required>
-      <label for="entry-value">Value</label>
-      <input type="text" id="entry-value" name="value" maxlength="40" placeholder="For example: 118 over 76" required>
-      <button type="submit" class="btn-secondary">Add</button>
+  {% elif step == 2 %}
+    <!-- Let Jordan choose each individual change and show where it came from. -->
+    <form method="post" class="card appointment-wizard">
+      <h2>What Pair noticed</h2><p>Review one item at a time. Nothing is selected for sharing unless you choose Include.</p>
+      {% if tell and item_index < tell|length %}
+        {% set item = tell[item_index] %}<p class="note">Item {{ item_index + 1 }} of {{ tell|length }}</p>
+        <article class="packet-choice-card"><span class="pattern-pictogram">{% if item.feeling %}{{ mood_emoji(item.feeling, 'big') }}{% else %}{{ icon('chart') }}{% endif %}</span><span><strong>{{ item.text }}</strong><small>Source: {{ item.source }} · Recent pattern period</small></span></article>
+        <p class="note">{{ "You chose to include this item." if item_selected else "This item is currently left out." }}</p>
+        <div class="wizard-actions"><button class="btn-secondary" name="action" value="back">Back</button><button class="btn-secondary" name="action" value="leave_out">Leave out</button><button class="btn-primary" name="action" value="include">Include</button><button class="btn-secondary" name="action" value="save">Save and finish later</button></div>
+      {% else %}<p>No pattern or Check In information is available for this appointment. You can continue without sharing it.</p><div class="wizard-actions"><button class="btn-secondary" name="action" value="back">Back</button><button class="btn-primary" name="action" value="continue">Continue</button><button class="btn-secondary" name="action" value="save">Save and finish later</button></div>{% endif %}
     </form>
-  </section>
-
-  <!-- Where this information came from: paired devices and the person's own check ins (read only) -->
-  <section class="card visit-section">
-    <h2>Where this information came from</h2>
-    <ul>{% for source in sources %}<li>Source: {{ source }}</li>{% endfor %}</ul>
-    <p class="note no-print">Readings from paired devices come straight from the device and cannot be edited.</p>
-  </section>
-
-  <!-- Printing is separate; the packet review step controls any sharing decision. -->
-  <div class="no-print">
-    <button type="button" class="btn-primary" data-print>Print or save as PDF</button>
-    <p class="note">Pair does not send or share this information from this page.</p>
-  </div>
-
-  <!-- Who prepared this, and what Pair is not -->
-  <p class="note">Prepared by {{ person.first_name }} with Pair. Pair does not diagnose.</p>
+  {% elif step == 3 %}
+    <!-- Ask Jordan how they prefer to communicate and what would help in this visit. -->
+    <form method="post" class="card appointment-wizard">
+      <h2>How to support me</h2>
+      <label for="communication">Preferred communication style</label><select id="communication" name="communication"><option value="">Choose if you want</option>{% for value in ['Talk through one point at a time', 'Give me time to think', 'Use clear, direct language', 'Other'] %}<option {% if draft.get('communication') == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select>
+      <fieldset class="accommodation-options"><legend>Would any of these help? (optional)</legend>{% for value in ['Extra processing time', 'Pictures or written instructions', 'A quieter space', 'A support person with me'] %}<label><input type="checkbox" name="accommodations" value="{{ value }}" {% if value in draft.get('accommodations', []) %}checked{% endif %}> {{ value }}</label>{% endfor %}</fieldset>
+      <label for="other-preference">Other preference</label><textarea id="other-preference" name="other_preference" rows="3" maxlength="300">{{ draft.get('other_preference', '') }}</textarea>
+      <div class="wizard-actions"><button class="btn-secondary" name="action" value="back">Back</button><button class="btn-primary" name="action" value="continue">Continue</button><button class="btn-secondary" name="action" value="save">Save and finish later</button></div>
+    </form>
+  {% else %}
+    <!-- Keep suggested questions editable and identify when they use built-in guidance. -->
+    <section class="card appointment-wizard">
+      <h2>My questions</h2><p>Choose or edit questions you want to ask. These are not medical advice.</p>
+      <form method="post" action="{{ url_for('visit_suggest', visit=visit) }}"><button class="btn-secondary">Suggest questions</button></form>
+      {% if suggestions %}<p class="note">{{ 'Adapted with AI' if suggestions.source == 'ai' else 'Using built-in guidance' }}</p><ul>{% for question in suggestions.questions %}<li>{{ question }} <form method="post" action="{{ url_for('visit_add_question', visit=visit) }}"><input type="hidden" name="question" value="{{ question }}"><button class="btn-secondary">Add</button></form></li>{% endfor %}</ul>{% endif %}
+      <form method="post" class="appointment-wizard"><label for="questions">Questions for my appointment</label><textarea id="questions" name="questions" rows="5" maxlength="1000">{{ questions }}</textarea><p class="note">You can edit or remove any suggestion. Source: written by you unless labeled above.</p><div class="wizard-actions"><button class="btn-secondary" name="action" value="back">Back</button><button class="btn-primary" name="action" value="continue">Continue to review</button><button class="btn-secondary" name="action" value="save">Save and finish later</button></div></form>
+    </section>
+  {% endif %}
 {% endblock %}

@@ -11,7 +11,8 @@ class DemoData(TypedDict):
     member: dict
     professionals: list
     circle: list
-    activities: list
+    activity_templates: list
+    activity_assignments: list
     health_follow_ups: list
     check_ins: list
     connected_sources: list
@@ -44,6 +45,24 @@ def load_demo_data(provider: Optional[DemoDataProvider] = None) -> DemoData:
     return (provider or JsonDemoDataProvider()).load()
 
 
+def activity_assignments(records, member_id, extra=()):
+    """Join a member's assignments to reusable templates and remove duplicate assignment IDs."""
+    templates = {item["id"]: item for item in records.get("activity_templates", [])}
+    rows = [item for item in records.get("activity_assignments", records.get("activities", []))
+            if item.get("assigned_to") == member_id]
+    rows += [item for item in extra if item.get("assigned_to") == member_id]
+    output = []
+    seen = set()
+    for row in rows:
+        if row["id"] in seen:
+            continue
+        seen.add(row["id"])
+        template = templates.get(row.get("template_id"), row)
+        output.append({**template, **row, "steps": template.get("steps", row.get("steps", [])),
+                       "objective": template.get("objective", row.get("objective", ""))})
+    return output
+
+
 def plan_activities(records, today, time_filter="today", source_filter="all", progress=None):
     """Return activities and accepted Health follow-ups matching the selected filters."""
     current = date.fromisoformat(today)
@@ -56,7 +75,11 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
     rows = []
 
     progress = progress or {}
-    for activity in records["activities"]:
+    activities = records.get("activity_assignments", records.get("activities", []))
+    if records.get("activity_templates"):
+        member_id = records.get("member", {}).get("application_person_id")
+        activities = activity_assignments(records, member_id)
+    for activity in activities:
         saved = progress.get(activity["id"], {})
         rows.append({**activity, **saved, "source_label": {
             "member": "Added by me", "coach": "From my coach"}.get(activity["source"], activity["source"])})

@@ -74,11 +74,11 @@ class PairExperienceTests(unittest.TestCase):
             self.assertEqual(page.status_code, 200, role)
             self.assertIn(f'data-demo-role="{role}"'.encode(), page.data)
             self.assertIn(identity, page.data)
+            self.assertIn(b"role-sidebar", page.data)
+            self.assertIn(b"mobile-role-nav", page.data)
             if role == "member":
-                self.assertNotIn(b"role-sidebar", page.data)
-            else:
-                self.assertIn(b"role-sidebar", page.data)
-                self.assertIn(b"mobile-role-nav", page.data)
+                for label in [b"Pair member", b"Your information, your choices", b"Pair keeps the member in control", b"Patterns", b"Appointments"]:
+                    self.assertIn(label, page.data)
 
     # Keep prototype sign-in links honest and never submit the displayed password fields.
     def test_demo_sign_in_and_help_pages_are_transparent(self):
@@ -138,11 +138,13 @@ class PairExperienceTests(unittest.TestCase):
     def test_member_home_summarizes_without_showing_all_pattern_details(self):
         page = self.client.get("/today")
         self.assertEqual(page.status_code, 200)
-        for label in [b"Your next action", b"Today", b"Up next", b"Later", b"My Climb",
-                      b"Private pattern notice", b"Upcoming appointment", b"Last Check In", b"My Circle"]:
+        for label in [b"Good afternoon, Jordan.", b"Your Day", b"Up Next", b"Later", b"My Climb",
+                      b"Your week looks different", b"Upcoming appointment"]:
             self.assertIn(label, page.data)
         self.assertNotIn(b"Your usual average", page.data)
         self.assertNotIn(b"Last 5-day average", page.data)
+        self.assertNotIn(b"Last Check In", page.data)
+        self.assertNotIn(b"My Circle</p>", page.data)
         plan_page = self.client.get("/my-plan")
         self.assertIn(b"One thing at a time", plan_page.data)
         self.assertIn(b"Show my full day", plan_page.data)
@@ -231,7 +233,7 @@ class PairExperienceTests(unittest.TestCase):
 
     # Keep coach adaptation requests available only for learners with the relevant sharing level.
     def test_member_adaptation_request_appears_in_authorized_coach_view(self):
-        activity_id = self.records["activities"][0]["id"]
+        activity_id = self.records["activity_assignments"][0]["id"]
         self.client.post(f"/activity/{activity_id}", data={"step": "1", "action": "help"})
         with self.client.session_transaction() as state:
             state["demo_role"] = "coach"
@@ -240,7 +242,7 @@ class PairExperienceTests(unittest.TestCase):
 
     # Replace route variables with known safe demo fixture values.
     def route_path(self, rule):
-        values = {"activity_id": self.records["activities"][0]["id"], "person_id": "p1",
+        values = {"activity_id": self.records["activity_assignments"][0]["id"], "person_id": "p1",
                   "step": "1", "learner_id": "p1", "action_id": self.records["health_follow_ups"][0]["id"],
                   "visit": "primary", "packet_id": self.records["appointment_packets"][0]["id"],
                   "name": "My%20phone", "index": "0", "filename": "css/style.css"}
@@ -276,6 +278,89 @@ class PairExperienceTests(unittest.TestCase):
                 self.assertIn(f"source={source_filter}".encode(), response.data)
         accepted = [item for item in plan_activities(self.records, data.get_today(), "later", "health")]
         self.assertTrue(all(item["status"] == "accepted" for item in accepted))
+
+    # Keep reusable templates separate from unique member assignment records.
+    def test_activity_assignments_are_unique_and_meal_is_not_duplicated(self):
+        assignments = self.records["activity_assignments"]
+        ids = [item["id"] for item in assignments]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(sum(item["title"] == "Practice a simple meal" for item in
+                             plan_activities(self.records, data.get_today(), "today", "all")), 1)
+        meal = next(item for item in self.records["activity_templates"]
+                    if item["title"] == "Practice a simple meal")
+        self.assertEqual(len(meal["steps"]), 6)
+        self.assertEqual([item["label"] for item in meal["steps"][0]["choices"]],
+                         ["Sandwich", "Oatmeal", "Salad", "Something else"])
+
+    # Save a meal choice and make sure later instructions use the member's selection.
+    def test_activity_choice_is_saved_and_used_in_later_steps(self):
+        assignment = next(item for item in self.records["activity_assignments"]
+                          if item.get("assigned_to") == "p1" and item.get("template_id") == "template-coach-01")
+        response = self.client.post(f"/activity/{assignment['id']}?step=1",
+                                    data={"action": "next", "choice": "oatmeal"})
+        self.assertEqual(response.status_code, 302)
+        page = self.client.get(f"/activity/{assignment['id']}?step=2")
+        self.assertIn(b"ingredients you need for Oatmeal", page.data)
+        with self.client.session_transaction() as state:
+            self.assertEqual(state["activity_responses"][assignment["id"]]["1"]["choice"], "oatmeal")
+        export = self.client.get("/settings/export")
+        self.assertIn(b'"responses"', export.data)
+        self.assertIn(b'"choice": "oatmeal"', export.data)
+
+    # Keep Home limited to the private summary, one clickable day timeline, and secondary climb/visit links.
+    def test_member_home_is_simple_and_timeline_destinations_work(self):
+        page = self.client.get("/today")
+        self.assertEqual(page.status_code, 200)
+        for label in [b"Good afternoon, Jordan.", b"Choose one thing. Details stay tucked away until you want them.",
+                      b"Pair noticed", b"Your week looks different", b"Your Day", b"Now", b"Up Next", b"Later",
+                      b"Upcoming appointment", b"My Climb", b"data-demo-role=\"member\""]:
+            self.assertIn(label, page.data)
+        self.assertNotIn(b"Last Check In", page.data)
+        self.assertNotIn(b"What feels like a good next step?", page.data)
+        self.assertIn(b"day-timeline", page.data)
+
+    # Preserve appointment answers when moving through the one-stage-at-a-time wizard.
+    def test_appointment_wizard_steps_back_save_and_review_selected_items(self):
+        self.assertEqual(self.client.get("/visit/primary?step=1").status_code, 200)
+        response = self.client.post("/visit/primary?step=1", data={"reason": "Talk about my sleep",
+                                 "help_with": "Prepare questions", "appointment_on": data.get_today()})
+        self.assertIn("step=2", response.headers["Location"])
+        page = self.client.get("/visit/primary?step=2")
+        self.assertIn(b"What Pair noticed", page.data)
+        response = self.client.post("/visit/primary?step=2&item=0", data={"action": "include"})
+        self.assertIn("item=1", response.headers["Location"])
+        response = self.client.post("/visit/primary?step=2&item=1", data={"action": "leave_out"})
+        self.assertIn("item=2", response.headers["Location"])
+        item_count = int(re.search(rb"Item 1 of (\d+)", page.data).group(1))
+        for item_index in range(2, item_count):
+            response = self.client.post(f"/visit/primary?step=2&item={item_index}",
+                                        data={"action": "leave_out"})
+        self.assertIn("step=3", response.headers["Location"])
+        response = self.client.post("/visit/primary?step=3", data={"communication": "Give me time to think",
+                                 "accommodations": "Extra processing time"})
+        self.assertIn("step=4", response.headers["Location"])
+        response = self.client.post("/visit/primary?step=4", data={"questions": "Can you explain the next step?"})
+        self.assertIn("/visit/primary/review", response.headers["Location"])
+        review = self.client.get(response.headers["Location"])
+        for label in [b"Step 5 of 5", b"What I would like help with", b"Left out",
+                      b"Communication preferences", b"Can you explain the next step?", b"does not send packets"]:
+            self.assertIn(label, review.data)
+        invalid = self.client.post("/visit/primary/send", data={"recipient": "Dr. Patel",
+                                    "expires_on": data.get_today()})
+        self.assertEqual(invalid.status_code, 302)
+        confirmed = self.client.post("/visit/primary/send", data={"recipient": "Dr. Patel",
+                                      "expires_on": data.get_today(), "reviewed": "yes"})
+        self.assertEqual(confirmed.status_code, 302)
+        result = self.client.get(confirmed.headers["Location"])
+        if result.status_code == 302:
+            result = self.client.get(result.headers["Location"])
+        self.assertIn(b"did not send or share the packet", result.data)
+        self.assertEqual(self.client.post("/visit/primary?step=3", data={"action": "back"}).status_code, 302)
+        with self.client.session_transaction() as state:
+            self.assertTrue(state["visit_packet_drafts"]["p1"]["primary"]["changes"])
+        response = self.client.post("/visit/primary?step=2&item=0", data={"action": "save"})
+        self.assertIn("/health", response.headers["Location"])
+        self.assertIn(b"Continue saved Primary care doctor draft", self.client.get("/visit").data)
 
     # Keep the focused plan display and full-day preference member-specific and usable.
     def test_my_pace_switches_between_one_and_all_activities(self):
@@ -335,7 +420,7 @@ class PairExperienceTests(unittest.TestCase):
     def test_coach_must_open_learner_before_assignment(self):
         with self.client.session_transaction() as state:
             state["demo_role"] = "coach"
-        activity_id = self.records["activities"][0]["id"]
+        activity_id = self.records["activity_templates"][0]["id"]
         url = "/coach/learners/p1/assign"
         self.assertEqual(self.client.post(url, data={"activity_id": activity_id}).status_code, 403)
         self.client.get("/coach/learners/p1")
@@ -394,7 +479,7 @@ class PairExperienceTests(unittest.TestCase):
 
     # Exercise the main activity presentation buttons and retain one-step navigation.
     def test_activity_buttons_keep_the_route_working(self):
-        activity_id = self.records["activities"][0]["id"]
+        activity_id = self.records["activity_assignments"][0]["id"]
         url = f"/activity/{activity_id}"
         for action in ["fewer", "example", "different", "original", "pictures",
                        "feedback:Okay", "break", "help", "next", "back"]:
@@ -427,7 +512,7 @@ class PairExperienceTests(unittest.TestCase):
     # Check semantic landmarks, labels, keyboard focus, responsive breakpoints, and theme contrast.
     def test_accessibility_and_responsive_contracts(self):
         routes = [("member", route) for route in ["/today", "/my-plan", "/checkin", "/circle",
-                  "/health", "/settings", "/activity/" + self.records["activities"][0]["id"],
+                  "/health", "/settings", "/activity/" + self.records["activity_assignments"][0]["id"],
                   "/visit/primary"]]
         routes += [("coach", route) for route in ["/coach", "/coach/library", "/coach/settings"]]
         routes += [("healthcare", route) for route in ["/professional", "/professional/packets",

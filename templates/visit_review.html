@@ -2,16 +2,31 @@
 
 {% block content %}
   <!-- Link back to the preparation steps and show the final review stage. -->
-  <a class="text-link" href="{{ url_for('visit_page', visit=draft.visit) }}">‹ Edit appointment details</a>
+  <a class="text-link" href="{{ url_for('visit_page', visit=draft.visit, step=4) }}">‹ Edit appointment details</a>
   <h1>Review your appointment packet</h1>
   <p class="note">Step 5 of 5 · Check each item, choose a recipient, and set an expiration date.</p>
+  <div class="progress" role="progressbar" aria-label="Appointment preparation progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="5"><div class="progress-fill" style="width: 100%"></div></div>
+  <p class="privacy-reminder">Nothing is shared until you confirm. This demonstration does not send packets.</p>
 
   <!-- Appointment type and member-authored reason are shown before any sharing choice. -->
   <section class="card visit-section">
     <h2>{{ draft.appointment_type }}</h2>
     <p><strong>Appointment date:</strong> {{ draft.appointment_on | long_day if draft.appointment_on else "Not added." }}</p>
     <p><strong>Reason for visit</strong><br>{{ draft.reason or "No reason added." }}</p>
+    <p><strong>What I would like help with</strong><br>{{ draft.help_with or "Not added." }}</p>
     <p class="note">Source: written by you.</p>
+  </section>
+
+  <!-- Show the member's exclusion choices beside the information selected for sharing. -->
+  <section class="card visit-section"><h2>Left out</h2>
+    {% for item in draft.excluded_changes %}<p>{{ item.text }} <span class="note">Source: {{ item.source }}</span></p>{% else %}<p>No other suggested items were available.</p>{% endfor %}
+  </section>
+
+  <!-- Show communication and accommodation preferences chosen for this appointment. -->
+  <section class="card visit-section"><h2>Communication preferences</h2>
+    <p>{{ draft.communication or "No preferred communication style selected." }}</p>
+    {% for item in draft.accommodations %}<p>{{ item }} <span class="note">Selected by you.</span></p>{% endfor %}
+    {% if draft.other_preference %}<p>{{ draft.other_preference }} <span class="note">Source: written by you.</span></p>{% endif %}
   </section>
 
   <!-- Only the changes selected by the member on the previous page appear in this packet. -->
@@ -29,7 +44,7 @@
   <section class="card visit-section">
     <h2>Questions to ask</h2>
     <p class="keep-lines">{{ draft.questions or "No questions added." }}</p>
-    <p class="note">Source: written by you.</p>
+    <p class="note">You selected and reviewed these questions. {{ "Pair suggestion source: " ~ draft.question_guidance_source ~ "." if draft.question_guidance_source else "Source: written by you." }}</p>
   </section>
 
   <!-- The final action requires an approved health contact, a date, and explicit review. -->
@@ -51,5 +66,8 @@
     {% else %}
       <p>No healthcare contact has permission to receive a selected packet. Update sharing in <a href="{{ url_for('circle') }}">My Circle</a>.</p>
     {% endif %}
+  </form>
+  <form method="post" action="{{ url_for('visit_finish_later', visit=draft.visit) }}" class="wizard-actions">
+    <button class="btn-secondary" type="submit">Save and finish later</button>
   </form>
 {% endblock %}

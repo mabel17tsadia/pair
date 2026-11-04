@@ -1,54 +1,34 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon %}
 
 {% block content %}
-  <!-- Health overview links to the focused pages in this section. -->
-  <h1>Health overview</h1>
+  <!-- Keep appointment preparation and the next health decision at the top. -->
+  <h1>Health</h1>
   <p class="note">Your health information stays here. You choose what to prepare or share.</p>
-
   {% if has_demo_records %}
-    <!-- Keep the overview brief and show only the next appointment and a small next-step preview. -->
-    <div class="health-overview-grid">
-      <section class="card">
-        <h2>Upcoming appointment</h2>
-        {% if upcoming %}
-          <p><strong>{{ upcoming.appointment_type }}</strong></p>
-          <p>{{ upcoming.date_label }}</p>
-          <a class="text-link" href="{{ url_for('health_packet', packet_id=upcoming.id) }}">Review packet</a>
-        {% else %}
-          <p>No upcoming appointments in this demo.</p>
-        {% endif %}
-        <a class="btn-secondary" href="{{ url_for('visit_start') }}">Prepare for an Appointment</a>
+    <div class="health-priority-grid">
+      <section class="card health-appointment-priority">
+        <p class="eyebrow">Upcoming appointment</p>
+        {% if upcoming %}<h2>{{ upcoming.appointment_type }}</h2><p>{{ upcoming.date_label }}</p><a class="text-link" href="{{ url_for('health_packet', packet_id=upcoming.id) }}">Review the shared packet</a>
+        {% else %}<h2>No upcoming appointment</h2><p>You can prepare for a visit whenever you are ready.</p>{% endif %}
+        <a class="btn-primary" href="{{ url_for('visit_start') }}">{% if upcoming %}Continue preparation{% else %}Prepare for an Appointment{% endif %}</a>
       </section>
-
-      <section class="card">
-        <h2>Next steps</h2>
-        {% for action in next_steps %}
-          <p>{{ action.instruction }} <span class="chip">{{ action.status.replace("_", " ").capitalize() }}</span></p>
-        {% else %}<p>No next steps in this demo.</p>{% endfor %}
-        <a class="text-link" href="{{ url_for('health_next_steps') }}">See all next steps</a>
-      </section>
-
-      <section class="card">
-        <h2>Health patterns</h2>
-        <p>{{ patterns.status }} · {{ patterns.change_count }} pattern change{{ "s" if patterns.change_count != 1 }}</p>
-        <a class="text-link" href="{{ url_for('patterns') }}">Review Health Patterns</a>
-      </section>
-
-      <section class="card">
-        <h2>Connected Data Sources</h2>
-        <p>{{ connected_count }} optional source{{ "s" if connected_count != 1 }} connected in this demo.</p>
-        <a class="text-link" href="{{ url_for('devices') }}">Review connected sources</a>
-      </section>
-
-      <section class="card">
-        <h2>My Shared Packets</h2>
-        <p>{{ packet_count }} appointment packet{{ "s" if packet_count != 1 }} in this demo.</p>
-        <a class="text-link" href="{{ url_for('health_packets') }}">Open My Shared Packets</a>
+      <section class="card health-next-priority">
+        <p class="eyebrow">Next steps</p><h2>What needs your attention?</h2>
+        {% for action in next_steps %}<p>{{ action.instruction }} <span class="chip">{{ action.status.replace("_", " ").capitalize() }}</span></p>{% else %}<p>No next steps in this demo.</p>{% endfor %}
+        <a class="btn-secondary" href="{{ url_for('health_next_steps') }}">Review next steps</a>
       </section>
     </div>
-    <p class="note">These are fictional demo records. A role preview does not verify a person's identity or grant access.</p>
+
+    <!-- Keep additional health destinations available as compact links, not equal dashboard cards. -->
+    <nav class="health-secondary-links" aria-label="More Health pages">
+      <a href="{{ url_for('health_packets') }}">{{ icon('clipboard') }} My Shared Packets <span>{{ packet_count }}</span></a>
+      <a href="{{ url_for('patterns') }}">{{ icon('chart') }} Health Patterns <span>{{ patterns.change_count }} changes</span></a>
+      <a href="{{ url_for('devices') }}">{{ icon('phone') }} Connected Data Sources <span>{{ connected_count }} connected</span></a>
+    </nav>
+    <p class="note">These are fictional demo records. A role preview does not verify identity or grant access.</p>
   {% else %}
-    <!-- Keep Jordan's Health fixture records out of other demo members' views. -->
+    <!-- Keep Jordan's Health records out of other sample members' views. -->
     <p class="card">Health demo records are available for Jordan Reyes only.</p>
     <a class="btn-secondary" href="{{ url_for('visit_start') }}">Prepare for an Appointment</a>
   {% endif %}

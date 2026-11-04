@@ -9,15 +9,25 @@
   "learning_preferences": {
     "p1": {
       "instruction_display": "Pictures and Words",
-      "helpful_formats": ["One step at a time", "Show an example", "Shorter instructions when needed"]
+      "helpful_formats": [
+        "One step at a time",
+        "Show an example",
+        "Shorter instructions when needed"
+      ]
     },
     "p3": {
       "instruction_display": "Pictures First",
-      "helpful_formats": ["Written checklist", "Practice with one example first"]
+      "helpful_formats": [
+        "Written checklist",
+        "Practice with one example first"
+      ]
     },
     "p2": {
       "instruction_display": "Words Only",
-      "helpful_formats": ["Short written steps", "Choose from two options"]
+      "helpful_formats": [
+        "Short written steps",
+        "Choose from two options"
+      ]
     }
   },
   "learning_requests": [
@@ -53,7 +63,13 @@
     }
   ],
   "coach_draft_templates": [
-    {"id": "draft-grocery-list", "title": "Make a short grocery list", "objective": "Choose a few items for a simple meal", "status": "Draft", "fictional": true}
+    {
+      "id": "draft-grocery-list",
+      "title": "Make a short grocery list",
+      "objective": "Choose a few items for a simple meal",
+      "status": "Draft",
+      "fictional": true
+    }
   ],
   "trusted_summary": {
     "member_id": "member-jordan",
@@ -77,25 +93,91 @@
     "pending_invitation_count": 5,
     "access_alert_count": 1,
     "administrative_tasks": [
-      {"title": "Review staff role verification", "detail": "2 staff profiles await review", "status": "To review"},
-      {"title": "Complete quarterly access review", "detail": "Due November 30", "status": "Upcoming"}
+      {
+        "title": "Review staff role verification",
+        "detail": "2 staff profiles await review",
+        "status": "To review"
+      },
+      {
+        "title": "Complete quarterly access review",
+        "detail": "Due November 30",
+        "status": "Upcoming"
+      }
     ],
     "people": [
-      {"name": "Jordan Reyes", "role": "Pair member", "account_status": "Active", "verification": "Member account"},
-      {"name": "Dana Brooks", "role": "Coach or educator", "account_status": "Active", "verification": "Verified"},
-      {"name": "Dr. Priya Patel", "role": "Healthcare professional", "account_status": "Active", "verification": "Verified"},
-      {"name": "Marisol Reyes", "role": "Trusted person", "account_status": "Active", "verification": "Not applicable"},
-      {"name": "Alex Morgan", "role": "Organization administrator", "account_status": "Active", "verification": "Verified"}
+      {
+        "name": "Jordan Reyes",
+        "role": "Pair member",
+        "account_status": "Active",
+        "verification": "Member account"
+      },
+      {
+        "name": "Dana Brooks",
+        "role": "Coach or educator",
+        "account_status": "Active",
+        "verification": "Verified"
+      },
+      {
+        "name": "Dr. Priya Patel",
+        "role": "Healthcare professional",
+        "account_status": "Active",
+        "verification": "Verified"
+      },
+      {
+        "name": "Marisol Reyes",
+        "role": "Trusted person",
+        "account_status": "Active",
+        "verification": "Not applicable"
+      },
+      {
+        "name": "Alex Morgan",
+        "role": "Organization administrator",
+        "account_status": "Active",
+        "verification": "Verified"
+      }
     ],
     "invitations": [
-      {"recipient": "Sample coach account", "role": "Coach or educator", "status": "Awaiting response", "sent_on": "2026-11-02"},
-      {"recipient": "Sample healthcare account", "role": "Healthcare professional", "status": "Role review needed", "sent_on": "2026-11-01"},
-      {"recipient": "Sample trusted person", "role": "Trusted person", "status": "Awaiting response", "sent_on": "2026-10-30"}
+      {
+        "recipient": "Sample coach account",
+        "role": "Coach or educator",
+        "status": "Awaiting response",
+        "sent_on": "2026-11-02"
+      },
+      {
+        "recipient": "Sample healthcare account",
+        "role": "Healthcare professional",
+        "status": "Role review needed",
+        "sent_on": "2026-11-01"
+      },
+      {
+        "recipient": "Sample trusted person",
+        "role": "Trusted person",
+        "status": "Awaiting response",
+        "sent_on": "2026-10-30"
+      }
     ],
     "consent_records": [
-      {"date": "2026-11-03", "person": "Jordan Reyes", "event": "Shared a weekly plan summary with Marisol Reyes", "scope": "Summary metadata", "result": "Active until Nov 30"},
-      {"date": "2026-11-03", "person": "Jordan Reyes", "event": "Shared an appointment packet with Dr. Priya Patel", "scope": "Member-selected packet metadata", "result": "Expires Nov 13"},
-      {"date": "2026-11-02", "person": "Theo Okafor", "event": "Learning progress sharing reviewed", "scope": "Assigned activity progress", "result": "Active"}
+      {
+        "date": "2026-11-03",
+        "person": "Jordan Reyes",
+        "event": "Shared a weekly plan summary with Marisol Reyes",
+        "scope": "Summary metadata",
+        "result": "Active until Nov 30"
+      },
+      {
+        "date": "2026-11-03",
+        "person": "Jordan Reyes",
+        "event": "Shared an appointment packet with Dr. Priya Patel",
+        "scope": "Member-selected packet metadata",
+        "result": "Expires Nov 13"
+      },
+      {
+        "date": "2026-11-02",
+        "person": "Theo Okafor",
+        "event": "Learning progress sharing reviewed",
+        "scope": "Assigned activity progress",
+        "result": "Active"
+      }
     ],
     "approved_template_count": 24,
     "settings": {
@@ -155,233 +237,6 @@
       "status": "active",
       "starts_on": "2026-11-03",
       "expires_on": "2026-11-30"
-    }
-  ],
-  "activities": [
-    {
-      "id": "activity-coach-01",
-      "assigned_to": "p1",
-      "title": "Practice a simple meal",
-      "source": "coach",
-      "source_name": "Dana Brooks",
-      "scheduled_for": "2026-11-04T16:00:00-07:00",
-      "due_on": "2026-11-04",
-      "estimated_minutes": 25,
-      "status": "in_progress",
-      "next_action": "Continue with step 2",
-      "objective": "Practice preparing a simple meal safely",
-      "steps": [
-        {
-          "order": 1,
-          "instruction": "Choose a meal you would like to make.",
-          "picture": "🍽️",
-          "short_instruction": "Pick a meal.",
-          "different_explanation": "Think of one meal you might enjoy making.",
-          "example": "For example, pasta or a sandwich.",
-          "picture_label": "a meal"
-        },
-        {
-          "order": 2,
-          "instruction": "Gather the ingredients and tools.",
-          "picture": "🥣",
-          "short_instruction": "Get what you need.",
-          "different_explanation": "Put the ingredients and tools in one place.",
-          "example": "For example, a bowl, ingredients, and a spoon.",
-          "picture_label": "ingredients and tools"
-        },
-        {
-          "order": 3,
-          "instruction": "Follow the recipe one step at a time.",
-          "picture": "🥄",
-          "short_instruction": "Follow the recipe.",
-          "different_explanation": "Read one recipe direction, then do that step.",
-          "example": "If it says stir, stir before going on.",
-          "picture_label": "a spoon"
-        }
-      ]
-    },
-    {
-      "id": "activity-coach-02",
-      "assigned_to": "p1",
-      "title": "Plan a bus trip",
-      "source": "coach",
-      "source_name": "Dana Brooks",
-      "scheduled_for": "2026-11-05T10:00:00-07:00",
-      "due_on": "2026-11-05",
-      "estimated_minutes": 20,
-      "status": "not_started",
-      "next_action": "Open the route information",
-      "objective": "Practice planning a familiar trip",
-      "steps": [
-        {
-          "order": 1,
-          "instruction": "Choose the place you want to visit.",
-          "picture": "🏁",
-          "short_instruction": "Pick a place.",
-          "different_explanation": "Choose where you want to go.",
-          "example": "For example, the library.",
-          "picture_label": "a destination"
-        },
-        {
-          "order": 2,
-          "instruction": "Check the bus route and times.",
-          "picture": "🚌",
-          "short_instruction": "Check the bus route.",
-          "different_explanation": "Look up the route and when the bus comes.",
-          "example": "For example, note the number 12 bus and its time.",
-          "picture_label": "a bus"
-        },
-        {
-          "order": 3,
-          "instruction": "Write down where you will get on and off.",
-          "picture": "📍",
-          "short_instruction": "Write down your stops.",
-          "different_explanation": "Note where you will get on and where you will get off.",
-          "example": "For example, get on at Main Street and get off by the library.",
-          "picture_label": "a bus stop"
-        }
-      ]
-    },
-    {
-      "id": "activity-coach-03",
-      "assigned_to": "p1",
-      "title": "Practice a laundry routine",
-      "source": "coach",
-      "source_name": "Dana Brooks",
-      "scheduled_for": "2026-11-09T11:00:00-07:00",
-      "due_on": "2026-11-09",
-      "estimated_minutes": 30,
-      "status": "not_started",
-      "next_action": "Gather clothes and supplies",
-      "objective": "Practice the steps in a laundry routine",
-      "steps": [
-        {
-          "order": 1,
-          "instruction": "Gather clothes for one load.",
-          "picture": "🧺",
-          "short_instruction": "Gather one load.",
-          "different_explanation": "Collect the clothes you want to wash together.",
-          "example": "For example, put one load of shirts in a basket.",
-          "picture_label": "a laundry basket"
-        },
-        {
-          "order": 2,
-          "instruction": "Add the clothes and detergent.",
-          "picture": "🧼",
-          "short_instruction": "Add clothes and detergent.",
-          "different_explanation": "Put clothes in the machine, then add detergent.",
-          "example": "Use the amount shown on the detergent label.",
-          "picture_label": "soap"
-        },
-        {
-          "order": 3,
-          "instruction": "Choose a cycle and start the machine.",
-          "picture": "⏱️",
-          "short_instruction": "Choose a cycle and start.",
-          "different_explanation": "Pick a cycle, then press start.",
-          "example": "For example, choose a regular cycle for everyday clothes.",
-          "picture_label": "a timer"
-        }
-      ]
-    },
-    {
-      "id": "activity-member-01",
-      "title": "Tidy my desk",
-      "source": "member",
-      "source_name": "Jordan Reyes",
-      "scheduled_for": "2026-11-06T18:00:00-07:00",
-      "due_on": "2026-11-06",
-      "estimated_minutes": 10,
-      "status": "not_started",
-      "next_action": "Clear one small area",
-      "objective": "Make the desk easier to use",
-      "steps": [
-        {
-          "order": 1,
-          "instruction": "Choose one small area of the desk.",
-          "picture": "🧹",
-          "short_instruction": "Choose one small area.",
-          "different_explanation": "Pick one part of your desk to tidy.",
-          "example": "For example, the space next to your keyboard.",
-          "picture_label": "a desk"
-        },
-        {
-          "order": 2,
-          "instruction": "Put away items you want to keep.",
-          "picture": "📦",
-          "short_instruction": "Put away what you are keeping.",
-          "different_explanation": "Move the things you want to keep to their place.",
-          "example": "For example, put pens in a cup.",
-          "picture_label": "a storage box"
-        }
-      ]
-    },
-    {
-      "id": "activity-member-02",
-      "title": "Choose music for tomorrow",
-      "source": "member",
-      "source_name": "Jordan Reyes",
-      "scheduled_for": "2026-11-05T19:00:00-07:00",
-      "due_on": "2026-11-05",
-      "estimated_minutes": 5,
-      "status": "completed",
-      "next_action": "No next step",
-      "objective": "Pick music for a preferred activity",
-      "steps": [
-        {
-          "order": 1,
-          "instruction": "Open your music app.",
-          "picture": "🎵",
-          "short_instruction": "Open your music app.",
-          "different_explanation": "Find the music app you usually use.",
-          "example": "For example, tap its icon on your phone.",
-          "picture_label": "music notes"
-        },
-        {
-          "order": 2,
-          "instruction": "Save a song or playlist you like.",
-          "picture": "🎧",
-          "short_instruction": "Save music you like.",
-          "different_explanation": "Save one song or playlist for later.",
-          "example": "For example, tap the save or add button.",
-          "picture_label": "headphones"
-        }
-      ]
-    },
-    {
-      "id": "activity-coach-theo-01",
-      "assigned_to": "p3",
-      "title": "Plan a bus trip",
-      "source": "coach",
-      "source_name": "Dana Brooks",
-      "scheduled_for": "2026-11-03T10:00:00-07:00",
-      "due_on": "2026-11-03",
-      "estimated_minutes": 20,
-      "status": "completed",
-      "next_action": "No next step",
-      "completed_on": "2026-11-03",
-      "objective": "Practice planning a familiar trip",
-      "steps": [
-        {"order": 1, "instruction": "Choose the place you want to visit.", "picture": "🏁", "short_instruction": "Pick a place.", "different_explanation": "Choose where you want to go.", "example": "For example, the library.", "picture_label": "a destination"},
-        {"order": 2, "instruction": "Check the bus route and times.", "picture": "🚌", "short_instruction": "Check the bus route.", "different_explanation": "Look up the route and when the bus comes.", "example": "For example, note the number 12 bus and its time.", "picture_label": "a bus"}
-      ]
-    },
-    {
-      "id": "activity-coach-maya-01",
-      "assigned_to": "p2",
-      "title": "Plan a quiet morning routine",
-      "source": "coach",
-      "source_name": "Dana Brooks",
-      "scheduled_for": "2026-11-06T08:00:00-07:00",
-      "due_on": "2026-11-06",
-      "estimated_minutes": 15,
-      "status": "in_progress",
-      "next_action": "Choose a first step",
-      "objective": "Practice planning a morning routine that feels manageable",
-      "steps": [
-        {"order": 1, "instruction": "Choose one thing you want to do first.", "picture": "📝", "short_instruction": "Choose one first step.", "different_explanation": "Pick the first small part of your morning.", "example": "For example, get dressed before breakfast.", "picture_label": "a short list"},
-        {"order": 2, "instruction": "Write the next step after that.", "picture": "➡️", "short_instruction": "Write the next step.", "different_explanation": "Add one thing you would do after the first step.", "example": "For example, eat breakfast after getting dressed.", "picture_label": "an arrow"}
-      ]
     }
   ],
   "health_follow_ups": [
@@ -495,10 +350,19 @@
       "communication_preferences": {
         "preferred_channel": "Discuss questions during the appointment",
         "contact_boundary": "Ask Jordan before contacting anyone outside the clinic",
-        "accommodations": ["Use plain language", "Allow time to read questions"]
+        "accommodations": [
+          "Use plain language",
+          "Allow time to read questions"
+        ]
       },
-      "member_questions": ["What could help me keep a more consistent sleep routine?"],
-      "excluded_categories": ["Private check-ins", "Full device history", "Circle information"],
+      "member_questions": [
+        "What could help me keep a more consistent sleep routine?"
+      ],
+      "excluded_categories": [
+        "Private check-ins",
+        "Full device history",
+        "Circle information"
+      ],
       "selected_items": [
         {
           "label": "Sleep pattern summary",
@@ -533,5 +397,345 @@
         }
       ]
     }
-  ]
+  ],
+  "activity_templates": [
+    {
+      "id": "template-coach-01",
+      "title": "Practice a simple meal",
+      "objective": "Practice preparing a simple meal safely",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "steps": [
+        {
+          "order": 1,
+          "id": "choose_meal",
+          "instruction": "Choose a meal to prepare.",
+          "short_instruction": "Choose a meal.",
+          "different_explanation": "Pick one meal you would like to make.",
+          "example": "You can choose a sandwich, oatmeal, a salad, or something else.",
+          "picture": "🍽️",
+          "picture_label": "a plate of food",
+          "choices": [
+            {
+              "value": "sandwich",
+              "label": "Sandwich",
+              "pictogram": "sandwich"
+            },
+            {
+              "value": "oatmeal",
+              "label": "Oatmeal",
+              "pictogram": "bowl"
+            },
+            {
+              "value": "salad",
+              "label": "Salad",
+              "pictogram": "salad"
+            },
+            {
+              "value": "something_else",
+              "label": "Something else",
+              "pictogram": "plus"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "id": "check_ingredients",
+          "instruction": "Check which ingredients you need for {meal}.",
+          "short_instruction": "Check the ingredients for {meal}.",
+          "different_explanation": "Look at the recipe for {meal}. See what you already have.",
+          "example": "For {meal}, you might check for bread and a filling.",
+          "picture": "📋",
+          "picture_label": "a short ingredient list"
+        },
+        {
+          "order": 3,
+          "id": "gather_supplies",
+          "instruction": "Gather the ingredients and tools for {meal}.",
+          "short_instruction": "Gather what you need for {meal}.",
+          "different_explanation": "Put the ingredients and tools for {meal} on the counter.",
+          "example": "You might need a plate, ingredients, and a spoon.",
+          "picture": "🥣",
+          "picture_label": "ingredients and a bowl"
+        },
+        {
+          "order": 4,
+          "id": "prepare_safely",
+          "instruction": "Prepare {meal} safely. Follow one recipe step at a time.",
+          "short_instruction": "Prepare {meal} one step at a time.",
+          "different_explanation": "Follow the recipe for {meal}. Ask someone you trust for help with a tool if you want it.",
+          "example": "Wash your hands before you begin.",
+          "picture": "🥄",
+          "picture_label": "a spoon for preparing food"
+        },
+        {
+          "order": 5,
+          "id": "clean_up",
+          "instruction": "Put away ingredients and clean the area you used.",
+          "short_instruction": "Put things away and clean up.",
+          "different_explanation": "Return ingredients to their usual place. Wipe the area you used.",
+          "example": "Put containers away and wipe the counter.",
+          "picture": "🧽",
+          "picture_label": "a sponge for cleaning"
+        },
+        {
+          "order": 6,
+          "id": "finish",
+          "instruction": "Finish and describe how making {meal} felt for you.",
+          "short_instruction": "Describe how {meal} felt.",
+          "different_explanation": "Think about one part of making {meal} that felt easy or hard.",
+          "example": "You can say, “I liked choosing the ingredients.”",
+          "picture": "💬",
+          "picture_label": "a speech bubble"
+        }
+      ],
+      "fictional": true
+    },
+    {
+      "id": "template-coach-02",
+      "title": "Plan a bus trip",
+      "objective": "Practice planning a familiar trip",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "steps": [
+        {
+          "order": 1,
+          "instruction": "Choose the place you want to visit.",
+          "picture": "🏁",
+          "short_instruction": "Pick a place.",
+          "different_explanation": "Choose where you want to go.",
+          "example": "For example, the library.",
+          "picture_label": "a destination"
+        },
+        {
+          "order": 2,
+          "instruction": "Check the bus route and times.",
+          "picture": "🚌",
+          "short_instruction": "Check the bus route.",
+          "different_explanation": "Look up the route and when the bus comes.",
+          "example": "For example, note the number 12 bus and its time.",
+          "picture_label": "a bus"
+        },
+        {
+          "order": 3,
+          "instruction": "Write down where you will get on and off.",
+          "picture": "📍",
+          "short_instruction": "Write down your stops.",
+          "different_explanation": "Note where you will get on and where you will get off.",
+          "example": "For example, get on at Main Street and get off by the library.",
+          "picture_label": "a bus stop"
+        }
+      ],
+      "fictional": true
+    },
+    {
+      "id": "template-coach-03",
+      "title": "Practice a laundry routine",
+      "objective": "Practice the steps in a laundry routine",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "steps": [
+        {
+          "order": 1,
+          "instruction": "Gather clothes for one load.",
+          "picture": "🧺",
+          "short_instruction": "Gather one load.",
+          "different_explanation": "Collect the clothes you want to wash together.",
+          "example": "For example, put one load of shirts in a basket.",
+          "picture_label": "a laundry basket"
+        },
+        {
+          "order": 2,
+          "instruction": "Add the clothes and detergent.",
+          "picture": "🧼",
+          "short_instruction": "Add clothes and detergent.",
+          "different_explanation": "Put clothes in the machine, then add detergent.",
+          "example": "Use the amount shown on the detergent label.",
+          "picture_label": "soap"
+        },
+        {
+          "order": 3,
+          "instruction": "Choose a cycle and start the machine.",
+          "picture": "⏱️",
+          "short_instruction": "Choose a cycle and start.",
+          "different_explanation": "Pick a cycle, then press start.",
+          "example": "For example, choose a regular cycle for everyday clothes.",
+          "picture_label": "a timer"
+        }
+      ],
+      "fictional": true
+    },
+    {
+      "id": "template-member-01",
+      "title": "Tidy my desk",
+      "objective": "Make the desk easier to use",
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "steps": [
+        {
+          "order": 1,
+          "instruction": "Choose one small area of the desk.",
+          "picture": "🧹",
+          "short_instruction": "Choose one small area.",
+          "different_explanation": "Pick one part of your desk to tidy.",
+          "example": "For example, the space next to your keyboard.",
+          "picture_label": "a desk"
+        },
+        {
+          "order": 2,
+          "instruction": "Put away items you want to keep.",
+          "picture": "📦",
+          "short_instruction": "Put away what you are keeping.",
+          "different_explanation": "Move the things you want to keep to their place.",
+          "example": "For example, put pens in a cup.",
+          "picture_label": "a storage box"
+        }
+      ],
+      "fictional": true
+    },
+    {
+      "id": "template-member-02",
+      "title": "Choose music for tomorrow",
+      "objective": "Pick music for a preferred activity",
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "steps": [
+        {
+          "order": 1,
+          "instruction": "Open your music app.",
+          "picture": "🎵",
+          "short_instruction": "Open your music app.",
+          "different_explanation": "Find the music app you usually use.",
+          "example": "For example, tap its icon on your phone.",
+          "picture_label": "music notes"
+        },
+        {
+          "order": 2,
+          "instruction": "Save a song or playlist you like.",
+          "picture": "🎧",
+          "short_instruction": "Save music you like.",
+          "different_explanation": "Save one song or playlist for later.",
+          "example": "For example, tap the save or add button.",
+          "picture_label": "headphones"
+        }
+      ],
+      "fictional": true
+    },
+    {
+      "id": "template-coach-maya-01",
+      "title": "Plan a quiet morning routine",
+      "objective": "Practice planning a morning routine that feels manageable",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "steps": [
+        {
+          "order": 1,
+          "instruction": "Choose one thing you want to do first.",
+          "picture": "📝",
+          "short_instruction": "Choose one first step.",
+          "different_explanation": "Pick the first small part of your morning.",
+          "example": "For example, get dressed before breakfast.",
+          "picture_label": "a short list"
+        },
+        {
+          "order": 2,
+          "instruction": "Write the next step after that.",
+          "picture": "➡️",
+          "short_instruction": "Write the next step.",
+          "different_explanation": "Add one thing you would do after the first step.",
+          "example": "For example, eat breakfast after getting dressed.",
+          "picture_label": "an arrow"
+        }
+      ],
+      "fictional": true
+    }
+  ],
+  "activity_assignments": [
+    {
+      "assigned_to": "p1",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "scheduled_for": "2026-11-04T16:00:00-07:00",
+      "due_on": "2026-11-04",
+      "estimated_minutes": 25,
+      "status": "in_progress",
+      "next_action": "Continue with step 2",
+      "id": "assignment-coach-01",
+      "template_id": "template-coach-01"
+    },
+    {
+      "assigned_to": "p1",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "scheduled_for": "2026-11-05T10:00:00-07:00",
+      "due_on": "2026-11-05",
+      "estimated_minutes": 20,
+      "status": "not_started",
+      "next_action": "Open the route information",
+      "id": "assignment-coach-02",
+      "template_id": "template-coach-02"
+    },
+    {
+      "assigned_to": "p1",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "scheduled_for": "2026-11-09T11:00:00-07:00",
+      "due_on": "2026-11-09",
+      "estimated_minutes": 30,
+      "status": "not_started",
+      "next_action": "Gather clothes and supplies",
+      "id": "assignment-coach-03",
+      "template_id": "template-coach-03"
+    },
+    {
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "scheduled_for": "2026-11-06T18:00:00-07:00",
+      "due_on": "2026-11-06",
+      "estimated_minutes": 10,
+      "status": "not_started",
+      "next_action": "Clear one small area",
+      "id": "assignment-member-01",
+      "template_id": "template-member-01",
+      "assigned_to": "p1"
+    },
+    {
+      "source": "member",
+      "source_name": "Jordan Reyes",
+      "scheduled_for": "2026-11-05T19:00:00-07:00",
+      "due_on": "2026-11-05",
+      "estimated_minutes": 5,
+      "status": "completed",
+      "next_action": "No next step",
+      "id": "assignment-member-02",
+      "template_id": "template-member-02",
+      "assigned_to": "p1"
+    },
+    {
+      "assigned_to": "p3",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "scheduled_for": "2026-11-03T10:00:00-07:00",
+      "due_on": "2026-11-03",
+      "estimated_minutes": 20,
+      "status": "completed",
+      "next_action": "No next step",
+      "completed_on": "2026-11-03",
+      "id": "assignment-coach-theo-01",
+      "template_id": "template-coach-02"
+    },
+    {
+      "assigned_to": "p2",
+      "source": "coach",
+      "source_name": "Dana Brooks",
+      "scheduled_for": "2026-11-06T08:00:00-07:00",
+      "due_on": "2026-11-06",
+      "estimated_minutes": 15,
+      "status": "in_progress",
+      "next_action": "Choose a first step",
+      "id": "assignment-coach-maya-01",
+      "template_id": "template-coach-maya-01"
+    }
+  ],
+  "schema_version": 2
 }

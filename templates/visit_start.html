@@ -10,7 +10,14 @@
   <!-- One large choice card per kind of professional; each opens the summary for that visit -->
   <div class="visit-choices">
     {% for key, v in visits.items() %}
-      <a class="card visit-choice" href="{{ url_for('visit_page', visit=key) }}">{{ v.label }}</a>
+      {% set saved_draft = resume.get(key, {}) %}
+      {% if saved_draft.get('saved') and saved_draft.get('step') == 5 %}
+        <a class="card visit-choice" href="{{ url_for('visit_packet_review', visit=key) }}">Continue saved {{ v.label }} draft · Step 5 of 5</a>
+      {% elif saved_draft.get('saved') %}
+        <a class="card visit-choice" href="{{ url_for('visit_page', visit=key, step=saved_draft.get('step'), item=saved_draft.get('item')) }}">Continue saved {{ v.label }} draft · Step {{ saved_draft.get('step') }} of 5</a>
+      {% else %}
+        <a class="card visit-choice" href="{{ url_for('visit_page', visit=key, step=1) }}">{{ v.label }}</a>
+      {% endif %}
     {% endfor %}
   </div>
 

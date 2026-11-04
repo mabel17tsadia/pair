@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, session, redirect, request, url_for, abort, flash
 import data
-from demo_data import load_demo_data, plan_activities
+from demo_data import activity_assignments, load_demo_data, plan_activities
 from patterns import get_patterns, get_trends, feeling_counts, format_minutes, RECENT_DAYS
 from goals import get_goals, days_left, week_name
 from vitals import get_body_signals
@@ -41,14 +41,16 @@ ROLE_NAVIGATION = {
         ("Home", "today", "sun", ["today"]),
         ("My Plan", "plan", "calendar", ["plan"]),
         ("Check In", "checkin", "check", ["checkin"]),
-        ("Health", "health", "heart", ["health", "health_packets", "health_packet",
-                                            "health_next_steps", "health_follow_up_action", "patterns", "body", "devices",
-                                            "pair_device", "stop_pairing", "visit_start", "visit_page",
-                                            "visit_suggest", "visit_add_question", "visit_entry", "visit_review",
-                                            "visit_packet_review", "visit_send", "visit_not_sure"]),
+        ("Health", "health", "heart", ["health", "health_packets", "health_packet", "health_next_steps",
+                                          "health_follow_up_action", "devices", "pair_device", "stop_pairing"]),
+        ("Patterns", "patterns", "chart", ["patterns", "body"]),
+        ("Appointments", "visit_start", "clipboard", ["visit_start", "visit_page", "visit_suggest",
+                                                         "visit_add_question", "visit_entry", "visit_review",
+                                                         "visit_packet_review", "visit_finish_later", "visit_send", "visit_not_sure"]),
         ("My Circle", "circle", "people", ["circle"]),
-        ("Me", "me", "user", ["me", "settings", "climb",
-                                "climb_done", "climb_add", "routines", "routine_steps", "routine_edit"]),
+        ("Settings", "settings", "gear", ["settings", "settings_export", "settings_delete_data",
+                                              "set_celebrations", "save_theme", "me", "me_edit", "climb",
+                                              "climb_done", "climb_add", "routines", "routine_steps", "routine_edit"]),
     ],
     "coach": [
         ("Overview", "coach", "wave", ["coach"]),
@@ -101,7 +103,7 @@ ROLE_ENDPOINTS = {
                "health_next_steps", "health_follow_up_action", "activity_detail", "checkin", "patterns",
                "circle", "circle_save", "circle_remove", "circle_add", "circle_revoke_share", "share",
                "doctor", "visit_start", "visit_page", "visit_suggest", "visit_add_question", "visit_entry",
-               "visit_review", "visit_packet_review", "visit_send", "visit_not_sure", "climb", "climb_done",
+               "visit_review", "visit_packet_review", "visit_finish_later", "visit_send", "visit_not_sure", "climb", "climb_done",
                "climb_add", "routines", "routine_steps", "routine_finish", "routine_edit", "me", "me_edit",
                "body", "settings_export", "settings_delete_data", "devices", "pair_device",
                "stop_pairing", "set_celebrations", "save_theme", "google.login", "google.callback",
@@ -118,7 +120,7 @@ HEALTH_ENDPOINTS = {
     "patterns", "body",
     "devices", "pair_device", "stop_pairing", "visit_start", "visit_page", "visit_suggest",
     "visit_add_question", "visit_entry", "visit_review", "visit_packet_review", "visit_send",
-    "visit_not_sure",
+    "visit_finish_later", "visit_not_sure",
 }
 
 # The five moods on the Check in page, each with its emoji (the one place for the whole app;
@@ -348,6 +350,13 @@ def daily_cache(key, person, make):
 # The AI (or rule based) week summary and gentle step for Today
 def week_text(person, patterns):
     return daily_cache("week", person, lambda: explain_week(person, patterns))
+
+
+def activities_for_member(person_id, records=None):
+    """Join fixture assignments and this session's assignments to their reusable templates."""
+    records = records or load_demo_data()
+    extra = session.get("coach_assignments", {}).get(person_id, [])
+    return activity_assignments(records, person_id, extra)
 
 
 # ===== My climb =====
@@ -649,24 +658,18 @@ def terms():
     return render_template("terms.html", title="Full terms")
 
 
-# Today screen: greeting, "Your week", what Pair noticed, notes, one gentle step and two buttons;
-# on laptops also the trust circle and last check in
+# Member Home: pair a short private summary with the next scheduled items.
 @app.route("/today")
 def today():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
     pid = person["id"]
-    # The demo "today" is the latest date in signals.csv, shown like "Wednesday 4 November"
-    d = date.fromisoformat(data.get_today())
-    checkins = [c for c in session.get("checkins", []) if c["person_id"] == pid]
-    # The Laundry routine, opened from the "No laundry" note (None if this person has none)
-    laundry = next((i for i, r in enumerate(routines_for(person)) if r["routine"] == "Laundry"), None)
     patterns = get_patterns(pid, devices_for(person))
     records = load_demo_data()
     demo_member = pid == records["member"]["application_person_id"]
-    activities = records["activities"] + session.get("coach_assignments", {}).get(pid, []) if demo_member else []
-    home_records = {**records, "activities": activities,
+    activities = activities_for_member(pid, records) if demo_member else []
+    home_records = {**records, "activity_assignments": activities,
                     "health_follow_ups": health_follow_ups_for(person, records) if demo_member else []}
     today_activities = plan_activities(home_records, data.get_today(), "today", "all",
                                        session.get("activity_progress", {}))
@@ -685,21 +688,12 @@ def today():
     if upcoming:
         appointment_date = datetime.fromisoformat(upcoming["appointment_on"])
         upcoming = {**upcoming, "date_label": f"{appointment_date:%A}, {appointment_date:%B} {appointment_date.day}"}
-    history = data.get_checkins(pid)
-    history += [{"date": item["date"], "mood": item["feeling"].lower(), "note": ""}
-                for item in session.get("checkins", []) if item.get("person_id") == pid]
-    last_checkin = max(history, key=lambda item: item["date"]) if history else None
-    if last_checkin:
-        last_checkin = {"feeling": str(last_checkin.get("feeling", last_checkin.get("mood", "Okay")).capitalize()),
-                        "date": last_checkin["date"], "time": "Private check-in"}
     return render_template("today.html", title="Today", person=person, climb=climb_for(person),
-                           day=f"{d:%A} {d.day} {d:%B}", patterns=patterns,
-                           week=week_text(person, patterns),
-                           laundry_index=laundry, circle=circle_for(person),
-                           last_checkin=last_checkin, today_activities=today_activities,
+                           patterns=patterns, week=week_text(person, patterns),
+                           circle=circle_for(person),
                            next_activity=next_activity, later_activity=later_activity[:1],
                            next_action_activity=next_action_activity,
-                           upcoming_appointment=upcoming)
+                           upcoming_appointment=upcoming, today_iso=data.get_today())
 
 
 # My Plan: show the Jordan demo activities and accepted Health follow-ups through the shared data provider.
@@ -719,9 +713,9 @@ def plan():
                                 source=request.form.get("source", "all")))
     records = load_demo_data()
     is_demo_member = person["id"] == records["member"]["application_person_id"]
-    assigned = coach_learner_activities(person["id"])
+    assigned = activities_for_member(person["id"], records)
     records = {**records,
-               "activities": records["activities"] + assigned if is_demo_member else assigned,
+               "activity_assignments": assigned,
                "health_follow_ups": health_follow_ups_for(person, records) if is_demo_member else []}
     has_activities = is_demo_member or bool(assigned)
     time_filter = request.args.get("time", "today")
@@ -980,11 +974,7 @@ def activity_detail(activity_id):
     if not person:
         return redirect(url_for("choose"))
     records = load_demo_data()
-    if person["id"] == records["member"]["application_person_id"]:
-        assigned = session.get("coach_assignments", {}).get(person["id"], [])
-        activities = records["activities"] + assigned
-    else:
-        activities = session.get("coach_assignments", {}).get(person["id"], [])
+    activities = activities_for_member(person["id"], records)
     activity = next((item for item in activities if item["id"] == activity_id), None)
     if not activity:
         abort(404)
@@ -999,14 +989,37 @@ def activity_detail(activity_id):
     progress = dict(session.get("activity_progress", {}))
     activity_progress = dict(progress.get(activity_id, {}))
 
+    responses_by_activity = session.get("activity_responses", {})
+    responses = dict(responses_by_activity.get(activity_id, {}))
     if activity_progress.get("status") != "completed":
         activity_progress.update(status="in_progress", next_action=f"Continue with step {step_number}")
     if request.method == "POST":
         action = request.form.get("action", "")
+        if action == "display":
+            choice = request.form.get("picture_preference")
+            if choice in ["pictures_words", "pictures_first", "words_only"]:
+                preferences = session.get("member_preferences", {})
+                member = preferences.get(person["id"], member_preferences(person["id"]))
+                member["picture_preference"] = choice
+                preferences[person["id"]] = member
+                session["member_preferences"] = preferences
+                displays = session.get("checkin_display", {})
+                displays[person["id"]] = choice
+                session["checkin_display"] = displays
+            return redirect(url_for("activity_detail", activity_id=activity_id, step=step_number))
         modes = dict(state.get("step_modes", {}))
         examples = dict(state.get("examples", {}))
         feedback = dict(state.get("feedback", {}))
         step_key = str(step_number)
+        step = activity["steps"][step_number - 1]
+        if request.form.get("choice"):
+            selected = request.form.get("choice")
+            allowed = {item["value"] for item in step.get("choices", [])}
+            if selected in allowed:
+                answer = {"choice": selected}
+                if selected == "something_else":
+                    answer["other"] = request.form.get("meal_other", "").strip()[:80]
+                responses[step_key] = {**responses.get(step_key, {}), **answer}
         if action == "fewer":
             modes[step_key] = "short"
         elif action == "different":
@@ -1021,6 +1034,7 @@ def activity_detail(activity_id):
             choice = action.partition(":")[2]
             if choice in ["Easy", "Okay", "Difficult"]:
                 feedback[step_key] = choice
+                responses[step_key] = {**responses.get(step_key, {}), "feedback": choice}
                 flash(f"Thanks for sharing that this step felt {choice.lower()}.")
         elif action == "break":
             flash("Your place is saved. Take the time you need.")
@@ -1028,6 +1042,10 @@ def activity_detail(activity_id):
             flash("Your step is saved. You can open My Circle if you would like support.")
         elif action == "back":
             step_number = max(1, step_number - 1)
+        elif action == "next" and step.get("choices") and not responses.get(step_key, {}).get("choice"):
+            flash("Choose an option before moving to the next step.")
+        elif action == "next" and step.get("choices") and responses.get(step_key, {}).get("choice") == "something_else" and not responses.get(step_key, {}).get("other"):
+            flash("Add a name for your meal, or choose one of the other options.")
         elif action == "next" and step_number < len(activity["steps"]):
             step_number += 1
         elif action == "next":
@@ -1037,7 +1055,7 @@ def activity_detail(activity_id):
             progress[activity_id] = activity_progress
             session["activity_progress"] = progress
             today = date.fromisoformat(data.get_today())
-            due = date.fromisoformat(activity["due_on"])
+            due = date.fromisoformat(activity.get("due_on") or data.get_today())
             time_filter = ("today" if due == today else "tomorrow" if due == today + timedelta(days=1)
                            else "this_week" if due <= today + timedelta(days=6 - today.weekday()) else "later")
             return redirect(url_for("plan", time=time_filter, source="all"))
@@ -1059,13 +1077,22 @@ def activity_detail(activity_id):
         progress[activity_id] = {**activity_progress, "step": step_number}
         session["activity_ui"] = activity_ui
         session["activity_progress"] = progress
+        responses_by_activity[activity_id] = responses
+        session["activity_responses"] = responses_by_activity
         return redirect(url_for("activity_detail", activity_id=activity_id, step=step_number))
 
     activity_ui[activity_id] = {**state, "current_step": step_number}
     session["activity_ui"] = activity_ui
     progress[activity_id] = {**activity_progress, "step": step_number}
     session["activity_progress"] = progress
-    current_step = activity["steps"][step_number - 1]
+    current_step = dict(activity["steps"][step_number - 1])
+    saved_response = responses.get(str(step_number), {})
+    meal = responses.get("1", {}).get("other") if responses.get("1", {}).get("choice") == "something_else" else next(
+        (choice["label"] for choice in activity["steps"][0].get("choices", [])
+         if choice["value"] == responses.get("1", {}).get("choice")), "your meal")
+    for key in ["instruction", "short_instruction", "different_explanation", "example"]:
+        if current_step.get(key):
+            current_step[key] = current_step[key].replace("{meal}", meal)
     mode = state.get("step_modes", {}).get(str(step_number), "original")
     instruction = current_step["instruction"]
     if mode == "short":
@@ -1076,8 +1103,11 @@ def activity_detail(activity_id):
     return render_template("activity.html", title=activity["title"], activity=activity,
                            step=current_step, step_number=step_number, mode=mode,
                            instruction=instruction, state=state,
+                           response=saved_response, feedback=feedback if request.method == "POST" else responses.get(str(step_number), {}).get("feedback"),
+                           provenance=("Using built-in guidance" if mode in ["short", "different"] else
+                                       "Original from Dana" if activity["source"] == "coach" else "Original from Jordan"),
                            pictures=state.get("pictures", preferences["picture_preference"] != "words_only"),
-                           read_aloud=preferences["read_aloud"])
+                           read_aloud=preferences["read_aloud"], picture_preference=preferences["picture_preference"])
 
 
 # Check in screen: pick a mood and add an optional note, then Save (or Skip). After saving, a
@@ -1182,15 +1212,16 @@ def coach_learner_summaries():
 # Return reusable activities from the library and coach-created demo templates.
 def coach_library_items():
     records = load_demo_data()
-    samples = [item for item in records["activities"] if item["source"] == "coach"]
+    samples = [item for item in records.get("activity_templates", records.get("activities", []))
+               if item["source"] == "coach"]
     return samples + session.get("coach_activity_library", [])
 
 
 # Return activities assigned to one learner from fixtures and this demo session.
 def coach_learner_activities(learner_id):
     records = load_demo_data()
-    samples = [item for item in records["activities"] if item.get("assigned_to") == learner_id]
-    return samples + session.get("coach_assignments", {}).get(learner_id, [])
+    return activity_assignments(records, learner_id,
+                                session.get("coach_assignments", {}).get(learner_id, []))
 
 
 # Keep help and adaptation requests limited to learners who shared learning information.
@@ -1247,14 +1278,14 @@ def coach_learner(learner_id):
         opened.append(learner_id)
         session["coach_opened_learners"] = opened
     progress = session.get("activity_progress", {})
-    ui_states = session.get("activity_ui", {})
+    responses = session.get("activity_responses", {})
     activities = []
     for item in coach_learner_activities(learner_id):
         state = progress.get(item["id"], {})
-        ui = ui_states.get(item["id"], {})
+        saved_responses = responses.get(item["id"], {})
         activities.append({**item, "status": state.get("status", item["status"]),
                            "next_action": state.get("next_action", item["next_action"]),
-                           "feedback": list(ui.get("feedback", {}).values())})
+                           "feedback": [row["feedback"] for row in saved_responses.values() if row.get("feedback")]})
     records = load_demo_data()
     preferences = records.get("learning_preferences", {}).get(learner_id, {})
     return render_template("coach_learner.html", title=f"{learner['first_name']} {learner['last_name']}",
@@ -1591,23 +1622,46 @@ def doctor():
     return redirect(url_for("visit_start"))
 
 
-# Get ready for an appointment, step 1: "Who are you seeing?" as large choice cards
+# Get ready for an appointment, step 1: choose an informational appointment type.
 @app.route("/visit")
 def visit_start():
-    if not current_person():
+    person = current_person()
+    if not person:
         return redirect(url_for("choose"))
-    return render_template("visit_start.html", title="Get ready for an appointment", visits=VISITS)
+    drafts = saved("visit_packet_drafts", person["id"], {})
+    resume = {key: {"step": min(5, max(1, item.get("wizard_step", 1))),
+                    "item": item.get("wizard_item", 0), "saved": bool(item)}
+              for key, item in drafts.items()}
+    return render_template("visit_start.html", title="Get ready for an appointment",
+                           visits=VISITS, resume=resume)
 
 
-# The 14 days a visit summary covers (counting back from the demo "today") and the check ins in them
+# Keep the recent pattern period and check-ins used by member-selected packet items.
 def visit_period(pid):
     end = date.fromisoformat(data.get_today())
     start = end - timedelta(days=13)
     return start, end, [c for c in data.get_checkins(pid) if c["date"] >= start.isoformat()]
 
 
-# Step 2: the one page summary for this kind of appointment, which the person reviews, then prints
-# or sends to a Health summary member. Questions they type are kept in the session.
+# Offer source-labeled patterns and private check-in summaries for the member to select.
+def appointment_items(person, visit):
+    pid = person["id"]
+    devices = devices_for(person)
+    patterns = get_patterns(pid, devices)
+    body = get_body_signals(pid, devices)
+    items = things_to_tell(visit, patterns, body, devices)
+    _, _, checkins = visit_period(pid)
+    checkins += [{"date": item["date"], "mood": item["feeling"].lower()}
+                 for item in session.get("checkins", []) if item.get("person_id") == pid]
+    for item in checkins:
+        feeling = item.get("feeling", item.get("mood", "")).capitalize()
+        if feeling:
+            items.append({"text": f"I felt {feeling} during a private check-in.",
+                          "source": f"Private Check In - {item['date']}", "feeling": feeling})
+    return items
+
+
+# Save each appointment wizard decision in this browser session and show one stage at a time.
 @app.route("/visit/<visit>", methods=["GET", "POST"])
 def visit_page(visit):
     person = current_person()
@@ -1616,30 +1670,106 @@ def visit_page(visit):
     if visit not in VISITS:
         abort(404)
     pid = person["id"]
+    drafts = saved("visit_packet_drafts", pid, {})
+    draft = dict(drafts.get(visit, {}))
+    try:
+        step = int(request.values.get("step", draft.get("wizard_step", 1)))
+    except ValueError:
+        step = 1
+    step = min(max(step, 1), 5)
+    if step == 5 and draft:
+        return redirect(url_for("visit_packet_review", visit=visit))
+    step = min(step, 4)
+    try:
+        item_index = max(0, int(request.values.get("item", draft.get("wizard_item", 0))))
+    except ValueError:
+        item_index = 0
     if request.method == "POST":
-        save("visit_questions", pid, request.form.get("questions", "").strip()[:1000])
-        flash("Your questions are saved.")
-        return redirect(url_for("visit_page", visit=visit))
+        action = request.form.get("action", "continue")
+        if action == "back" and step == 2:
+            if item_index == 0:
+                draft["wizard_step"] = 1
+                drafts[visit] = draft
+                save("visit_packet_drafts", pid, drafts)
+                return redirect(url_for("visit_page", visit=visit, step=1))
+            item_index -= 1
+            draft.update(wizard_step=2, wizard_item=item_index)
+            drafts[visit] = draft
+            save("visit_packet_drafts", pid, drafts)
+            return redirect(url_for("visit_page", visit=visit, step=2, item=item_index))
+        if step == 1:
+            draft.update(appointment_type=VISITS[visit]["label"],
+                         appointment_on=request.form.get("appointment_on", "").strip(),
+                         reason=request.form.get("reason", "").strip()[:500],
+                         help_with=request.form.get("help_with", "").strip()[:300])
+            try:
+                if draft["appointment_on"]:
+                    date.fromisoformat(draft["appointment_on"])
+            except ValueError:
+                draft["appointment_on"] = ""
+        elif step == 2:
+            items = appointment_items(person, visit)
+            if action in ["include", "leave_out"] and item_index < len(items):
+                selected = list(draft.get("changes", []))
+                excluded = list(draft.get("excluded_changes", []))
+                item = items[item_index]
+                selected = [saved_item for saved_item in selected if saved_item.get("text") != item["text"]]
+                excluded = [saved_item for saved_item in excluded if saved_item.get("text") != item["text"]]
+                (selected if action == "include" else excluded).append(item)
+                draft["changes"], draft["excluded_changes"] = selected, excluded
+        elif step == 3:
+            draft.update(communication=request.form.get("communication", "").strip()[:200],
+                         accommodations=request.form.getlist("accommodations"),
+                         other_preference=request.form.get("other_preference", "").strip()[:300])
+        elif step == 4:
+            draft["questions"] = request.form.get("questions", "").strip()[:1000]
+            suggestion = saved("visit_suggestions", pid, {})
+            retained = any(item in draft["questions"] for item in suggestion.get("questions", []))
+            draft["question_guidance_source"] = (
+                "Adapted with AI" if suggestion.get("source") == "ai" else "Using built-in guidance"
+            ) if retained and suggestion.get("visit") == visit else ""
+        if step == 2:
+            items = appointment_items(person, visit)
+            if action in ["include", "leave_out"] and item_index + 1 < len(items):
+                draft.update(wizard_step=2, wizard_item=item_index + 1)
+            elif action in ["include", "leave_out"] or not items:
+                draft.update(wizard_step=3, wizard_item=item_index)
+            else:
+                draft.update(wizard_step=2, wizard_item=item_index)
+        elif action == "back":
+            draft["wizard_step"] = max(1, step - 1)
+        elif action == "save":
+            draft.update(wizard_step=step, wizard_item=item_index)
+        else:
+            draft.update(wizard_step=5 if step == 4 else step + 1, wizard_item=item_index)
+        drafts[visit] = draft
+        save("visit_packet_drafts", pid, drafts)
+        if action == "save":
+            flash("Your appointment draft is saved in this demo session.")
+            return redirect(url_for("health"))
+        if action == "back":
+            return redirect(url_for("visit_page", visit=visit, step=step - 1,
+                                    item=draft.get("wizard_item", 0)))
+        if step == 2:
+            return redirect(url_for("visit_page", visit=visit,
+                                    step=draft["wizard_step"], item=draft["wizard_item"]))
+        if step == 4:
+            return redirect(url_for("visit_packet_review", visit=visit))
+        return redirect(url_for("visit_page", visit=visit, step=draft["wizard_step"]))
 
     start, end, checkins = visit_period(pid)
     devices = devices_for(person)
     patterns, body = get_patterns(pid, devices), get_body_signals(pid, devices)
     suggestions = saved("visit_suggestions", pid, None)
-    draft = saved("visit_packet_drafts", pid, {}).get(visit, {})
-    return render_template("visit.html", title="Get ready for an appointment", person=person,
-                           visit=visit, visit_label=VISITS[visit]["label"],
+    tell = appointment_items(person, visit)
+    return render_template("visit.html", title="Prepare for an Appointment", person=person,
+                           visit=visit, visit_label=VISITS[visit]["label"], step=step,
                            period=f"{start.day} {start:%B} to {end.day} {end:%B %Y}",
-                           patterns=patterns, counts=feeling_counts(checkins),
-                           summary=daily_cache("doctor", person, lambda: explain_for_doctor(person, patterns, checkins)),
+                           tell=tell, item_index=item_index,
+                           item_selected=(tell[item_index] in draft.get("changes", [])) if item_index < len(tell) else False,
                            questions=draft.get("questions", saved("visit_questions", pid, "")),
                            suggestions=suggestions if suggestions and suggestions["visit"] == visit else None,
-                           tell=things_to_tell(visit, patterns, body, devices),
-                           entries=saved("visit_entries", pid, []),
-                           reason=draft.get("reason", saved("visit_reasons", pid, {}).get(visit, "")),
-                           appointment_on=draft.get("appointment_on", ""),
-                           selected_changes=draft.get("changes", []),
-                           appointment_min=data.get_today(),
-                           sources=[d["device"] for d in devices if d["paired"]] + ["My own check ins"])
+                           draft=draft, appointment_min=data.get_today())
 
 
 # Suggest questions for this kind of appointment (AI, or 3 general questions for the visit type)
@@ -1656,7 +1786,7 @@ def visit_suggest(visit):
     result = suggest_questions(person, visit, get_patterns(pid, devices), get_body_signals(pid, devices),
                                feeling_counts(checkins)["moods"])
     save("visit_suggestions", pid, {**result, "visit": visit})
-    return redirect(url_for("visit_page", visit=visit))
+    return redirect(url_for("visit_page", visit=visit, step=4))
 
 
 # Add one suggested question to "Questions I want to ask" (each on its own line, still editable)
@@ -1667,10 +1797,17 @@ def visit_add_question(visit):
         return redirect(url_for("choose"))
     question = request.form.get("question", "").strip()[:200]
     current = saved("visit_questions", person["id"], "")
+    drafts = saved("visit_packet_drafts", person["id"], {})
+    draft = dict(drafts.get(visit, {}))
+    current = draft.get("questions", current)
     if question and question not in current:
-        save("visit_questions", person["id"], (current + "\n" + question).strip()[:1000])
+        current = (current + "\n" + question).strip()[:1000]
+        draft["questions"] = current
+        drafts[visit] = draft
+        save("visit_packet_drafts", person["id"], drafts)
+        save("visit_questions", person["id"], current)
         flash("Question added.")
-    return redirect(url_for("visit_page", visit=visit if visit in VISITS else "other"))
+    return redirect(url_for("visit_page", visit=visit if visit in VISITS else "other", step=4))
 
 
 # Entered by me: add something from another app or from memory (a label and a value), or remove
@@ -1702,9 +1839,7 @@ def visit_review(visit):
         return redirect(url_for("choose"))
     if visit not in VISITS:
         abort(404)
-    devices = devices_for(person)
-    changes = things_to_tell(visit, get_patterns(person["id"], devices),
-                             get_body_signals(person["id"], devices), devices)
+    changes = appointment_items(person, visit)
     selected = request.form.getlist("selected")
     chosen = [changes[int(index)] for index in selected
               if index.isdigit() and int(index) < len(changes)]
@@ -1736,6 +1871,19 @@ def visit_packet_review(visit):
     contacts = [m for m in circle_for(person) if m["access"] == "health"]
     return render_template("visit_review.html", title="Review appointment packet", person=person,
                            draft=draft, contacts=contacts, today=data.get_today())
+
+
+# Leave the final review saved in the demo session without sharing the packet.
+@app.route("/visit/<visit>/finish-later", methods=["POST"])
+def visit_finish_later(visit):
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    if visit not in VISITS:
+        abort(404)
+    if saved("visit_packet_drafts", person["id"], {}).get(visit):
+        flash("Your appointment draft is saved in this demo session. Nothing was shared.")
+    return redirect(url_for("health"))
 
 
 # Confirm only after a reviewed packet, allowed recipient, and expiration date are submitted.
@@ -2019,14 +2167,16 @@ def settings_export():
     changes["circle"] = circle_for(person)
     changes["connected_sources"] = devices_for(person)
     demo = load_demo_data()
-    activities = demo["activities"] if person_id == demo["member"]["application_person_id"] else []
+    activities = activities_for_member(person_id, demo) if person_id == demo["member"]["application_person_id"] else []
     activities = activities + session.get("coach_assignments", {}).get(person_id, [])
     activity_ids = [item["id"] for item in activities]
     changes["activity_states"] = {activity_id: {
         "progress": session.get("activity_progress", {}).get(activity_id),
-        "presentation": session.get("activity_ui", {}).get(activity_id)}
+        "presentation": session.get("activity_ui", {}).get(activity_id),
+        "responses": session.get("activity_responses", {}).get(activity_id)}
         for activity_id in activity_ids
-        if activity_id in session.get("activity_progress", {}) or activity_id in session.get("activity_ui", {})}
+        if activity_id in session.get("activity_progress", {}) or activity_id in session.get("activity_ui", {})
+        or activity_id in session.get("activity_responses", {})}
     export = {"scope": "Member changes, Circle choices, and source choices from this demo session; baseline CSV health readings are not included.",
               "member": {"id": person_id, "first_name": person["first_name"]},
               "preferences": {**member_preferences(person_id), "theme": session.get("theme", "ocean"),
@@ -2049,7 +2199,7 @@ def settings_delete_data():
         return redirect(url_for("settings"))
     person_id = person["id"]
     demo = load_demo_data()
-    activities = demo["activities"] if person_id == demo["member"]["application_person_id"] else []
+    activities = activities_for_member(person_id, demo) if person_id == demo["member"]["application_person_id"] else []
     activities = activities + session.get("coach_assignments", {}).get(person_id, [])
     for key in ["profile", "member_preferences", "circle", "circle_shared_snapshots", "paired",
                 "checkin_display", "checkin_response", "week", "doctor", "goals_added", "goals_done",
@@ -2060,7 +2210,7 @@ def settings_delete_data():
         if isinstance(values, dict):
             values.pop(person_id, None)
             session[key] = values
-    for key in ["activity_ui", "activity_progress"]:
+    for key in ["activity_ui", "activity_progress", "activity_responses"]:
         values = session.get(key, {})
         for activity in activities:
             values.pop(activity["id"], None)
