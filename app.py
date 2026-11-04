@@ -473,7 +473,8 @@ def plan():
     is_demo_member = f"{person['first_name']} {person['last_name']}".strip() == records["member"]["name"]
     time_filter = request.args.get("time", "today")
     source_filter = request.args.get("source", "all")
-    activities = plan_activities(records, data.get_today(), time_filter, source_filter) if is_demo_member else []
+    activities = plan_activities(records, data.get_today(), time_filter, source_filter,
+                                 session.get("activity_progress", {})) if is_demo_member else []
     return render_template("plan.html", title="My Plan", person=person, activities=activities,
                            time_filter=time_filter if time_filter in ["today", "tomorrow", "this_week", "later"] else "today",
                            source_filter=source_filter if source_filter in ["all", "member", "coach", "health"] else "all",
@@ -498,6 +499,97 @@ def health():
                            follow_ups=records["health_follow_ups"] if is_demo_member else [],
                            packets=packets, recipients=recipients,
                            has_demo_records=is_demo_member)
+
+
+# Activity detail: keep step navigation, presentation choices, and feedback in this demo session.
+@app.route("/activity/<activity_id>", methods=["GET", "POST"])
+def activity_detail(activity_id):
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    records = load_demo_data()
+    if f"{person['first_name']} {person['last_name']}".strip() != records["member"]["name"]:
+        abort(404)
+    activity = next((item for item in records["activities"] if item["id"] == activity_id), None)
+    if not activity:
+        abort(404)
+
+    activity_ui = dict(session.get("activity_ui", {}))
+    state = dict(activity_ui.get(activity_id, {}))
+    try:
+        step_number = int(request.values.get("step", state.get("current_step", 1)))
+    except ValueError:
+        step_number = 1
+    step_number = min(max(step_number, 1), len(activity["steps"]))
+    progress = dict(session.get("activity_progress", {}))
+    activity_progress = dict(progress.get(activity_id, {}))
+
+    if activity_progress.get("status") != "completed":
+        activity_progress.update(status="in_progress", next_action=f"Continue with step {step_number}")
+    if request.method == "POST":
+        action = request.form.get("action", "")
+        modes = dict(state.get("step_modes", {}))
+        examples = dict(state.get("examples", {}))
+        feedback = dict(state.get("feedback", {}))
+        step_key = str(step_number)
+        if action == "fewer":
+            modes[step_key] = "short"
+        elif action == "different":
+            modes[step_key] = "different"
+        elif action == "original":
+            modes[step_key] = "original"
+        elif action == "example":
+            examples[step_key] = not examples.get(step_key, False)
+        elif action == "pictures":
+            state["pictures"] = not state.get("pictures", True)
+        elif action.startswith("feedback:"):
+            choice = action.partition(":")[2]
+            if choice in ["Easy", "Okay", "Difficult"]:
+                feedback[step_key] = choice
+                flash(f"Thanks for sharing that this step felt {choice.lower()}.")
+        elif action == "break":
+            flash("Your place is saved. Take the time you need.")
+        elif action == "help":
+            flash("Your step is saved. You can open My Circle if you would like support.")
+        elif action == "back":
+            step_number = max(1, step_number - 1)
+        elif action == "next" and step_number < len(activity["steps"]):
+            step_number += 1
+        elif action == "next":
+            activity_progress.update(status="completed", next_action="No next step")
+            flash(f"You finished {activity['title']}.")
+            progress[activity_id] = activity_progress
+            session["activity_progress"] = progress
+            today = date.fromisoformat(data.get_today())
+            due = date.fromisoformat(activity["due_on"])
+            time_filter = ("today" if due == today else "tomorrow" if due == today + timedelta(days=1)
+                           else "this_week" if due <= today + timedelta(days=6 - today.weekday()) else "later")
+            return redirect(url_for("plan", time=time_filter, source="all"))
+
+        if activity_progress.get("status") != "completed":
+            activity_progress["next_action"] = f"Continue with step {step_number}"
+        state.update(step_modes=modes, examples=examples, feedback=feedback, current_step=step_number)
+        activity_ui[activity_id] = state
+        progress[activity_id] = {**activity_progress, "step": step_number}
+        session["activity_ui"] = activity_ui
+        session["activity_progress"] = progress
+        return redirect(url_for("activity_detail", activity_id=activity_id, step=step_number))
+
+    activity_ui[activity_id] = {**state, "current_step": step_number}
+    session["activity_ui"] = activity_ui
+    progress[activity_id] = {**activity_progress, "step": step_number}
+    session["activity_progress"] = progress
+    current_step = activity["steps"][step_number - 1]
+    mode = state.get("step_modes", {}).get(str(step_number), "original")
+    instruction = current_step["instruction"]
+    if mode == "short":
+        instruction = current_step["short_instruction"]
+    elif mode == "different":
+        instruction = current_step["different_explanation"]
+    return render_template("activity.html", title=activity["title"], activity=activity,
+                           step=current_step, step_number=step_number, mode=mode,
+                           instruction=instruction, state=state,
+                           pictures=state.get("pictures", True))
 
 
 # Check in screen: pick a mood and add an optional note, then Save (or Skip). After saving, a

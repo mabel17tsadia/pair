@@ -38,3 +38,15 @@ if (celebrationsForm && celebrationsForm.dataset.chosen === "no" &&
 document.querySelectorAll("[data-print]").forEach((button) => {
   button.onclick = () => window.print();
 });
+
+// Read the current activity instruction using the browser's built-in speech voice.
+const readAloudButton = document.querySelector("[data-read-aloud]");
+if (readAloudButton) {
+  readAloudButton.addEventListener("click", () => {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(
+      document.getElementById("activity-instruction").textContent
+    ));
+  });
+}

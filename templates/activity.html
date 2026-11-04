@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Return path and activity heading keep the person oriented in the plan. -->
+  <a class="text-link" href="{{ url_for('plan', time='today', source='all') }}">‹ My Plan</a>
+  <h1>{{ activity.title }}</h1>
+  <p class="note">From {{ activity.source_name }} · About {{ activity.estimated_minutes }} minutes</p>
+
+  <!-- The coach's objective stays visible while only the presentation of each step can change. -->
+  <section class="card objective-card">
+    <h2>Learning goal</h2>
+    <p>{{ activity.objective }}</p>
+    <p class="note">You can change how a step is shown. The learning goal stays the same.</p>
+  </section>
+
+  <!-- One instruction appears at a time with optional pictorial prompts and reading controls. -->
+  <section class="card activity-step" aria-labelledby="step-title">
+    <p class="note" aria-live="polite">Step {{ step_number }} of {{ activity.steps | length }}</p>
+    <div class="progress" role="progressbar" aria-label="Activity progress" aria-valuemin="1" aria-valuemax="{{ activity.steps | length }}" aria-valuenow="{{ step_number }}">
+      <div class="progress-fill" style="width: {{ step_number / activity.steps | length * 100 }}%"></div>
+    </div>
+    <div class="instruction-row">
+      {% if pictures %}<span class="instruction-picture" role="img" aria-label="Picture prompt: {{ step.picture_label }}">{{ step.picture }}</span>{% endif %}
+      <div>
+        <h2 id="step-title">Your step</h2>
+        <p id="activity-instruction" class="instruction-text">{{ instruction }}</p>
+      </div>
+    </div>
+
+    <!-- The original coach instruction is preserved when a shorter or alternate version is shown. -->
+    {% if mode != "original" %}
+      <details class="original-instruction">
+        <summary>Original instruction from {{ activity.source_name }}</summary>
+        <p>{{ step.instruction }}</p>
+      </details>
+    {% endif %}
+    {% if state.get("examples", {}).get(step_number | string) %}
+      <p class="example-note"><strong>Example:</strong> {{ step.example }}</p>
+    {% endif %}
+
+    <!-- All controls submit a small choice and keep the current step in the session. -->
+    <form class="activity-controls" method="post">
+      <input type="hidden" name="step" value="{{ step_number }}">
+      <div class="actions activity-presentation-controls">
+        <button type="button" class="btn-secondary" data-read-aloud>Read Aloud</button>
+        <button type="submit" class="btn-secondary" name="action" value="fewer">Show Fewer Words</button>
+        <button type="submit" class="btn-secondary" name="action" value="example">{{ "Hide Example" if state.get("examples", {}).get(step_number | string) else "Show an Example" }}</button>
+        <button type="submit" class="btn-secondary" name="action" value="different">Explain Differently</button>
+        <button type="submit" class="btn-secondary" name="action" value="original">View Original</button>
+        <button type="submit" class="btn-secondary" name="action" value="pictures">{{ "Hide Pictures" if pictures else "Show Pictures and Words" }}</button>
+      </div>
+      <p class="note">Read Aloud uses a voice provided by your browser or device.</p>
+
+      <!-- Difficulty feedback belongs to this step and is kept in the demo session. -->
+      <fieldset class="feedback-choices">
+        <legend>How did this step feel?</legend>
+        {% for choice in ["Easy", "Okay", "Difficult"] %}
+          <button type="submit" class="btn-secondary" name="action" value="feedback:{{ choice }}" aria-pressed="{{ 'true' if state.get('feedback', {}).get(step_number | string) == choice else 'false' }}">{{ choice }}</button>
+        {% endfor %}
+      </fieldset>
+
+      <!-- Break and help controls save the place without claiming a message was sent. -->
+      <div class="actions activity-support-controls">
+        <button type="submit" class="btn-secondary" name="action" value="break">I Need a Break</button>
+        <button type="submit" class="btn-secondary" name="action" value="help">I Need Help</button>
+      </div>
+
+      <!-- Back and next keep the workflow to one step on screen at a time. -->
+      <div class="actions activity-step-navigation">
+        {% if step_number > 1 %}<button type="submit" class="btn-secondary" name="action" value="back">Previous step</button>{% endif %}
+        <button type="submit" class="btn-primary" name="action" value="next">{{ "Finish activity" if step_number == activity.steps | length else "Next step" }}</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

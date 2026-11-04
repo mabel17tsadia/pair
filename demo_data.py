@@ -44,7 +44,7 @@ def load_demo_data(provider: Optional[DemoDataProvider] = None) -> DemoData:
     return (provider or JsonDemoDataProvider()).load()
 
 
-def plan_activities(records, today, time_filter="today", source_filter="all"):
+def plan_activities(records, today, time_filter="today", source_filter="all", progress=None):
     """Return activities and accepted Health follow-ups matching the selected filters."""
     current = date.fromisoformat(today)
     tomorrow = current + timedelta(days=1)
@@ -55,8 +55,10 @@ def plan_activities(records, today, time_filter="today", source_filter="all"):
     time_filter = time_filter if time_filter in times else "today"
     rows = []
 
+    progress = progress or {}
     for activity in records["activities"]:
-        rows.append({**activity, "source_label": {
+        saved = progress.get(activity["id"], {})
+        rows.append({**activity, **saved, "source_label": {
             "member": "Added by me", "coach": "From my coach"}.get(activity["source"], activity["source"])})
     for follow_up in records["health_follow_ups"]:
         if follow_up["status"] == "accepted":

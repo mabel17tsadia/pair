@@ -72,15 +72,30 @@
       "steps": [
         {
           "order": 1,
-          "instruction": "Choose a meal you would like to make."
+          "instruction": "Choose a meal you would like to make.",
+          "picture": "🍽️",
+          "short_instruction": "Pick a meal.",
+          "different_explanation": "Think of one meal you might enjoy making.",
+          "example": "For example, pasta or a sandwich.",
+          "picture_label": "a meal"
         },
         {
           "order": 2,
-          "instruction": "Gather the ingredients and tools."
+          "instruction": "Gather the ingredients and tools.",
+          "picture": "🥣",
+          "short_instruction": "Get what you need.",
+          "different_explanation": "Put the ingredients and tools in one place.",
+          "example": "For example, a bowl, ingredients, and a spoon.",
+          "picture_label": "ingredients and tools"
         },
         {
           "order": 3,
-          "instruction": "Follow the recipe one step at a time."
+          "instruction": "Follow the recipe one step at a time.",
+          "picture": "🥄",
+          "short_instruction": "Follow the recipe.",
+          "different_explanation": "Read one recipe direction, then do that step.",
+          "example": "If it says stir, stir before going on.",
+          "picture_label": "a spoon"
         }
       ]
     },
@@ -98,15 +113,30 @@
       "steps": [
         {
           "order": 1,
-          "instruction": "Choose the place you want to visit."
+          "instruction": "Choose the place you want to visit.",
+          "picture": "🏁",
+          "short_instruction": "Pick a place.",
+          "different_explanation": "Choose where you want to go.",
+          "example": "For example, the library.",
+          "picture_label": "a destination"
         },
         {
           "order": 2,
-          "instruction": "Check the bus route and times."
+          "instruction": "Check the bus route and times.",
+          "picture": "🚌",
+          "short_instruction": "Check the bus route.",
+          "different_explanation": "Look up the route and when the bus comes.",
+          "example": "For example, note the number 12 bus and its time.",
+          "picture_label": "a bus"
         },
         {
           "order": 3,
-          "instruction": "Write down where you will get on and off."
+          "instruction": "Write down where you will get on and off.",
+          "picture": "📍",
+          "short_instruction": "Write down your stops.",
+          "different_explanation": "Note where you will get on and where you will get off.",
+          "example": "For example, get on at Main Street and get off by the library.",
+          "picture_label": "a bus stop"
         }
       ]
     },
@@ -124,15 +154,30 @@
       "steps": [
         {
           "order": 1,
-          "instruction": "Gather clothes for one load."
+          "instruction": "Gather clothes for one load.",
+          "picture": "🧺",
+          "short_instruction": "Gather one load.",
+          "different_explanation": "Collect the clothes you want to wash together.",
+          "example": "For example, put one load of shirts in a basket.",
+          "picture_label": "a laundry basket"
         },
         {
           "order": 2,
-          "instruction": "Add the clothes and detergent."
+          "instruction": "Add the clothes and detergent.",
+          "picture": "🧼",
+          "short_instruction": "Add clothes and detergent.",
+          "different_explanation": "Put clothes in the machine, then add detergent.",
+          "example": "Use the amount shown on the detergent label.",
+          "picture_label": "soap"
         },
         {
           "order": 3,
-          "instruction": "Choose a cycle and start the machine."
+          "instruction": "Choose a cycle and start the machine.",
+          "picture": "⏱️",
+          "short_instruction": "Choose a cycle and start.",
+          "different_explanation": "Pick a cycle, then press start.",
+          "example": "For example, choose a regular cycle for everyday clothes.",
+          "picture_label": "a timer"
         }
       ]
     },
@@ -150,11 +195,21 @@
       "steps": [
         {
           "order": 1,
-          "instruction": "Choose one small area of the desk."
+          "instruction": "Choose one small area of the desk.",
+          "picture": "🧹",
+          "short_instruction": "Choose one small area.",
+          "different_explanation": "Pick one part of your desk to tidy.",
+          "example": "For example, the space next to your keyboard.",
+          "picture_label": "a desk"
         },
         {
           "order": 2,
-          "instruction": "Put away items you want to keep."
+          "instruction": "Put away items you want to keep.",
+          "picture": "📦",
+          "short_instruction": "Put away what you are keeping.",
+          "different_explanation": "Move the things you want to keep to their place.",
+          "example": "For example, put pens in a cup.",
+          "picture_label": "a storage box"
         }
       ]
     },
@@ -172,11 +227,21 @@
       "steps": [
         {
           "order": 1,
-          "instruction": "Open your music app."
+          "instruction": "Open your music app.",
+          "picture": "🎵",
+          "short_instruction": "Open your music app.",
+          "different_explanation": "Find the music app you usually use.",
+          "example": "For example, tap its icon on your phone.",
+          "picture_label": "music notes"
         },
         {
           "order": 2,
-          "instruction": "Save a song or playlist you like."
+          "instruction": "Save a song or playlist you like.",
+          "picture": "🎧",
+          "short_instruction": "Save music you like.",
+          "different_explanation": "Save one song or playlist for later.",
+          "example": "For example, tap the save or add button.",
+          "picture_label": "headphones"
         }
       ]
     }

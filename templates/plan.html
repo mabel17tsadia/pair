@@ -37,6 +37,7 @@
             {% if activity.health_link %}<a href="{{ activity.health_link }}">{{ activity.next_action }}</a>
             {% else %}{{ activity.next_action }}{% endif %}
           </p>
+          {% if activity.source != "health" %}<a class="btn-secondary activity-open" href="{{ url_for('activity_detail', activity_id=activity.id) }}">{{ "Review activity" if activity.status == "completed" else "Start or continue" }}</a>{% endif %}
         </article>
       {% else %}
         <p class="card">{% if has_demo_records %}No activities match these filters.{% else %}Demo activities are available for Jordan Reyes only.{% endif %}</p>

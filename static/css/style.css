@@ -410,6 +410,24 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
 .activity-status { flex: 0 0 auto; }
 .activity-next { margin-bottom: 0; }
 .activity-next a { color: var(--primary); font-weight: 700; }
+.activity-open { margin-top: var(--space-2); }
+
+/* Activity detail keeps each instruction, presentation control and feedback choice easy to use. */
+.objective-card { border-left: 6px solid var(--secondary); }
+.objective-card h2, .objective-card p { margin-top: 0; }
+.objective-card p:last-child { margin-bottom: 0; }
+.activity-step { margin-top: var(--space-5); }
+.instruction-row { display: flex; align-items: center; gap: var(--space-5); margin: var(--space-5) 0; }
+.instruction-picture { font-size: 3rem; line-height: 1; }
+.instruction-text { margin: 0; font-size: 1.35rem; font-weight: 700; }
+.original-instruction, .example-note { margin: var(--space-4) 0; padding: var(--space-4); border-radius: var(--radius-control); background: var(--surface2); }
+.original-instruction summary { min-height: var(--target-min); color: var(--primary); font-weight: 700; cursor: pointer; }
+.activity-controls { display: grid; gap: var(--space-5); margin-top: var(--space-5); }
+.activity-controls .note { margin: calc(-1 * var(--space-4)) 0 0; }
+.feedback-choices { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; border: 0; }
+.feedback-choices legend { width: 100%; margin-bottom: var(--space-2); font-weight: 700; }
+.feedback-choices button[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+.activity-step-navigation { justify-content: space-between; }
 
 /* Me: drains and calms as rows of chips (calm chips are soft green, text stays dark for contrast) */
 .chip-list {
