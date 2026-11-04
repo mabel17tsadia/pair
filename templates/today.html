@@ -25,16 +25,16 @@
       <ol class="day-timeline">
         <li><span class="timeline-marker">Now</span><div>
           {% if next_action_activity and next_action_activity.due_on == today_iso %}
-            <a href="{{ url_for('activity_detail', activity_id=next_action_activity.id) }}"><strong>{{ next_action_activity.title }}</strong><span>About {{ next_action_activity.estimated_minutes }} minutes</span></a>
+            <a href="{{ next_action_activity.health_link if next_action_activity.health_link else url_for('activity_detail', activity_id=next_action_activity.id) }}"><strong>{{ next_action_activity.title }}</strong><span>About {{ next_action_activity.estimated_minutes }} minutes</span></a>
           {% else %}<a href="{{ url_for('checkin') }}"><strong>Check in privately</strong><span>Take a moment for yourself</span></a>{% endif %}
         </div></li>
         <li><span class="timeline-marker">Up Next</span><div>
-          {% if next_activity %}<a href="{{ url_for('activity_detail', activity_id=next_activity.id) }}"><strong>{{ next_activity.title }}</strong><span>{{ next_activity.date_label }} · About {{ next_activity.estimated_minutes }} minutes</span></a>
+          {% if next_activity %}<a href="{{ next_activity.health_link if next_activity.health_link else url_for('activity_detail', activity_id=next_activity.id) }}"><strong>{{ next_activity.title }}</strong><span>{{ next_activity.date_label }} · About {{ next_activity.estimated_minutes }} minutes</span></a>
           {% else %}<a href="{{ url_for('plan', time='this_week') }}"><strong>Choose a small step</strong><span>Open your plan when you are ready</span></a>{% endif %}
         </div></li>
         <li><span class="timeline-marker">Later</span><div>
           {% if upcoming_appointment %}<a href="{{ url_for('visit_start') }}"><strong>Prepare for {{ upcoming_appointment.appointment_type }}</strong><span>{{ upcoming_appointment.date_label }} · No time set</span></a>
-          {% elif later_activity %}<a href="{{ url_for('activity_detail', activity_id=later_activity[0].id) }}"><strong>{{ later_activity[0].title }}</strong><span>{{ later_activity[0].date_label }}</span></a>
+          {% elif later_activity %}<a href="{{ later_activity[0].health_link if later_activity[0].health_link else url_for('activity_detail', activity_id=later_activity[0].id) }}"><strong>{{ later_activity[0].title }}</strong><span>{{ later_activity[0].date_label }}</span></a>
           {% else %}<a href="{{ url_for('health') }}"><strong>Health and appointments</strong><span>Open Health when you are ready</span></a>{% endif %}
         </div></li>
       </ol>

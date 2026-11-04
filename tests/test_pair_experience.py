@@ -3,6 +3,7 @@
 import os
 import re
 import unittest
+from unittest.mock import patch
 from html.parser import HTMLParser
 
 os.environ["SECRET_KEY"] = "pair-test-secret"
@@ -476,6 +477,76 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(action["instruction"].encode(), plan_page.data)
         self.assertIn(action["instruction"].encode(), health_page.data)
         self.assertIn(b"Accepted", health_page.data)
+
+    # Verify accepted follow-ups appear once, while declined and proposed steps stay out of My Plan.
+    def test_health_followups_enter_plan_only_once_after_acceptance(self):
+        proposed = [item for item in self.records["health_follow_ups"] if item["status"] == "proposed"]
+        page = self.client.get("/my-plan", query_string={"time": "later", "source": "health"})
+        self.assertNotIn(proposed[0]["instruction"].encode(), page.data)
+        self.assertNotIn(proposed[1]["instruction"].encode(), page.data)
+        self.client.post(f"/health/next-steps/{proposed[0]['id']}", data={"choice": "accept"})
+        page = self.client.get("/my-plan", query_string={"time": "later", "source": "health"})
+        self.assertEqual(page.data.count(proposed[0]["instruction"].encode()), 1)
+        self.assertIn(f"/health/next-steps#{proposed[0]['id']}".encode(), page.data)
+        self.client.post(f"/health/next-steps/{proposed[1]['id']}", data={"choice": "decline"})
+        self.assertNotIn(proposed[1]["instruction"].encode(), self.client.get(
+            "/my-plan", query_string={"time": "later", "source": "health"}).data)
+
+    # Keep pausing, rescheduling, and removing from My Plan separate from the Health record.
+    def test_health_plan_controls_preserve_the_health_history(self):
+        action = next(item for item in self.records["health_follow_ups"] if item["status"] == "accepted")
+        url = f"/my-plan/health-action/{action['id']}"
+        today = data.get_today()
+        with self.client.session_transaction() as state:
+            state["health_plan_states"] = {"p1": {action["id"]: {
+                "status": "active", "scheduled_for": today,
+                "schedule": {"date": today, "label": "Member-selected date"}}}}
+        home = self.client.get("/today")
+        self.assertIn(f"/health/next-steps#{action['id']}".encode(), home.data)
+        self.client.post(url, data={"choice": "pause"})
+        paused = self.client.get("/my-plan", query_string={"time": "this_week", "source": "health"})
+        self.assertIn(b"Paused", paused.data)
+        self.assertNotIn(f"/health/next-steps#{action['id']}".encode(), self.client.get("/today").data)
+        self.assertIn(action["instruction"].encode(), self.client.get("/health/next-steps").data)
+        self.client.post(url, data={"choice": "reschedule", "schedule": "2026-11-20"})
+        moved = self.client.get("/my-plan", query_string={"time": "later", "source": "health"})
+        self.assertIn(b"November 20", moved.data)
+        self.client.post(url, data={"choice": "remove"})
+        self.assertNotIn(action["instruction"].encode(), self.client.get(
+            "/my-plan", query_string={"time": "later", "source": "health"}).data)
+        self.assertIn(action["instruction"].encode(), self.client.get("/health/next-steps").data)
+        self.client.post(url, data={"choice": "add"})
+        self.assertIn(action["instruction"].encode(), self.client.get(
+            "/my-plan", query_string={"time": "later", "source": "health"}).data)
+
+    # Verify exact fictional medication details, one-time reminder choice, and private reminder responses.
+    def test_medication_view_preserves_source_text_and_remains_private(self):
+        medication = self.records["medications"][0]
+        with patch.object(pair, "explain_week", side_effect=AssertionError("Medication fields must not use AI")):
+            page = self.client.get("/health/medications")
+        self.assertEqual(page.status_code, 200)
+        for field in ["medication_name", "dose_as_entered", "time_as_entered", "instruction",
+                      "instruction_source", "entered_by"]:
+            self.assertIn(medication[field].encode(), page.data)
+        self.assertIn(b"Pair displays the instruction as entered", page.data)
+        url = "/health/medications"
+        self.client.post(url, data={"action": "reminder_choice", "reminders": "yes"})
+        self.client.post(url, data={"action_id": medication["id"], "action": "skip"})
+        self.assertIn(b"Skip", self.client.get(url).data)
+        for role, route in [("coach", url), ("trusted", url), ("admin", url), ("healthcare", url)]:
+            with self.client.session_transaction() as state:
+                state["demo_role"] = role
+            self.assertNotEqual(self.client.get(route).status_code, 200)
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "admin"
+        self.assertNotEqual(self.client.get("/my-plan").status_code, 200)
+
+    # Ensure clinician-only proposals remain unavailable to coaches and trusted people.
+    def test_non_clinicians_cannot_create_health_followups(self):
+        for role in ["coach", "trusted", "admin"]:
+            with self.client.session_transaction() as state:
+                state["demo_role"] = role
+            self.assertNotEqual(self.client.post("/professional/next-steps").status_code, 200)
 
     # Exercise the main activity presentation buttons and retain one-step navigation.
     def test_activity_buttons_keep_the_route_working(self):

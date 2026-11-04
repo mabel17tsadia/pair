@@ -42,7 +42,8 @@ ROLE_NAVIGATION = {
         ("My Plan", "plan", "calendar", ["plan"]),
         ("Check In", "checkin", "check", ["checkin"]),
         ("Health", "health", "heart", ["health", "health_packets", "health_packet", "health_next_steps",
-                                          "health_follow_up_action", "devices", "pair_device", "stop_pairing"]),
+                                          "health_follow_up_action", "health_medications",
+                                          "health_plan_action", "devices", "pair_device", "stop_pairing"]),
         ("Patterns", "patterns", "chart", ["patterns", "body"]),
         ("Appointments", "visit_start", "clipboard", ["visit_start", "visit_page", "visit_suggest",
                                                          "visit_add_question", "visit_entry", "visit_review",
@@ -100,7 +101,8 @@ ROLE_CARDS = [
 # Route ownership keeps demo workspaces separate without presenting demo switching as authentication.
 ROLE_ENDPOINTS = {
     "member": {"choose_person", "today", "plan", "health", "health_packets", "health_packet",
-               "health_next_steps", "health_follow_up_action", "activity_detail", "checkin", "patterns",
+               "health_next_steps", "health_follow_up_action", "health_medications",
+               "health_plan_action", "activity_detail", "checkin", "patterns",
                "circle", "circle_save", "circle_remove", "circle_add", "circle_revoke_share", "share",
                "doctor", "visit_start", "visit_page", "visit_suggest", "visit_add_question", "visit_entry",
                "visit_review", "visit_packet_review", "visit_finish_later", "visit_send", "visit_not_sure", "climb", "climb_done",
@@ -117,6 +119,7 @@ ROLE_ENDPOINTS = {
 }
 HEALTH_ENDPOINTS = {
     "health", "health_packets", "health_packet", "health_next_steps", "health_follow_up_action",
+    "health_medications", "health_plan_action",
     "patterns", "body",
     "devices", "pair_device", "stop_pairing", "visit_start", "visit_page", "visit_suggest",
     "visit_add_question", "visit_entry", "visit_review", "visit_packet_review", "visit_send",
@@ -669,8 +672,12 @@ def today():
     records = load_demo_data()
     demo_member = pid == records["member"]["application_person_id"]
     activities = activities_for_member(pid, records) if demo_member else []
+    plan_states = session.get("health_plan_states", {}).get(person["id"], {})
+    active_health_actions = [{**item, "plan_state": plan_states.get(item["id"], {})}
+                             for item in health_follow_ups_for(person, records)
+                             if item["plan_status"] not in ["paused", "removed"]] if demo_member else []
     home_records = {**records, "activity_assignments": activities,
-                    "health_follow_ups": health_follow_ups_for(person, records) if demo_member else []}
+                    "health_follow_ups": active_health_actions}
     today_activities = plan_activities(home_records, data.get_today(), "today", "all",
                                        session.get("activity_progress", {}))
     week_activities = plan_activities(home_records, data.get_today(), "this_week", "all",
@@ -714,9 +721,12 @@ def plan():
     records = load_demo_data()
     is_demo_member = person["id"] == records["member"]["application_person_id"]
     assigned = activities_for_member(person["id"], records)
+    action_states = session.get("health_plan_states", {}).get(person["id"], {})
+    follow_ups = [{**item, "plan_state": action_states.get(item["id"], {})}
+                  for item in health_follow_ups_for(person, records)] if is_demo_member else []
     records = {**records,
                "activity_assignments": assigned,
-               "health_follow_ups": health_follow_ups_for(person, records) if is_demo_member else []}
+               "health_follow_ups": follow_ups}
     has_activities = is_demo_member or bool(assigned)
     time_filter = request.args.get("time", "today")
     source_filter = request.args.get("source", "all")
@@ -728,6 +738,45 @@ def plan():
                            time_filter=time_filter if time_filter in ["today", "tomorrow", "this_week", "later"] else "today",
                            source_filter=source_filter if source_filter in ["all", "member", "coach", "health"] else "all",
                            has_demo_records=has_activities)
+
+
+# Save a member's plan-only pause, schedule, or removal without rewriting the Health history.
+@app.route("/my-plan/health-action/<action_id>", methods=["POST"])
+def health_plan_action(action_id):
+    person = current_person()
+    records = health_demo_records(person) if person else None
+    action = next((item for item in health_follow_ups_for(person, records)
+                   if item["id"] == action_id and item["status"] == "accepted"), None) if records else None
+    if not action:
+        abort(404)
+    choice = request.form.get("choice")
+    states = session.get("health_plan_states", {})
+    member_states = states.get(person["id"], {})
+    state = member_states.get(action_id, {})
+    if choice == "pause":
+        state["status"] = "paused"
+    elif choice == "resume":
+        state["status"] = "active"
+    elif choice == "remove":
+        state["status"] = "removed"
+    elif choice == "add":
+        state["status"] = "active"
+    elif choice == "reschedule":
+        schedule = request.form.get("schedule", "").strip()
+        try:
+            date.fromisoformat(schedule)
+        except ValueError:
+            flash("Choose a valid date to reschedule this step.")
+            return redirect(url_for("plan", time="later", source="health"))
+        state["scheduled_for"] = schedule
+        state["schedule"] = {"date": schedule, "label": "Member-selected date"}
+    else:
+        abort(400)
+    member_states[action_id] = state
+    states[person["id"]] = member_states
+    session["health_plan_states"] = states
+    flash("Your My Plan choice was saved. The Health follow-up record is unchanged.")
+    return redirect(url_for("health_next_steps", _anchor=action_id))
 
 
 # Return Health fixture records only when the active demo member owns the fixture profile.
@@ -745,9 +794,16 @@ def health_follow_ups_for(person, records=None):
     saved_states = session.get("health_action_states", {}).get(person["id"], {})
     proposals = session.get("professional_proposals", {}).get(person["id"], [])
     actions = records["health_follow_ups"] + proposals
+    plan_states = session.get("health_plan_states", {}).get(person["id"], {})
     return [{**action,
              "status": saved_states.get(action["id"], {}).get("status", action["status"]),
              "member_question": saved_states.get(action["id"], {}).get("question", ""),
+             "proposed_on": action.get("proposed_on", ""),
+             "accepted_on": saved_states.get(action["id"], {}).get("accepted_on",
+                                                                  plan_states.get(action["id"], {}).get("accepted_on", action.get("accepted_on", ""))),
+             "declined_on": saved_states.get(action["id"], {}).get("declined_on", action.get("declined_on", "")),
+             "plan_status": plan_states.get(action["id"], {}).get("status", "active"),
+             "schedule": plan_states.get(action["id"], {}).get("schedule", action.get("schedule", {})),
              "action_type_label": action.get("action_type", "other_instruction").replace("_", " ").capitalize()}
             for action in actions]
 
@@ -888,10 +944,16 @@ def professional_next_steps():
             return redirect(url_for("professional_next_steps"))
         proposals = session.get("professional_proposals", {})
         member_proposals = proposals.get(member["id"], [])
-        step = {"id": f"professional-step-{len(member_proposals) + 1}", "packet_id": packet_id,
+        step_id = f"professional-step-{len(member_proposals) + 1}"
+        step = {"id": step_id, "health_follow_up_id": step_id, "packet_id": packet_id,
                 "member_id": packet["member_id"], "source_id": DEMO_HEALTHCARE_PROFESSIONAL_ID,
-                "source_name": "Dr. Priya Patel", "action_type": action_type,
-                "instruction": instruction, "due_on": due_on, "status": "proposed",
+                "source_name": "Dr. Priya Patel", "proposed_by": "Dr. Priya Patel",
+                "proposed_on": data.get_today(), "accepted_on": "", "declined_on": "",
+                "action_type": action_type, "instruction_type": action_type,
+                "instruction": instruction, "due_on": due_on,
+                "schedule": {"date": due_on, "label": "Suggested date" if due_on else "Flexible"},
+                "source": {"kind": "authorized appointment follow-up", "label": "Dr. Priya Patel"},
+                "status": "proposed", "fictional": True,
                 "supporting_detail": supporting_detail, "estimated_minutes": 10}
         proposals[member["id"]] = member_proposals + [step]
         session["professional_proposals"] = proposals
@@ -947,7 +1009,10 @@ def health_follow_up_action(action_id):
         status, saved_question, message = "declined", "", "You declined this step. It will not appear in My Plan."
     else:
         abort(400)
-    states[action_id] = {"status": status, "question": saved_question}
+    accepted_on = data.get_today() if choice == "accept" else ""
+    states[action_id] = {"status": status, "question": saved_question,
+                         "accepted_on": accepted_on,
+                         "declined_on": data.get_today() if choice == "decline" else ""}
     all_states = session.get("health_action_states", {})
     all_states[person["id"]] = states
     session["health_action_states"] = all_states
@@ -965,6 +1030,44 @@ def health_next_steps():
     return render_template("health_next_steps.html", title="Next Steps", person=person,
                            follow_ups=health_follow_ups_for(person, records),
                            has_demo_records=bool(records))
+
+
+# Show exact fictional prescription instructions in Health with member-controlled reminders.
+@app.route("/health/medications", methods=["GET", "POST"])
+def health_medications():
+    person = current_person()
+    records = health_demo_records(person) if person else None
+    if not records:
+        return render_template("medications.html", title="My medications", medications=[],
+                               reminder_choice=None, states={}, has_demo_records=False)
+    choice = session.get("medication_reminder_choice", {}).get(person["id"])
+    states = session.get("medication_states", {}).get(person["id"], {})
+    if request.method == "POST":
+        action_id = request.form.get("action_id", "")
+        action = next((item for item in records["medications"] if item["id"] == action_id), None)
+        command = request.form.get("action", "")
+        if command == "reminder_choice":
+            if choice is None and request.form.get("reminders") in ["yes", "no"]:
+                choices = session.get("medication_reminder_choice", {})
+                choices[person["id"]] = request.form["reminders"]
+                session["medication_reminder_choice"] = choices
+                flash("Your reminder preference was saved in this demo.")
+            return redirect(url_for("health_medications"))
+        if not action or choice != "yes":
+            abort(403)
+        if command not in ["taken", "later", "skip", "question"]:
+            abort(400)
+        states[action_id] = {"status": command,
+                             "question": request.form.get("question", "").strip()[:500]
+                             if command == "question" else ""}
+        all_states = session.get("medication_states", {})
+        all_states[person["id"]] = states
+        session["medication_states"] = all_states
+        flash("Your medication reminder choice was saved in this demo.")
+        return redirect(url_for("health_medications", _anchor=action_id))
+    return render_template("medications.html", title="My medications", person=person,
+                           medications=records["medications"], reminder_choice=choice,
+                           states=states, has_demo_records=True)
 
 
 # Activity detail: keep step navigation, presentation choices, and feedback in this demo session.
@@ -2157,7 +2260,8 @@ def settings_export():
     person_id = person["id"]
     saved_keys = ["profile", "member_preferences", "circle", "circle_shared_snapshots", "paired",
                   "checkin_display", "checkin_response", "goals_added", "goals_done", "climb_seen",
-                  "badges", "routines", "health_action_states", "professional_proposals",
+                  "badges", "routines", "health_action_states", "health_plan_states",
+                  "medication_reminder_choice", "medication_states", "professional_proposals",
                   "trusted_encouragements", "coach_assignments",
                   "visit_questions", "visit_suggestions", "visit_entries", "visit_packet_drafts"]
     changes = {key: session.get(key, {}).get(person_id) for key in saved_keys
@@ -2203,7 +2307,8 @@ def settings_delete_data():
     activities = activities + session.get("coach_assignments", {}).get(person_id, [])
     for key in ["profile", "member_preferences", "circle", "circle_shared_snapshots", "paired",
                 "checkin_display", "checkin_response", "week", "doctor", "goals_added", "goals_done",
-                "climb_seen", "badges", "routines", "health_action_states", "professional_proposals",
+                "climb_seen", "badges", "routines", "health_action_states", "health_plan_states",
+                "medication_reminder_choice", "medication_states", "professional_proposals",
                 "trusted_encouragements", "coach_assignments", "visit_questions", "visit_suggestions",
                 "visit_entries", "visit_packet_drafts"]:
         values = session.get(key)

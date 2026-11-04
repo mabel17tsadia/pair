@@ -23,6 +23,7 @@
     <!-- Keep additional health destinations available as compact links, not equal dashboard cards. -->
     <nav class="health-secondary-links" aria-label="More Health pages">
       <a href="{{ url_for('health_packets') }}">{{ icon('clipboard') }} My Shared Packets <span>{{ packet_count }}</span></a>
+      <a href="{{ url_for('health_medications') }}">{{ icon('medical') }} My medications <span>Private to you</span></a>
       <a href="{{ url_for('patterns') }}">{{ icon('chart') }} Health Patterns <span>{{ patterns.change_count }} changes</span></a>
       <a href="{{ url_for('devices') }}">{{ icon('phone') }} Connected Data Sources <span>{{ connected_count }} connected</span></a>
     </nav>

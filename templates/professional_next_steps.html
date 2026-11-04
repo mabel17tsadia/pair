@@ -12,7 +12,7 @@
       <article class="card health-record-card">
         <div class="health-record-heading">
           <h3>{{ action.instruction }}</h3>
-          <span class="chip">{{ action.status.replace("_", " ").capitalize() }}</span>
+          <span class="chip">Fictional demo · {{ action.status.replace("_", " ").capitalize() }}</span>
         </div>
         <p><strong>Type:</strong> {{ action.action_type_label }} · <strong>Submitted by:</strong> {{ action.source_name }}</p>
         <p><strong>Due:</strong> {% if action.due_on %}{{ action.due_on | long_day }}{% else %}No due date set{% endif %}</p>

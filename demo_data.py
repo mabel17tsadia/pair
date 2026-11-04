@@ -14,6 +14,7 @@ class DemoData(TypedDict):
     activity_templates: list
     activity_assignments: list
     health_follow_ups: list
+    medications: list
     check_ins: list
     connected_sources: list
     appointment_packets: list
@@ -83,14 +84,27 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
         saved = progress.get(activity["id"], {})
         rows.append({**activity, **saved, "source_label": {
             "member": "Added by me", "coach": "From my coach"}.get(activity["source"], activity["source"])})
+    seen_follow_ups = set()
     for follow_up in records["health_follow_ups"]:
-        if follow_up["status"] == "accepted":
+        plan_state = follow_up.get("plan_state", {})
+        plan_status = plan_state.get("status", "active")
+        if follow_up["status"] == "accepted" and plan_status != "removed":
+            if follow_up["id"] in seen_follow_ups:
+                continue
+            seen_follow_ups.add(follow_up["id"])
+            due_on = plan_state.get("scheduled_for", follow_up.get("schedule", {}).get("date", follow_up.get("due_on", "")))
+            status = "paused" if plan_status == "paused" else "accepted"
             rows.append({
                 "id": follow_up["id"], "title": follow_up["instruction"], "source": "health",
                 "source_name": follow_up["source_name"], "source_label": "From Health",
-                "due_on": follow_up.get("due_on", ""), "scheduled_for": "",
+                "proposed_on": follow_up.get("proposed_on", ""),
+                "accepted_on": plan_state.get("accepted_on", follow_up.get("accepted_on", "")),
+                "due_on": due_on, "scheduled_for": "",
+                "schedule": plan_state.get("schedule", follow_up.get("schedule", {})),
+                "plan_status": plan_status,
                 "estimated_minutes": follow_up.get("estimated_minutes", 10),
-                "status": "accepted", "next_action": "Review the details in Health",
+                "status": status,
+                "next_action": "Resume this step" if plan_status == "paused" else "Review the details in Health",
                 "health_link": f"/health/next-steps#{follow_up['id']}",
             })
 

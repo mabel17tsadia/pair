@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+  <!-- Explain that medication information is a private, fictional demonstration record. -->
+  <h1>My medications</h1>
+  <p class="note">Medication reminders are separate from activities and follow-up recommendations. These records are fictional demonstration data.</p>
+  {% if has_demo_records %}
+    <!-- Ask once whether Jordan wants medication reminders in this demonstration. -->
+    {% if reminder_choice is none %}
+      <section class="card" aria-labelledby="reminder-choice-title">
+        <h2 id="reminder-choice-title">Would you like reminders?</h2>
+        <p>You can view the source information without turning on reminders. Pair asks this once.</p>
+        <form class="health-action-choices" method="post">
+          <input type="hidden" name="action" value="reminder_choice">
+          <button class="btn-primary" name="reminders" value="yes" type="submit">Yes, enable reminders</button>
+          <button class="btn-secondary" name="reminders" value="no" type="submit">No reminders</button>
+        </form>
+      </section>
+    {% else %}
+      <!-- Keep the one-time reminder choice visible without asking again. -->
+      <p class="card">Reminder preference: <strong>{{ "On" if reminder_choice == "yes" else "Off" }}</strong></p>
+    {% endif %}
+    {% for medication in medications %}
+      <!-- Display only exact source-provided fictional prescription details. -->
+      <article class="card medication-card" id="{{ medication.id }}">
+        <p class="eyebrow">Fictional medication sample · Source: {{ medication.source_name }}</p>
+        <h2>{{ medication.medication_name }}</h2>
+        <dl class="medication-details">
+          <div><dt>Dose, as entered</dt><dd>{{ medication.dose_as_entered }}</dd></div>
+          <div><dt>Time, as entered</dt><dd>{{ medication.time_as_entered }}</dd></div>
+          <div><dt>Original instruction</dt><dd>{{ medication.instruction }}</dd></div>
+          <div><dt>Source</dt><dd>{{ medication.instruction_source }}</dd></div>
+          <div><dt>Date entered</dt><dd>{{ medication.entered_on | long_day }}</dd></div>
+          <div><dt>Entered by</dt><dd>{{ medication.entered_by }}</dd></div>
+        </dl>
+        <p class="medication-safety">Pair displays the instruction as entered. Check the medication label or contact your pharmacist or healthcare professional if you are unsure.</p>
+        <p class="note">Pair has not changed this instruction. Medication details stay private in this member view.</p>
+        {% if reminder_choice == "yes" %}
+          <!-- Save a member-selected reminder response without making medical suggestions. -->
+          <p class="note">These demo controls record your choice only. They do not send notifications or contact anyone.</p>
+          <form class="health-action-choices" method="post">
+            <input type="hidden" name="action_id" value="{{ medication.id }}">
+            <button class="btn-secondary" name="action" value="taken" type="submit">Mark as taken</button>
+            <button class="btn-secondary" name="action" value="later" type="submit">Remind me later</button>
+            <button class="btn-secondary" name="action" value="skip" type="submit">Skip for now</button>
+          </form>
+          <form class="health-action-choices" method="post">
+            <input type="hidden" name="action_id" value="{{ medication.id }}">
+            <input type="hidden" name="action" value="question">
+            <label for="med-question-{{ medication.id }}">Ask a question</label>
+            <textarea id="med-question-{{ medication.id }}" name="question" maxlength="500" rows="2" required></textarea>
+            <button class="btn-secondary" type="submit">Save question</button>
+          </form>
+          <p class="note">{{ states.get(medication.id, {}).get("status", "No response recorded yet") | replace("_", " ") | capitalize }}{% if states.get(medication.id, {}).get("question") %}. Your question is saved only in this demo and was not sent.{% endif %}</p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  {% else %}
+    <!-- Do not show Jordan's medication records to another selected member. -->
+    <p class="card">There are no fictional medication records for this demo member.</p>
+  {% endif %}
+  <p><a class="text-link" href="{{ url_for('health') }}">Return to Health</a></p>
+{% endblock %}

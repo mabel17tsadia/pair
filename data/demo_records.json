@@ -250,7 +250,24 @@
       "due_on": "2026-11-12",
       "status": "proposed",
       "supporting_detail": "A member-selected sleep pattern from the phone demo data.",
-      "estimated_minutes": 10
+      "estimated_minutes": 10,
+      "member_id": "member-jordan",
+      "health_follow_up_id": "follow-up-01",
+      "proposed_by": "Dr. Priya Patel",
+      "proposed_on": "2026-11-04",
+      "instruction_type": "other_instruction",
+      "schedule": {
+        "date": "2026-11-12",
+        "label": "Suggested date"
+      },
+      "source": {
+        "kind": "authorized appointment follow-up",
+        "label": "Dr. Priya Patel"
+      },
+      "member_question": "",
+      "declined_on": "",
+      "accepted_on": "",
+      "fictional": true
     },
     {
       "id": "follow-up-02",
@@ -262,7 +279,24 @@
       "due_on": "2026-11-10",
       "status": "proposed",
       "supporting_detail": "Fictional follow-up suggestion; no appointment has been booked.",
-      "estimated_minutes": 10
+      "estimated_minutes": 10,
+      "member_id": "member-jordan",
+      "health_follow_up_id": "follow-up-02",
+      "proposed_by": "Dr. Priya Patel",
+      "proposed_on": "2026-11-04",
+      "instruction_type": "follow_up_appointment",
+      "schedule": {
+        "date": "2026-11-10",
+        "label": "Suggested date"
+      },
+      "source": {
+        "kind": "authorized appointment follow-up",
+        "label": "Dr. Priya Patel"
+      },
+      "member_question": "",
+      "declined_on": "",
+      "accepted_on": "",
+      "fictional": true
     },
     {
       "id": "follow-up-03",
@@ -274,7 +308,111 @@
       "due_on": "2026-11-18",
       "status": "accepted",
       "supporting_detail": "Member-reviewed fictional next step.",
-      "estimated_minutes": 10
+      "estimated_minutes": 10,
+      "member_id": "member-jordan",
+      "health_follow_up_id": "follow-up-03",
+      "proposed_by": "Dr. Priya Patel",
+      "proposed_on": "2026-11-04",
+      "instruction_type": "other_instruction",
+      "schedule": {
+        "date": "2026-11-18",
+        "label": "Suggested date"
+      },
+      "source": {
+        "kind": "authorized appointment follow-up",
+        "label": "Dr. Priya Patel"
+      },
+      "member_question": "",
+      "declined_on": "",
+      "accepted_on": "2026-11-04",
+      "fictional": true
+    },
+    {
+      "id": "follow-up-walk",
+      "health_follow_up_id": "follow-up-walk",
+      "member_id": "member-jordan",
+      "packet_id": "packet-upcoming",
+      "source_id": "health-priya",
+      "source_name": "Dr. Priya Patel",
+      "proposed_by": "Dr. Priya Patel",
+      "proposed_on": "2026-11-04",
+      "action_type": "other_instruction",
+      "instruction_type": "other_instruction",
+      "instruction": "Walk for 15 minutes each day",
+      "due_on": "2026-11-12",
+      "schedule": {
+        "date": "2026-11-12",
+        "label": "Suggested date"
+      },
+      "status": "proposed",
+      "accepted_on": "",
+      "declined_on": "",
+      "member_question": "",
+      "source": {
+        "kind": "authorized appointment follow-up",
+        "label": "Dr. Priya Patel"
+      },
+      "supporting_detail": "A fictional example of an optional activity proposed in an authorized visit packet.",
+      "estimated_minutes": 15,
+      "fictional": true
+    },
+    {
+      "id": "follow-up-sleep",
+      "health_follow_up_id": "follow-up-sleep",
+      "member_id": "member-jordan",
+      "packet_id": "packet-upcoming",
+      "source_id": "health-priya",
+      "source_name": "Dr. Priya Patel",
+      "proposed_by": "Dr. Priya Patel",
+      "proposed_on": "2026-11-04",
+      "action_type": "other_instruction",
+      "instruction_type": "other_instruction",
+      "instruction": "Record how you slept for seven days",
+      "due_on": "2026-11-14",
+      "schedule": {
+        "date": "2026-11-14",
+        "label": "Suggested date"
+      },
+      "status": "proposed",
+      "accepted_on": "",
+      "declined_on": "",
+      "member_question": "",
+      "source": {
+        "kind": "authorized appointment follow-up",
+        "label": "Dr. Priya Patel"
+      },
+      "supporting_detail": "A fictional example of tracking sleep for a later conversation.",
+      "estimated_minutes": 15,
+      "fictional": true
+    },
+    {
+      "id": "follow-up-pressure",
+      "health_follow_up_id": "follow-up-pressure",
+      "member_id": "member-jordan",
+      "packet_id": "packet-upcoming",
+      "source_id": "health-priya",
+      "source_name": "Dr. Priya Patel",
+      "proposed_by": "Dr. Priya Patel",
+      "proposed_on": "2026-11-04",
+      "action_type": "other_instruction",
+      "instruction_type": "other_instruction",
+      "instruction": "Bring your blood-pressure readings to your next visit",
+      "due_on": "2026-11-18",
+      "schedule": {
+        "date": "2026-11-18",
+        "label": "Suggested date"
+      },
+      "status": "proposed",
+      "accepted_on": "",
+      "declined_on": "",
+      "member_question": "",
+      "source": {
+        "kind": "authorized appointment follow-up",
+        "label": "Dr. Priya Patel"
+      },
+      "supporting_detail": "A fictional example of bringing existing readings; Pair does not interpret them.",
+      "estimated_minutes": 15,
+      "fictional": true
     }
   ],
   "check_ins": [
@@ -737,5 +875,21 @@
       "template_id": "template-coach-maya-01"
     }
   ],
-  "schema_version": 2
+  "schema_version": 2,
+  "medications": [
+    {
+      "id": "medication-demo-01",
+      "member_id": "member-jordan",
+      "fictional": true,
+      "medication_name": "Example medication (fictional demo)",
+      "dose_as_entered": "Example dose, exactly as entered in this fictional record",
+      "time_as_entered": "Example time, exactly as entered in this fictional record",
+      "instruction": "Follow the fictional source instruction shown for this demonstration.",
+      "source_name": "Dr. Priya Patel (fictional demonstration)",
+      "instruction_source": "Fictional demonstration visit instruction; not a prescription",
+      "entered_by": "Dr. Priya Patel (fictional demonstration)",
+      "entered_on": "2026-11-04",
+      "member_confirmed": true
+    }
+  ]
 }

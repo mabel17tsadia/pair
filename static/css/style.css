@@ -506,6 +506,18 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
 .remaining-activities .activity-card { padding-top: var(--space-4); border-top: var(--border-width) solid var(--border); }
 
 .activity-card { scroll-margin-top: var(--space-6); }
+.health-plan-card { border-inline-start: 6px solid var(--alert); }
+.health-plan-source { color: var(--muted); }
+.plan-health-controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-2); margin-top: var(--space-3); }
+.plan-health-controls form { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-2); }
+.plan-health-controls label { width: 100%; font-weight: 700; }
+.plan-health-controls input[type="date"] { min-height: var(--target-min); padding: var(--space-2); border: var(--border-width) solid var(--border); border-radius: var(--radius-control); background: var(--surface); color: var(--text); }
+.medication-card { border-inline-start: 6px solid var(--primary); }
+.medication-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: var(--space-3); }
+.medication-details div { padding: var(--space-3); border-radius: var(--radius-control); background: var(--surface2); }
+.medication-details dt { color: var(--muted); font-weight: 700; }
+.medication-details dd { margin: var(--space-1) 0 0; }
+.medication-safety { padding: var(--space-3); border-radius: var(--radius-control); background: var(--alert-soft); font-weight: 700; }
 
 .activity-heading {
   display: flex;
