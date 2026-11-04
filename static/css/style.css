@@ -937,6 +937,7 @@ section[tabindex="-1"]:focus:not(:focus-visible) {
 
 /* Check In keeps display choices and illustrated options comfortable to tap. */
 .display-preference { margin-bottom: var(--space-5); }
+.display-preference > summary { min-height: var(--target-min); display: flex; align-items: center; cursor: pointer; font-weight: 700; }
 .display-choices { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-4); padding: 0; border: 0; }
 .display-choices legend { width: 100%; margin-bottom: var(--space-2); font-weight: 700; }
 .display-option { display: flex; align-items: center; gap: var(--space-2); min-height: var(--target-min); padding: 0 var(--space-3); border: var(--border-width) solid var(--border); border-radius: var(--radius-control); background: var(--surface); }
@@ -1677,6 +1678,8 @@ main > .card, .workspace-main > .card { border-radius: 1.25rem; }
 .checkin-form .choice-icon { min-height: 2.5rem; font-size: 2.25rem; }
 .checkin-form.display-pictures_first .choice-box { min-height: 8rem; }
 .checkin-form .actions { padding-top: var(--space-2); }
+.checkin-urgent-help { margin-top: var(--space-3); }
+.checkin-urgent-help > summary { min-height: var(--target-min); display: flex; align-items: center; cursor: pointer; font-weight: 700; }
 
 /* Pattern cards let members compare their own recent days with a labeled usual range. */
 .pattern-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }

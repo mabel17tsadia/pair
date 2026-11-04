@@ -6,64 +6,46 @@
   <h1>Check in</h1>
   <p class="card checkin-privacy">Your check-in and optional note are private by default. Nothing is shared automatically; you decide what to share with your circle.</p>
 
-  <!-- Display preferences are saved for this member and keep words available in every mode. -->
-  <form method="post" class="card display-preference">
-    <input type="hidden" name="action" value="display">
-    <fieldset class="display-choices">
-      <legend>How would you like to see choices?</legend>
-      {% for value, label in display_options %}
-        <label class="display-option">
-          <input type="radio" name="display" value="{{ value }}" {% if display == value %}checked{% endif %}>
-          <span>{{ label }}</span>
-        </label>
-      {% endfor %}
-    </fieldset>
-    <button type="submit" class="btn-secondary">Save display preference</button>
-  </form>
+  <!-- Keep display choices available without taking attention from the check-in. -->
+  <details class="card display-preference">
+    <summary>Display preferences</summary>
+    <form method="post">
+      <input type="hidden" name="action" value="display">
+      <fieldset class="display-choices">
+        <legend>How would you like to see choices?</legend>
+        {% for value, label in display_options %}
+          <label class="display-option">
+            <input type="radio" name="display" value="{{ value }}" {% if display == value %}checked{% endif %}>
+            <span>{{ label }}</span>
+          </label>
+        {% endfor %}
+      </fieldset>
+      <button type="submit" class="btn-secondary">Save display preference</button>
+    </form>
+  </details>
 
-  {% if response and response.urgent %}
-    <!-- Preserve local urgent-note support while keeping all saved responses member-private. -->
-    <section class="card emergency" role="alert">
-      <h2>This could be urgent</h2>
-      <p><strong>This could be urgent. Call 911, or call or text 988.</strong></p>
-      <div class="actions">
-        <a class="btn-primary" href="tel:911">Call 911</a>
-        <a class="btn-secondary" href="tel:988">Call 988</a>
-        <a class="btn-secondary" href="sms:988">Text 988</a>
-      </div>
-    </section>
-    <section class="card soft-card" role="status"><h2>{{ response.readiness_state }}</h2><p>{{ response.readiness_reason }}</p>
-      <form method="post" class="checkin-guidance-actions"><input type="hidden" name="action" value="guidance"><input type="hidden" name="checkin_id" value="{{ response.id }}">
-        <button class="btn-secondary" name="choice" value="show_one_step" type="submit">Show one small step</button>
-        <button class="btn-secondary" name="choice" value="show_full_day" type="submit">Show my full day</button>
-        <button class="btn-secondary" name="choice" value="quiet_break" type="submit">Take a quiet break</button>
-        <button class="btn-secondary" name="choice" value="remind_later" type="submit">Remind me later</button>
-        <button class="btn-secondary" name="choice" value="nothing_now" type="submit">Nothing right now</button>
-      </form>
-    </section>
-  {% elif response %}
-    <!-- Show the member's transparent readiness words and ask what they want to do next. -->
+  {% if response %}
+    <!-- Confirm a saved check-in in two short lines and leave choices with the member. -->
     <section class="card soft-card" role="status">
       <h2>Thank you for checking in</h2>
-      <p><strong>{{ response.readiness_state }}</strong></p>
-      <p>{{ response.readiness_reason }}</p>
-      {% if response.manageability %}<p>Your choice: {{ manageability_by_key.get(response.manageability) }}</p>{% endif %}
-      {% if response.feeling %}<p>You felt: {{ mood_emoji(response.feeling) }} {{ response.feeling }}</p>{% endif %}
-      {% if response.help_choice %}<p>What would help: <span class="choice-icon" aria-hidden="true">{{ help_by_key[response.help_choice].icon }}</span> {{ help_by_key[response.help_choice].label }}</p>{% endif %}
-      <h3>What would you like to do?</h3>
+      <p>Take it one small step at a time.</p>
       <form method="post" class="checkin-guidance-actions">
         <input type="hidden" name="action" value="guidance"><input type="hidden" name="checkin_id" value="{{ response.id }}">
         <button class="btn-primary" name="choice" value="show_one_step" type="submit">Show one small step</button>
-        <button class="btn-secondary" name="choice" value="show_full_day" type="submit">Show my full day</button>
         <button class="btn-secondary" name="choice" value="quiet_break" type="submit">Take a quiet break</button>
-        <button class="btn-secondary" name="choice" value="remind_later" type="submit">Remind me later</button>
         <button class="btn-secondary" name="choice" value="nothing_now" type="submit">Nothing right now</button>
       </form>
-      <p class="note">Your plan changes only when you choose an action. Check-ins stay private unless you choose to share them.</p>
+      {% if response.urgent %}
+        <details class="checkin-urgent-help"><summary>Emergency support options</summary>
+          <p>If you may be in immediate danger, call 911 or call or text 988.</p>
+          <a href="tel:911">Call 911</a> · <a href="tel:988">Call 988</a> · <a href="sms:988">Text 988</a>
+        </details>
+      {% endif %}
     </section>
   {% else %}
     <!-- Keep the existing feeling and help choices, with every answer optional. -->
-    <form method="post" class="card checkin-form display-{{ display }}">
+    <form method="post" class="card checkin-form display-{{ display }}" data-disable-repeat>
+      <input type="hidden" name="submission_id" value="{{ submission_id }}">
       <fieldset class="choices">
         <legend>How are you feeling? <span class="note">(optional)</span></legend>
         {% for f in feelings %}
@@ -100,7 +82,8 @@
       <textarea id="note" name="note" rows="3" maxlength="200"></textarea>
 
       <div class="actions">
-        <button type="submit" name="action" value="save" class="btn-primary">Save</button>
+        <input type="hidden" name="action" value="save">
+        <button type="submit" class="btn-primary">Save</button>
         <a class="btn-secondary" href="{{ url_for('today') }}">Skip</a>
       </div>
     </form>
@@ -112,7 +95,7 @@
     <ul class="checkin-list">
       {% for c in checkins | reverse %}
         <li class="card">
-          <details><summary>{{ c.date }} · {{ c.time }} · {{ c.readiness_state or 'Private check-in' }}</summary>
+          <details><summary>{{ c.date }} · {{ c.time }} · Private check-in</summary>
             {% if c.feeling %}<p>{{ mood_emoji(c.feeling) }} <strong>{{ c.feeling }}</strong></p>{% endif %}
             {% set help = help_by_key.get(c.help_choice) %}
             {% if help %}<p><strong>What would help:</strong> <span class="choice-icon" aria-hidden="true">{{ help.icon }}</span> {{ help.label }}</p>{% endif %}

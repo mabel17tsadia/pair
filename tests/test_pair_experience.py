@@ -789,9 +789,17 @@ class PairExperienceTests(unittest.TestCase):
         for display in ["pictures_words", "words_only", "pictures_first"]:
             response = self.client.post("/checkin", data={"action": "display", "display": display})
             self.assertEqual(response.status_code, 302)
-        response = self.client.post("/checkin", data={"feeling": "Okay", "help_choice": "quiet_break"})
+        page = self.client.get("/checkin").data
+        submission_id = re.search(rb'name="submission_id" value="([^"]+)"', page).group(1).decode()
+        response = self.client.post("/checkin", data={"action": "save", "submission_id": submission_id,
+                                    "feeling": "Okay", "help_choice": "quiet_break"})
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(self.client.get("/checkin").status_code, 200)
+        saved_page = self.client.get(response.headers["Location"]).data
+        self.assertIn(b"Thank you for checking in", saved_page)
+        display_panel = saved_page.split(b'<details class="card display-preference"', 1)[1].split(b"</details>", 1)[0]
+        self.assertNotIn(b" open", display_panel[:40])
+        for choice in [b"Pictures and Words", b"Words Only", b"Pictures First", b"Save display preference"]:
+            self.assertIn(choice, display_panel)
         for theme in pair.THEMES:
             self.assertEqual(self.client.post("/theme", data={"theme": theme}).status_code, 302)
             page = self.client.get("/settings")
@@ -803,11 +811,21 @@ class PairExperienceTests(unittest.TestCase):
     def test_ema_questions_can_all_be_skipped_without_a_score(self):
         page = self.client.get("/checkin")
         self.assertIn(b"How manageable does today feel right now?", page.data)
+        self.assertIn(b"Display preferences", page.data)
+        self.assertNotIn(b'<details class="card display-preference" open', page.data)
+        self.assertIn(b"data-disable-repeat", page.data)
+        with open(os.path.join(pair.app.static_folder, "js", "main.js"), encoding="utf-8") as script:
+            self.assertIn('form.dataset.submitted = "yes"', script.read())
         form = page.data.split(b'class="card checkin-form', 1)[1].split(b"</form>", 1)[0]
         self.assertNotIn(b" required", form)
-        self.assertEqual(self.client.post("/checkin", data={"action": "save"}).status_code, 302)
-        saved = self.client.get("/checkin").data
-        self.assertIn(b"You can decide when you are ready", saved)
+        submission_id = re.search(rb'name="submission_id" value="([^"]+)"', page.data).group(1).decode()
+        result = self.client.post("/checkin", data={"action": "save", "submission_id": submission_id})
+        self.assertEqual(result.status_code, 302)
+        saved = self.client.get(result.headers["Location"]).data
+        self.assertIn(b"Thank you for checking in", saved)
+        self.assertIn(b"Take it one small step at a time.", saved)
+        confirmation = saved.split(b'<section class="card soft-card"', 1)[1].split(b"</section>", 1)[0]
+        self.assertNotIn(b"You can decide when you are ready", confirmation)
         self.assertIn(b"You chose not to answer these questions right now.", saved)
         self.assertIn(b"Private check-in history", saved)
         self.assertNotIn(b"%", saved)
@@ -822,18 +840,60 @@ class PairExperienceTests(unittest.TestCase):
         goal_list = climb.split(b'<ul class="goal-list">', 1)[1].split(b"</ul>", 1)[0]
         self.assertNotIn(b"Check in", goal_list)
 
-    # Explain the momentary state in plain words matching the member's selected answers.
+    # Keep the confirmation minimal and the complete responses inside collapsed private history.
     def test_ema_readiness_state_and_explanation_match_selected_choices(self):
-        self.client.post("/checkin", data={"action": "save", "feeling": "Overwhelmed",
-                          "help_choice": "smaller_step", "manageability": "one_small_step"})
-        page = self.client.get("/checkin").data
-        self.assertIn(b"Ready for one small step", page)
-        self.assertIn("You selected “Overwhelmed,” “Smaller Step,” and “One small step.”".encode(), page)
-        for action in [b"Show one small step", b"Show my full day", b"Take a quiet break",
-                       b"Remind me later", b"Nothing right now"]:
-            self.assertIn(action, page)
+        form = self.client.get("/checkin").data
+        submission_id = re.search(rb'name="submission_id" value="([^"]+)"', form).group(1).decode()
+        result = self.client.post("/checkin", data={"action": "save", "submission_id": submission_id,
+                          "feeling": "Overwhelmed", "help_choice": "smaller_step",
+                          "manageability": "one_small_step"})
+        page = self.client.get(result.headers["Location"]).data
+        result_card = page.split(b'<section class="card soft-card"', 1)[1].split(b"</section>", 1)[0]
+        self.assertIn(b"Thank you for checking in", result_card)
+        self.assertIn(b"Take it one small step at a time.", result_card)
+        for answer in [b"Ready for one small step", b"Overwhelmed", b"Smaller Step", b"One small step"]:
+            self.assertNotIn(answer, result_card)
+        for action in [b"Show one small step", b"Take a quiet break", b"Nothing right now"]:
+            self.assertIn(action, result_card)
+        self.assertEqual(result_card.count(b'<button '), 3)
+        self.assertNotIn(b"Show my full day", result_card)
+        self.assertNotIn(b"Remind me later", result_card)
+        self.assertIn(b"Overwhelmed", page)  # The answer remains inside the collapsed private history.
+        history = page.split(b"Private check-in history", 1)[1]
+        self.assertIn(b'<details><summary>', history)
+        self.assertNotIn(b'<details open', history)
         for score_word in [b"%", b"risk score", b"readiness score", b"capacity score"]:
             self.assertNotIn(score_word, page.lower())
+
+    # A repeated submission identifier and result refresh must keep one saved history entry.
+    def test_checkin_save_is_idempotent_and_result_refresh_is_safe(self):
+        form = self.client.get("/checkin").data
+        submission_id = re.search(rb'name="submission_id" value="([^"]+)"', form).group(1).decode()
+        answers = {"action": "save", "submission_id": submission_id, "feeling": "Tired",
+                   "manageability": "pause", "note": "Private demo note"}
+        first_post = self.client.post("/checkin", data=answers)
+        self.assertEqual(first_post.status_code, 302)
+        result_url = first_post.headers["Location"]
+        result_page = self.client.get(result_url).data
+        self.assertIn(b"Thank you for checking in", result_page)
+        self.assertIn(b"Take it one small step at a time.", result_page)
+        before_history, private_history = result_page.split(b'<ul class="checkin-list">', 1)
+        for private_answer in [b"Tired", b"pause", b"Private demo note"]:
+            self.assertNotIn(private_answer, before_history)
+            self.assertIn(private_answer, private_history)
+        with self.client.session_transaction() as state:
+            self.assertEqual(len(state["checkins"]), 1)
+            saved = state["checkins"][0]
+            self.assertEqual(saved["submission_id"], submission_id)
+            self.assertTrue(saved["created_at"])
+            self.assertEqual(saved["note"], "Private demo note")
+        refreshed = self.client.get(result_url)
+        self.assertEqual(refreshed.status_code, 200)
+        self.assertIn(b"Thank you for checking in", refreshed.data)
+        duplicate_post = self.client.post("/checkin", data=answers)
+        self.assertEqual(duplicate_post.headers["Location"], result_url)
+        with self.client.session_transaction() as state:
+            self.assertEqual(len(state["checkins"]), 1)
 
     # A check-in choice temporarily narrows Home without overwriting My Pace or changing activities.
     def test_ema_one_step_is_temporary_and_does_not_mutate_activities(self):
@@ -844,8 +904,10 @@ class PairExperienceTests(unittest.TestCase):
         with self.client.session_transaction() as state:
             before_progress = dict(state.get("activity_progress", {}))
             before_health = dict(state.get("health_plan_states", {}))
-        self.client.post("/checkin", data={"action": "save", "manageability": "one_small_step",
-                          "help_choice": "smaller_step"})
+        form = self.client.get("/checkin").data
+        submission_id = re.search(rb'name="submission_id" value="([^"]+)"', form).group(1).decode()
+        self.client.post("/checkin", data={"action": "save", "submission_id": submission_id,
+                          "manageability": "one_small_step", "help_choice": "smaller_step"})
         with self.client.session_transaction() as state:
             checkin_id = state["checkins"][-1]["id"]
         self.client.post("/checkin", data={"action": "guidance", "checkin_id": checkin_id,

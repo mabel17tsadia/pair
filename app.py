@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, session, redirect, request, url_for, abort, flash
@@ -1394,6 +1395,12 @@ def checkin():
     if request.method == "POST" and (request.form.get("action") == "save" or
                                       request.form.get("feeling") or request.form.get("help_choice") or
                                       request.form.get("manageability")):
+        submission_id = request.form.get("submission_id", "")
+        if not submission_id:
+            flash("Please reopen Check In before saving your responses.")
+            return redirect(url_for("checkin"))
+        if any(item.get("submission_id") == submission_id for item in checkins):
+            return redirect(url_for("checkin", result=submission_id))
         selected_feeling = request.form.get("feeling", "")
         feeling = selected_feeling if selected_feeling in MOODS else ""
         note = request.form.get("note", "").strip()[:200]
@@ -1405,6 +1412,7 @@ def checkin():
         readiness_state, readiness_reason = checkin_readiness(feeling, help_choice, manageability)
         now = datetime.now().astimezone()
         record = {"id": f"checkin-{pid}-{now:%Y%m%d%H%M%S}-{len(checkins)}",
+                  "submission_id": submission_id,
                   "person_id": pid, "date": data.get_today(), "time": now.strftime("%H:%M"),
                   "created_at": now.isoformat(timespec="seconds"), "feeling": feeling,
                   "help_choice": help_choice, "manageability": manageability, "note": note,
@@ -1413,14 +1421,14 @@ def checkin():
         record["urgent"] = is_urgent(note)
         checkins.append(record)
         session["checkins"] = checkins[-20:]
-        save("checkin_response", pid, record)
-        return redirect(url_for("checkin"))
+        return redirect(url_for("checkin", result=submission_id))
 
-    # Show a saved private response once, then keep the member's history available on this page.
-    response = session.get("checkin_response", {}).pop(pid, None)
+    # Show the saved result by its unique submission id so refresh stays a safe GET.
+    response_id = request.args.get("result", "")
+    response = next((item for item in checkins if item.get("submission_id") == response_id and
+                     item.get("person_id") == pid), None)
     if response and "readiness_state" not in response:
         response = None
-    session.modified = True
     mine = [c for c in checkins if c["person_id"] == pid]
     help_by_key = {item["value"]: item for item in CHECKIN_HELP}
     return render_template("checkin.html", title="Check in", feelings=MOODS,
@@ -1428,7 +1436,8 @@ def checkin():
                            manageability_options=CHECKIN_MANAGEABILITY,
                            manageability_by_key=dict(CHECKIN_MANAGEABILITY),
                            display_options=CHECKIN_DISPLAY, display=display,
-                           response=response, checkins=mine)
+                           response=response, checkins=mine,
+                           submission_id=secrets.token_urlsafe(18) if not response else "")
 
 
 # Patterns: a 21 day line chart for each signal from a paired device, with the usual range

@@ -39,6 +39,22 @@ document.querySelectorAll("[data-print]").forEach((button) => {
   button.onclick = () => window.print();
 });
 
+// Disable Check In's Save button after its first submit to prevent accidental double taps.
+const singleSubmitForms = document.querySelectorAll("form[data-disable-repeat]");
+singleSubmitForms.forEach((form) => {
+  form.addEventListener("submit", (event) => {
+    if (form.dataset.submitted === "yes") {
+      event.preventDefault();
+      return;
+    }
+    form.dataset.submitted = "yes";
+    form.querySelectorAll("button[type='submit']").forEach((button) => {
+      button.disabled = true;
+      button.textContent = "Saving…";
+    });
+  });
+});
+
 // Read the current activity instruction using the browser's built-in speech voice.
 const readAloudButton = document.querySelector("[data-read-aloud]");
 if (readAloudButton) {
