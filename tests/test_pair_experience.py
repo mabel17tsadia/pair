@@ -193,18 +193,49 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"Later", full_day)
         self.assertGreaterEqual(full_day.count(b'class="day-activity"'), 4)
 
-    # Separate the prior visit, preparation, instructions, scheduled visit, and accepted actions.
-    def test_health_overview_shows_only_recorded_visit_fields_and_member_actions(self):
+    # Keep the landing page focused while placing appointment and instruction details behind actions.
+    def test_health_overview_summarizes_visit_appointment_and_care_instructions(self):
         page = self.client.get("/health")
         self.assertEqual(page.status_code, 200)
-        for label in [b"Prepare for an appointment", b"Your last appointment", b"Vitals recorded at this appointment",
-                      b"Instructions from your last visit", b"Scheduled follow-up", b"My accepted health actions",
-                      b"Primary care follow-up", b"Dr. Priya Patel", b"Blood pressure", b"Bring your blood-pressure readings",
-                      b"November 12", b"2:30 PM", b"Prepare questions for your appointment."]:
+        for label in [b"Last appointment", b"Primary care follow-up", b"20 October", b"Dr. Priya Patel",
+                      b"4 vitals recorded", b"1 medication", b"3 instructions", b"View appointment details",
+                      b"Next appointment", b"November 12", b"2:30 PM", b"Prepare for appointment",
+                      b"Instructions from your care team", b"Review instructions",
+                      b"View my health activities in My Plan"]:
             self.assertIn(label, page.data)
+        self.assertIn(b'<details class="appointment-details">', page.data)
+        self.assertIn(b"Recorded vitals", page.data)
+        self.assertIn(b"Medication or prescription received", page.data)
+        self.assertIn(b"Full after-visit information", page.data)
+        self.assertNotIn(b"My accepted health actions", page.data)
+        self.assertNotIn(b"Instructions from your last visit", page.data)
         self.assertNotIn(b"Glucose:</strong>", page.data)
-        self.assertNotIn(b"Ask clinic which follow-up time works", page.data)
-        self.assertEqual(page.data.count(b"Prepare questions for your appointment."), 1)
+        self.assertLessEqual(page.data.count(b'class="health-instruction-row"'), 3)
+        for label in [b"My Shared Packets", b"My Health Plan", b"My Medications", b"Health Patterns",
+                      b"Connected Data Sources", b"health-row-chevron"]:
+            self.assertIn(label, page.data)
+
+    # Use the shared Health action record for the walking duration on Home, Plan, and Health.
+    def test_walking_activity_duration_matches_across_member_pages(self):
+        walk = next(item for item in self.records["health_follow_ups"] if item["id"] == "follow-up-demo-today")
+        self.assertEqual(walk["estimated_minutes"], 15)
+        for route in ["/today", "/my-plan?time=today&source=health", "/health"]:
+            page = self.client.get(route)
+            self.assertEqual(page.status_code, 200)
+            self.assertIn(b"Walk for 15 minutes daily", page.data)
+            self.assertIn(b"About 15 minutes", page.data)
+        plan = self.client.get("/my-plan?time=today&source=health").data
+        self.assertIn(b"From Health", plan)
+        self.assertIn(b"Today at 1:00 PM", plan)
+
+    # Let the member open every care-team instruction and its available choices.
+    def test_health_instruction_review_has_back_navigation_and_all_choices(self):
+        page = self.client.get("/health/next-steps")
+        self.assertIn(b"Back to Health", page.data)
+        self.assertIn(b"Accept", page.data)
+        self.assertIn(b"Decline", page.data)
+        self.assertIn(b"Record sleep for seven days", page.data)
+        self.assertIn(b"Bring your blood-pressure readings", page.data)
 
     # Keep Health records member-only and expose only the values marked as measured.
     def test_health_visit_data_is_member_scoped_and_packet_navigation_is_visible(self):

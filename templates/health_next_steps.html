@@ -2,6 +2,7 @@
 
 {% block content %}
   <!-- Next Steps keeps proposed, questioned, accepted and declined healthcare actions in Health. -->
+  <a class="text-link" href="{{ url_for('health') }}">‹ Back to Health</a>
   <h1>Next Steps</h1>
   <p class="note">A healthcare professional's suggestions are optional. Only steps you accept also appear in My Plan.</p>
   {% if has_demo_records %}

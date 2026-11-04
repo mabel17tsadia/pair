@@ -354,7 +354,7 @@
         "label": "Dr. Priya Patel"
       },
       "supporting_detail": "Jordan accepted this fictional care-team instruction after the completed appointment.",
-      "estimated_minutes": 10,
+      "estimated_minutes": 15,
       "fictional": true
     }
   ],
@@ -1030,16 +1030,13 @@
       ],
       "clinician_instructions": [
         {
-          "action_id": "follow-up-demo-today",
-          "instruction": "Walk for 15 minutes daily"
+          "action_id": "follow-up-demo-today"
         },
         {
-          "action_id": "follow-up-01",
-          "instruction": "Record sleep for seven days"
+          "action_id": "follow-up-01"
         },
         {
-          "action_id": "follow-up-pressure",
-          "instruction": "Bring home blood-pressure readings"
+          "action_id": "follow-up-pressure"
         }
       ],
       "scheduled_follow_up": {

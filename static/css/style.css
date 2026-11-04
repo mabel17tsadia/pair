@@ -1871,7 +1871,14 @@ button, a, summary { touch-action: manipulation; }
 .health-appointment-priority { border-top: 5px solid var(--celebrate); background: linear-gradient(130deg, var(--surface), var(--alert-soft)); }
 .health-secondary-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-5); }
 .health-secondary-links a { display: flex; align-items: center; gap: var(--space-2); min-height: var(--target-min); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); color: var(--primary); font-weight: 700; text-decoration: none; }
-.health-secondary-links a span { margin-left: auto; color: var(--muted); font-size: var(--font-small); }
+.health-secondary-links .health-link-status { margin-left: auto; color: var(--muted); font-size: var(--font-small); }
+.health-secondary-links .health-row-chevron { color: var(--primary); font-size: 1.5rem; line-height: 1; }
+.health-instruction-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) 0; border-top: 1px solid var(--border); }
+.health-instruction-row h3 { margin: 0; font-size: 1.05rem; }
+.health-instruction-row p { margin: var(--space-1) 0 0; }
+.appointment-details { margin-top: var(--space-3); }
+.appointment-details summary { display: inline-flex; align-items: center; }
+.appointment-detail-content { padding-top: var(--space-4); }
 .activity-choice-list { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .activity-choice-list legend { width: 100%; font-weight: 700; }
 .activity-choice { display: grid; justify-items: center; gap: var(--space-2); min-width: 8rem; min-height: 7rem; padding: var(--space-3); border: 2px solid var(--border); border-radius: var(--radius-card); background: var(--surface); text-align: center; cursor: pointer; }

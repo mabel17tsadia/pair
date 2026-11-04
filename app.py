@@ -867,8 +867,6 @@ def health():
                         "manual_readings": appointment.get("manual_readings", [])}
     scheduled = next((packet for packet in packets
                       if appointment and packet["id"] == appointment.get("scheduled_follow_up", {}).get("appointment_packet_id")), None)
-    accepted_actions = [item for item in health_follow_ups_for(person, records)
-                        if item["status"] == "accepted" and item.get("action_type") != "follow_up_appointment"]
     instructions = appointment.get("clinician_instructions", []) if appointment else []
     has_home_readings = bool(appointment and appointment.get("manual_readings")) or any(
         item.get("paired") and "blood_pressure" in item.get("signals", []) for item in devices_for(person))
@@ -876,7 +874,9 @@ def health():
         instructions = [item for item in instructions if item["id"] != "follow-up-pressure"]
     return render_template("health.html", title="Health", person=person,
                            upcoming=upcoming, appointment=appointment, scheduled=scheduled,
-                           instructions=instructions, accepted_actions=accepted_actions,
+                           instructions=instructions,
+                           vital_count=sum(vital.get("measured", False) for vital in appointment.get("vitals", [])) if appointment else 0,
+                           instruction_count=len(instructions), medication_count=len(appointment.get("medications", [])) if appointment else 0,
                            packet_count=len(packets), patterns=get_patterns(person["id"], devices_for(person)),
                            connected_count=sum(device["paired"] for device in devices_for(person)),
                            has_demo_records=True)
