@@ -82,11 +82,32 @@
       </main>
   {% if not public_view %}
     </div>
-    <!-- Mobile navigation follows the same role-specific destination order as the sidebar. -->
+    <!-- Keep the member's five mobile destinations visible and place secondary links in More. -->
     <nav class="mobile-role-nav" aria-label="{{ demo_roles[demo_role] }} navigation">
-      {% for label, endpoint, icon_name, active_endpoints in role_navigation if endpoint %}
+      {% if demo_role in ["member", "admin"] %}
+        {% set mobile_primary = role_navigation[:4] %}
+        {% set mobile_more = role_navigation[4:] %}
+      {% else %}
+        {% set mobile_primary = role_navigation %}
+        {% set mobile_more = [] %}
+      {% endif %}
+      {% for label, endpoint, icon_name, active_endpoints in mobile_primary if endpoint %}
         <a href="{{ url_for(endpoint) }}" {% if request.endpoint in active_endpoints %}aria-current="page"{% endif %}>{{ icon(icon_name) }}<span>{{ label }}</span></a>
       {% endfor %}
+      {% if mobile_more %}
+        {% set more_active = namespace(value=false) %}
+        {% for label, endpoint, icon_name, active_endpoints in mobile_more %}
+          {% if request.endpoint in active_endpoints %}{% set more_active.value = true %}{% endif %}
+        {% endfor %}
+        <details class="mobile-more-menu">
+          <summary {% if more_active.value %}aria-current="page"{% endif %}>{{ icon("more") }}<span>More</span></summary>
+          <div class="mobile-more-links">
+            {% for label, endpoint, icon_name, active_endpoints in mobile_more if endpoint %}
+              <a href="{{ url_for(endpoint) }}" {% if request.endpoint in active_endpoints %}aria-current="page"{% endif %}>{{ icon(icon_name) }}<span>{{ label }}</span></a>
+            {% endfor %}
+          </div>
+        </details>
+      {% endif %}
     </nav>
   {% endif %}
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>

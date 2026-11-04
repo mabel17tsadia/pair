@@ -140,6 +140,49 @@ class PairExperienceTests(unittest.TestCase):
                 self.assertIn(b"mobile-role-nav", response.data)
                 self.assertIn(f'data-demo-role="{role}"'.encode(), response.data)
 
+    # Keep the member's mobile bar to four main links and a keyboard-operable More menu.
+    def test_mobile_navigation_keeps_secondary_destinations_in_more(self):
+        page = self.client.get("/today").data
+        mobile_nav = page.split(b'<nav class="mobile-role-nav"', 1)[1].split(b"</nav>", 1)[0]
+        primary = mobile_nav.split(b'<details class="mobile-more-menu"', 1)[0]
+        self.assertEqual(primary.count(b"<a "), 4)
+        labels = [b"Home", b"Check In", b"Health", b"My Plan"]
+        self.assertEqual([primary.index(label) for label in labels], sorted(primary.index(label) for label in labels))
+        more = mobile_nav.split(b'<div class="mobile-more-links">', 1)[1]
+        for label in [b"Patterns", b"Appointments", b"My Circle", b"Settings"]:
+            self.assertIn(label, more)
+        self.assertIn(b"<summary", mobile_nav)
+        self.assertIn(b">More</span></summary>", mobile_nav)
+        patterns = self.client.get("/patterns").data
+        more_summary = patterns.split(b'<details class="mobile-more-menu">', 1)[1].split(b"</summary>", 1)[0]
+        self.assertIn(b'aria-current="page"', more_summary)
+        self.assertIn("@media (max-width: 767px)", open(
+            os.path.join(pair.app.static_folder, "css", "style.css"), encoding="utf-8").read())
+
+        with self.client.session_transaction() as state:
+            state["demo_role"] = "admin"
+        admin = self.client.get("/admin").data
+        admin_nav = admin.split(b'<nav class="mobile-role-nav"', 1)[1].split(b"</nav>", 1)[0]
+        self.assertEqual(admin_nav.split(b'<details class="mobile-more-menu"', 1)[0].count(b"<a "), 4)
+        self.assertIn(b"Organization Settings", admin_nav)
+
+    # Protect the focused mobile layout contracts while leaving desktop shell rules in place.
+    def test_mobile_layout_rules_keep_content_and_desktop_shell(self):
+        with open(os.path.join(pair.app.static_folder, "css", "style.css"), encoding="utf-8") as stylesheet:
+            css = stylesheet.read()
+        self.assertIn("@media (min-width: 900px)", css)
+        self.assertIn(".role-sidebar { position: sticky", css)
+        self.assertIn(".public-nav { display: none; }", css)
+        self.assertIn("calc(.35rem + env(safe-area-inset-bottom))", css)
+        self.assertIn("calc(6.5rem + env(safe-area-inset-bottom))", css)
+        self.assertIn(".mobile-role-nav > a, .mobile-more-menu", css)
+        self.assertIn(".mobile-more-links a {", css)
+        self.assertIn(".entry-copy .actions > * { flex: 1 1 100%", css)
+        self.assertIn(".visit-choice { min-height: 3.25rem", css)
+        self.assertIn(".appointment-details summary, .source-summary", css)
+        self.assertIn("max-width: min(10rem, 37vw)", css)
+        self.assertIn("overflow-wrap: anywhere", css)
+
     # Keep the member Home brief and focused on next actions and private summaries.
     def test_member_home_summarizes_without_showing_all_pattern_details(self):
         page = self.client.get("/today")
