@@ -564,11 +564,20 @@ def today():
 
 
 # My Plan: show the Jordan demo activities and accepted Health follow-ups through the shared data provider.
-@app.route("/my-plan")
+@app.route("/my-plan", methods=["GET", "POST"])
 def plan():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
+    if request.method == "POST" and request.form.get("action") == "pace":
+        pace = request.form.get("pace")
+        if pace in ["one_at_a_time", "full_day"]:
+            choices = session.get("plan_pace", {})
+            choices[person["id"]] = pace
+            session["plan_pace"] = choices
+            flash("My Plan display preference saved.")
+        return redirect(url_for("plan", time=request.form.get("time", "today"),
+                                source=request.form.get("source", "all")))
     records = load_demo_data()
     is_demo_member = person["id"] == records["member"]["application_person_id"]
     assigned = coach_learner_activities(person["id"])
@@ -580,7 +589,9 @@ def plan():
     source_filter = request.args.get("source", "all")
     activities = plan_activities(records, data.get_today(), time_filter, source_filter,
                                  session.get("activity_progress", {})) if has_activities else []
+    pace = session.get("plan_pace", {}).get(person["id"], "one_at_a_time")
     return render_template("plan.html", title="My Plan", person=person, activities=activities,
+                           pace=pace if pace in ["one_at_a_time", "full_day"] else "one_at_a_time",
                            time_filter=time_filter if time_filter in ["today", "tomorrow", "this_week", "later"] else "today",
                            source_filter=source_filter if source_filter in ["all", "member", "coach", "health"] else "all",
                            has_demo_records=has_activities)

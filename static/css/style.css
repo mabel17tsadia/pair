@@ -354,6 +354,12 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   flex-direction: column;
 }
 
+/* Circle access levels use matching pictograms while keeping the permission text visible. */
+.access-badge { display: inline-flex; align-items: center; gap: var(--space-2); max-width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width) solid var(--border); border-radius: var(--radius-control); background: var(--surface); color: var(--primary); font-weight: 700; }
+.access-pictogram { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; flex: 0 0 auto; border-radius: 0.75rem; background: var(--primary-soft); }
+.access-pictogram .icon { width: 1.5rem; height: 1.5rem; }
+.levels dt { margin-top: var(--space-3); }
+
 /* The level as a small rounded chip */
 .chip {
   padding: 0.25rem 0.75rem;
@@ -405,6 +411,17 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   background: var(--primary-soft);
   color: var(--primary);
 }
+
+/* My Pace choices use pictograms and short descriptions to distinguish each view. */
+.pace-choice h2 { margin-top: 0; }
+.pace-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
+.pace-option { display: flex; align-items: center; gap: var(--space-3); min-height: 6rem; padding: var(--space-3); border: var(--border-strong) solid var(--border); border-radius: var(--radius-card); background: var(--surface); cursor: pointer; }
+.pace-option.is-selected { border-color: var(--primary); background: var(--primary-soft); }
+.pace-option input { width: 1.25rem; height: 1.25rem; accent-color: var(--primary); flex: 0 0 auto; }
+.pace-option > span:last-child { display: grid; gap: var(--space-1); }
+.pace-icon { display: grid; place-items: center; width: 3rem; height: 3rem; flex: 0 0 auto; border-radius: 50%; background: var(--surface2); font-size: 1.6rem; }
+.remaining-activities > summary { min-height: var(--target-min); color: var(--primary); font-weight: 700; cursor: pointer; }
+.remaining-activities .activity-card { padding-top: var(--space-4); border-top: var(--border-width) solid var(--border); }
 
 .activity-card { scroll-margin-top: var(--space-6); }
 
@@ -599,6 +616,23 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   stroke-width: 3;
   stroke-linejoin: round;
 }
+
+/* Pattern cards make the chart band and its recent comparison understandable in words. */
+.pattern-key { margin-top: var(--space-5); }
+.pattern-key p { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-2) 0; }
+.pattern-key-swatch { width: 1.2rem; height: 1.2rem; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 0.25rem; }
+.usual-swatch { background: var(--secondary-soft); }
+.recent-swatch { background: var(--primary-soft); }
+.pattern-heading { display: flex; align-items: center; gap: var(--space-3); }
+.pattern-heading h2 { margin: 0; }
+.pattern-heading p { margin: var(--space-1) 0 0; }
+.pattern-pictogram { display: grid; place-items: center; width: 3rem; height: 3rem; flex: 0 0 auto; border-radius: 50%; background: var(--primary-soft); color: var(--primary); }
+.pattern-pictogram .icon { width: 1.75rem; height: 1.75rem; }
+.pattern-summary { margin: var(--space-4) 0; font-weight: 700; }
+.pattern-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin: 0 0 var(--space-3); }
+.pattern-comparison div { padding: var(--space-3); border-radius: var(--radius-control); background: var(--surface2); }
+.pattern-comparison dt { color: var(--muted); font-size: var(--font-small); }
+.pattern-comparison dd { margin: var(--space-1) 0 0; font-weight: 700; }
 
 /* Last 7 days table */
 .week {
@@ -1095,6 +1129,11 @@ input::placeholder, textarea::placeholder {
   .phone-only { display: none !important; }
 }
 
+/* Stack the pace cards before a phone-sized layout makes their text cramped. */
+@media (max-width: 600px) {
+  .pace-options { grid-template-columns: 1fr; }
+}
+
 /* ===== Wide screens (900px and up): navigation becomes a top bar ===== */
 @media (min-width: 900px) {
   .site-header {
@@ -1407,6 +1446,7 @@ input::placeholder, textarea::placeholder {
   .card, .person-card { padding: var(--space-4); }
   .person-list, .card-grid { grid-template-columns: 1fr; }
   .actions > * { flex: 1 1 100%; }
+  .pace-options, .pattern-comparison { grid-template-columns: 1fr; }
 }
 
 /* Reduced-motion settings apply to all transitions and animations. */

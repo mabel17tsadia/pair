@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon, signal_value %}
 
 {% block content %}
   <!-- Link back to Health and explain the pattern charts -->
@@ -6,10 +7,27 @@
   <h1>Health Patterns</h1>
   <p>Your last 21 days. The shaded band is your usual range. The last 5 days are highlighted.</p>
 
-  <!-- One card per signal from a paired device: a plain sentence, then its chart -->
+  <!-- A legend explains the visual chart before the member reviews individual signals. -->
+  <section class="card pattern-key" aria-label="How to read these patterns">
+    <p><span class="pattern-key-swatch usual-swatch" aria-hidden="true"></span><strong>Usual range</strong> is the band around your earlier days.</p>
+    <p><span class="pattern-key-swatch recent-swatch" aria-hidden="true"></span><strong>Last 5 days</strong> are highlighted for comparison.</p>
+    <p>Each card names the source and compares your recent average with your own usual average.</p>
+  </section>
+
+  <!-- Each signal card pairs a pictogram and source with plain-language averages and its chart. -->
   {% for t in trends %}
-    <section class="card">
-      <h2>{{ t.sentence }}</h2>
+    {% set signal_icons = {"sleep_min": "moon", "steps": "footprints", "late_screen_min": "phone", "unlocks": "phone", "time_out_min": "door"} %}
+    {% set signal_sources = {"sleep_min": "Phone sleep estimate", "steps": "Phone activity estimate", "late_screen_min": "Phone screen-time estimate", "unlocks": "Phone pickup count", "time_out_min": "Phone time-away estimate (no map)"} %}
+    <section class="card pattern-card">
+      <header class="pattern-heading">
+        <span class="pattern-pictogram" aria-hidden="true">{{ icon(signal_icons[t.signal]) }}</span>
+        <div><h2>{{ t.name }}</h2><p class="note">Source: {{ signal_sources[t.signal] }}</p></div>
+      </header>
+      <p class="pattern-summary">{{ t.sentence }}</p>
+      <dl class="pattern-comparison">
+        <div><dt>Your usual average</dt><dd>{{ signal_value(t.signal, t.usual | round | int) }}</dd></div>
+        <div><dt>Last 5-day average</dt><dd>{{ signal_value(t.signal, t.recent | round | int) }}</dd></div>
+      </dl>
       {% include "partials/trend_chart.html" %}
     </section>
   {% else %}

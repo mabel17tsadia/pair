@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block content %}
   <!-- My Plan introduction explains that the activities are demonstration records. -->
   <h1>My Plan</h1>
@@ -24,9 +23,31 @@
       </nav>
     </section>
 
+    <!-- These illustrated choices let the member choose a focused or full-day plan view. -->
+    <form method="post" class="card pace-choice" aria-labelledby="pace-title">
+      <input type="hidden" name="action" value="pace">
+      <input type="hidden" name="time" value="{{ time_filter }}">
+      <input type="hidden" name="source" value="{{ source_filter }}">
+      <h2 id="pace-title">My Pace</h2>
+      <div class="pace-options">
+        <label class="pace-option {% if pace == 'one_at_a_time' %}is-selected{% endif %}">
+          <input type="radio" name="pace" value="one_at_a_time" {% if pace == "one_at_a_time" %}checked{% endif %}>
+          <span class="pace-icon" aria-hidden="true">🪜</span>
+          <span><strong>One thing at a time</strong><span class="note">Focus on one activity. Open the rest when you are ready.</span></span>
+        </label>
+        <label class="pace-option {% if pace == 'full_day' %}is-selected{% endif %}">
+          <input type="radio" name="pace" value="full_day" {% if pace == "full_day" %}checked{% endif %}>
+          <span class="pace-icon" aria-hidden="true">🗓️</span>
+          <span><strong>Show my full day</strong><span class="note">See every activity that matches these filters.</span></span>
+        </label>
+      </div>
+      <button type="submit" class="btn-secondary">Save My Pace</button>
+    </form>
+
     <!-- Each activity shows its source, date, time estimate, status, and one next action. -->
     <section aria-label="Activities">
-      {% for activity in activities %}
+      {% set visible_activities = activities if pace == "full_day" else activities[:1] %}
+      {% for activity in visible_activities %}
         <article class="card activity-card">
           <div class="activity-heading">
             <h2>{{ activity.title }}</h2>
@@ -42,6 +63,19 @@
       {% else %}
         <p class="card">{% if has_demo_records %}No activities match these filters.{% else %}Demo activities are available for Jordan Reyes only.{% endif %}</p>
       {% endfor %}
+      {% if pace == "one_at_a_time" and activities|length > 1 %}
+        <details class="card remaining-activities">
+          <summary>Show the other {{ activities|length - 1 }} activities in this view</summary>
+          {% for activity in activities[1:] %}
+            <article class="activity-card">
+              <div class="activity-heading"><h2>{{ activity.title }}</h2><span class="chip activity-status">{{ activity.status_label }}</span></div>
+              <p class="activity-meta"><strong>{{ activity.source_label }}</strong> · {{ activity.date_label }} · About {{ activity.estimated_minutes }} minutes</p>
+              <p class="activity-next"><strong>Next action:</strong> {% if activity.health_link %}<a href="{{ activity.health_link }}">{{ activity.next_action }}</a>{% else %}{{ activity.next_action }}{% endif %}</p>
+              {% if activity.source != "health" %}<a class="btn-secondary activity-open" href="{{ url_for('activity_detail', activity_id=activity.id) }}">{{ "Review activity" if activity.status == "completed" else "Start or continue" }}</a>{% endif %}
+            </article>
+          {% endfor %}
+        </details>
+      {% endif %}
     </section>
     <p class="note">Healthcare appointments stay in Health. Accepted follow-up actions can appear here and remain listed in Health.</p>
   {% else %}

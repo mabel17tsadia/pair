@@ -1,5 +1,12 @@
 {% extends "base.html" %}
-{% from "macros.html" import initials %}
+{% from "macros.html" import icon, initials %}
+
+{% set access_icons = {"none": "lock", "celebrations": "flag", "summary": "calendar", "wellness": "chart", "health": "medical"} %}
+
+{# Show a familiar pictogram beside every access label without hiding its words. #}
+{% macro access_badge(level, label) %}
+<span class="access-badge"><span class="access-pictogram">{{ icon(access_icons[level]) }}</span><span>{{ label }}</span></span>
+{% endmacro %}
 
 {# A dropdown shows only access levels allowed for this type of Circle contact. #}
 {% macro level_select(id, current, member_type) %}
@@ -20,7 +27,7 @@
     <summary>What each level means</summary>
     <dl class="levels">
       {% for key, (label, meaning) in levels.items() %}
-        <dt>{{ label }}</dt>
+        <dt>{{ access_badge(key, label) }}</dt>
         <dd>{{ meaning }}</dd>
       {% endfor %}
     </dl>
@@ -40,7 +47,7 @@
               <strong>{{ c.name }}</strong>
               {% if c.relationship %}<span class="note">{{ c.relationship }}</span>{% endif %}
             </span>
-            <span class="chip">{{ levels[c.access][0] }}</span>
+            {{ access_badge(c.access, levels[c.access][0]) }}
           </summary>
           <form method="post" action="{{ url_for('circle_save') }}" class="edit-panel">
             <input type="hidden" name="name" value="{{ c.name }}">

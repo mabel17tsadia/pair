@@ -91,6 +91,45 @@ class PairExperienceTests(unittest.TestCase):
         accepted = [item for item in plan_activities(self.records, data.get_today(), "later", "health")]
         self.assertTrue(all(item["status"] == "accepted" for item in accepted))
 
+    # Keep the focused plan display and full-day preference member-specific and usable.
+    def test_my_pace_switches_between_one_and_all_activities(self):
+        page = self.client.get("/my-plan?time=this_week&source=all")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b"One thing at a time", page.data)
+        self.assertIn(b"Show my full day", page.data)
+        self.assertIn(b"Show the other", page.data)
+        response = self.client.post("/my-plan", data={"action": "pace", "pace": "full_day",
+                                   "time": "this_week", "source": "all"})
+        self.assertEqual(response.status_code, 302)
+        with self.client.session_transaction() as state:
+            self.assertEqual(state["plan_pace"]["p1"], "full_day")
+        page = self.client.get("/my-plan?time=this_week&source=all")
+        self.assertIn(b'value="full_day" checked', page.data)
+        self.assertNotIn(b"Show the other", page.data)
+        response = self.client.post("/my-plan", data={"action": "pace", "pace": "one_at_a_time",
+                                   "time": "this_week", "source": "all"})
+        self.assertEqual(response.status_code, 302)
+        page = self.client.get("/my-plan?time=this_week&source=all")
+        self.assertIn(b"Show the other", page.data)
+
+    # Put a consistent pictogram beside every access label on Circle.
+    def test_circle_access_levels_have_pictograms_and_text(self):
+        page = self.client.get("/circle")
+        self.assertEqual(page.status_code, 200)
+        for label in [b"Just in my circle", b"Cheers me on", b"Weekly summary",
+                      b"Wellness details", b"Health summary"]:
+            self.assertIn(label, page.data)
+        self.assertIn(b"access-pictogram", page.data)
+
+    # Explain pattern charts with pictograms, source names, plain-language comparisons and a legend.
+    def test_patterns_explain_sources_and_usual_ranges(self):
+        page = self.client.get("/patterns")
+        self.assertEqual(page.status_code, 200)
+        for label in [b"Usual range", b"Last 5 days", b"Your usual average",
+                      b"Last 5-day average", b"Source:"]:
+            self.assertIn(label, page.data)
+        self.assertIn(b"pattern-pictogram", page.data)
+
     # Keep coach views limited to activity progress and to members who shared wellness access.
     def test_coach_scope_excludes_private_and_health_information(self):
         with self.client.session_transaction() as state:

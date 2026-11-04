@@ -1,0 +1,1709 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pair — Interactive Product Prototype</title>
+<style>
+:root{
+  --ink:#123438;--muted:#60777a;--bg:#eff8f6;--card:#fff;
+  --soft:#dff3ee;--line:#cde2de;--brand:#087b76;--brand2:#229b8b;
+  --gold:#edb64e;--goldsoft:#fae9bd;--shadow:0 18px 45px #315f5917;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,
+  BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)
+}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+body:before,body:after{
+  content:"";position:fixed;border-radius:50%;z-index:-1;pointer-events:none
+}
+body:before{
+  width:420px;height:420px;right:-150px;top:-160px;background:var(--goldsoft)
+}
+body:after{
+  width:520px;height:520px;left:-280px;bottom:-300px;background:var(--soft)
+}
+.topbar{
+  height:72px;padding:0 28px;display:flex;align-items:center;
+  justify-content:space-between;background:#ffffffeb;backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20
+}
+.brand{display:flex;align-items:center;gap:11px;font-size:1.25rem;font-weight:900}
+.mark{
+  width:39px;height:39px;border-radius:13px;display:grid;place-items:center;
+  color:white;background:linear-gradient(145deg,var(--brand),var(--brand2))
+}
+.top-actions,.actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.btn{
+  border:0;border-radius:14px;padding:12px 17px;background:var(--brand);
+  color:white;font-weight:800
+}
+.btn.secondary{background:var(--card);color:var(--brand);border:1px solid var(--line)}
+.btn.soft{background:var(--soft);color:var(--brand)}
+.layout{display:grid;grid-template-columns:255px minmax(0,1fr);min-height:calc(100vh - 72px)}
+.sidebar{
+  padding:27px 17px;border-right:1px solid var(--line);background:#f9fdfcbd;
+  position:sticky;top:72px;height:calc(100vh - 72px);overflow:auto
+}
+.identity{padding:8px 12px 22px}
+.eyebrow{
+  font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;
+  font-weight:900;color:var(--brand)
+}
+.identity h3{margin:6px 0 3px}
+.muted,.identity p{color:var(--muted)}
+.identity p{margin:0;font-size:.85rem}
+nav{display:grid;gap:7px}
+nav button{
+  padding:12px 14px;border:0;border-radius:14px;text-align:left;
+  background:transparent;color:var(--muted);font-weight:750
+}
+nav button:hover,nav button.active{background:var(--soft);color:var(--brand)}
+nav .icon{display:inline-block;width:28px;text-align:center}
+.side-note{
+  margin-top:25px;padding:17px;border-radius:20px;
+  background:linear-gradient(145deg,var(--brand),#146b64);color:white
+}
+.side-note p{font-size:.82rem;line-height:1.5;color:#e5fffa}
+main{width:100%;max-width:1480px;margin:auto;padding:35px clamp(22px,4vw,65px) 70px}
+.screen-head{
+  display:flex;justify-content:space-between;gap:20px;align-items:flex-start;
+  margin-bottom:24px
+}
+.screen-head h1{
+  margin:5px 0 7px;font-size:clamp(1.9rem,3vw,2.7rem);letter-spacing:-.045em
+}
+.screen-head p{margin:0;max-width:730px;line-height:1.5;color:var(--muted)}
+.grid{display:grid;gap:20px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.span2{grid-column:span 2}
+.card{
+  padding:22px;border-radius:24px;background:var(--card);
+  border:1px solid var(--line);box-shadow:var(--shadow)
+}
+.card h2,.card h3{margin:0 0 9px;letter-spacing:-.02em}
+.card p{color:var(--muted);line-height:1.5}
+.hero{
+  min-height:275px;padding:38px;border-radius:32px;color:white;
+  background:linear-gradient(125deg,var(--brand),#146e68 65%,#608e76);
+  display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden
+}
+.hero:before,.hero:after{
+  content:"";position:absolute;border-radius:50%;background:#ffffff1f
+}
+.hero:before{width:270px;height:270px;right:-50px;bottom:-150px}
+.hero:after{width:180px;height:180px;right:90px;top:-110px;background:#f4d88742}
+.hero h1{
+  max-width:760px;margin:8px 0 12px;font-size:clamp(2.2rem,5vw,4rem);
+  line-height:1.02;letter-spacing:-.06em;position:relative
+}
+.hero p{max-width:690px;font-size:1.08rem;color:#eafffb;position:relative}
+.hero .actions{position:relative}
+.hero .btn{background:white;color:var(--brand)}
+.hero .btn.secondary{background:#ffffff18;color:white;border-color:#ffffff66}
+.metric{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.num{font-size:2rem;font-weight:900;letter-spacing:-.05em}
+.chip{
+  display:inline-flex;padding:7px 11px;border-radius:999px;background:var(--soft);
+  color:var(--brand);font-size:.77rem;font-weight:850
+}
+.chip.gold{background:var(--goldsoft);color:#715000}
+.row{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:15px 0;border-bottom:1px solid var(--line)
+}
+.row:last-child{border-bottom:0}
+.row-main{display:flex;gap:13px;align-items:center}
+.avatar{
+  width:48px;height:48px;border-radius:17px;display:grid;place-items:center;
+  flex:none;background:var(--soft);color:var(--brand);font-weight:900
+}
+.sub{font-size:.82rem;color:var(--muted);margin-top:4px}
+.progress{height:10px;border-radius:999px;background:#e5eeee;overflow:hidden}
+.progress span{
+  display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--brand),var(--brand2))
+}
+.timeline-item{
+  display:grid;grid-template-columns:76px 22px 1fr;gap:10px;min-height:83px
+}
+.time{font-size:.72rem;letter-spacing:.08em;font-weight:900;color:var(--brand)}
+.line{position:relative}
+.line:after{
+  content:"";position:absolute;width:2px;background:var(--line);
+  left:7px;top:14px;bottom:-14px
+}
+.timeline-item:last-child .line:after{display:none}
+.dot{
+  width:16px;height:16px;border-radius:50%;background:var(--brand);
+  position:relative;z-index:2
+}
+.option-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.option{
+  min-height:105px;padding:17px;text-align:left;border-radius:18px;
+  border:2px solid var(--line);background:var(--card);color:var(--ink)
+}
+.option:hover,.option.selected{background:var(--soft);border-color:var(--brand)}
+.option .big{font-size:1.55rem;display:block;margin-bottom:8px}
+.field{display:grid;gap:7px;margin-bottom:16px}
+.field label{font-size:.84rem;font-weight:850}
+.field input,.field select,.field textarea{
+  width:100%;padding:13px 14px;border:1.5px solid var(--line);
+  border-radius:13px;background:#f7fbfa;color:var(--ink)
+}
+.field textarea{min-height:105px;resize:vertical}
+.activity-step{
+  display:flex;align-items:flex-start;gap:14px;padding:16px;margin-bottom:11px;
+  border:1px solid var(--line);border-radius:18px;background:#f7fbfa
+}
+.step-number{
+  width:32px;height:32px;border-radius:10px;display:grid;place-items:center;
+  flex:none;background:var(--soft);color:var(--brand);font-weight:900
+}
+.notice{
+  padding:15px 17px;border-left:4px solid var(--brand);
+  border-radius:0 15px 15px 0;background:var(--soft)
+}
+.warning{
+  padding:16px 18px;border-radius:18px;background:var(--goldsoft);
+  color:#5f470c;border:1px solid #ecd38f
+}
+.privacy{
+  display:flex;gap:10px;padding:15px 17px;border-radius:17px;
+  background:#edf6fa;border:1px solid #cee1e8;color:#315963
+}
+.tabs{display:flex;gap:7px;overflow:auto;margin-bottom:20px}
+.tab{
+  border:1px solid var(--line);background:var(--card);color:var(--muted);
+  padding:9px 14px;border-radius:999px;font-weight:800;white-space:nowrap
+}
+.tab.active{background:var(--ink);color:white}
+.role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:17px}
+.role-card{
+  padding:23px;text-align:left;border:1px solid var(--line);border-radius:24px;
+  background:var(--card);color:var(--ink);transition:.2s
+}
+.role-card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:var(--brand)}
+.role-icon{
+  width:49px;height:49px;border-radius:17px;display:grid;place-items:center;
+  background:var(--soft);font-size:1.4rem;margin-bottom:16px
+}
+.role-card p{font-size:.87rem;line-height:1.5;color:var(--muted)}
+.toggle{
+  width:49px;height:27px;padding:3px;border:0;border-radius:999px;background:#cbd8d6
+}
+.toggle:after{
+  content:"";display:block;width:21px;height:21px;border-radius:50%;
+  background:white;box-shadow:0 2px 5px #0002
+}
+.toggle.on{background:var(--brand)}
+.toggle.on:after{transform:translateX(22px)}
+.chart{height:170px;display:flex;align-items:flex-end;gap:9px}
+.bar{
+  flex:1;border-radius:9px 9px 3px 3px;
+  background:linear-gradient(var(--brand2),var(--brand))
+}
+.landing{max-width:1250px;margin:auto;padding:40px 28px 70px}
+.landing-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px}
+.landing .hero{min-height:440px;padding:55px}
+.landing .hero h1{font-size:clamp(3rem,7vw,5.5rem)}
+.feature-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:20px}
+.mobile-nav{display:none}
+.modal-back{
+  position:fixed;inset:0;z-index:50;display:grid;place-items:center;
+  background:#112d2da6;backdrop-filter:blur(5px);padding:20px
+}
+.modal{
+  width:min(590px,100%);max-height:90vh;overflow:auto;padding:28px;
+  border-radius:28px;background:var(--card);box-shadow:0 30px 90px #0004
+}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.close{
+  width:39px;height:39px;border:0;border-radius:12px;background:var(--soft)
+}
+.toast{
+  position:fixed;right:24px;bottom:24px;z-index:80;padding:14px 18px;
+  border-radius:14px;background:var(--ink);color:white;box-shadow:var(--shadow)
+}
+body.garden{
+  --bg:#f3f7ed;--card:#fffefa;--soft:#e4efd9;--line:#d9e3ce;
+  --brand:#477a4c;--brand2:#78a45f;--gold:#d78c49;--goldsoft:#f6dfc5
+}
+body.twilight{
+  --ink:#f4f7fa;--muted:#b9c5d1;--bg:#171e29;--card:#222b38;
+  --soft:#2e4560;--line:#3b4859;--brand:#88bce9;--brand2:#a195e8;
+  --gold:#ffd274;--goldsoft:#4b4438
+}
+body.twilight .topbar{background:#1d2632e8}
+body.twilight .sidebar{background:#1b2430e6}
+body.twilight .field input,
+body.twilight .field select,
+body.twilight .field textarea,
+body.twilight .activity-step{background:#293443}
+body.twilight .privacy{background:#25364a;color:#d4e7f2;border-color:#3c5771}
+@media(max-width:1050px){
+  .layout{grid-template-columns:215px 1fr}
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .g3,.role-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:760px){
+  .topbar{padding:0 15px}.role-button{display:none}
+  .layout{display:block}.sidebar{display:none}
+  main{padding:22px 15px 90px}
+  .g2,.g3,.g4,.role-grid,.feature-strip,.option-grid{grid-template-columns:1fr}
+  .span2{grid-column:span 1}
+  .screen-head{display:block}.screen-head .actions{margin-top:15px}
+  .landing{padding:22px 15px 80px}.landing .hero{padding:30px;min-height:500px}
+  .mobile-nav{
+    display:flex;position:fixed;z-index:30;left:0;right:0;bottom:0;
+    padding:8px;background:var(--card);border-top:1px solid var(--line);overflow:auto
+  }
+  .mobile-nav button{
+    min-width:74px;flex:1;padding:7px 4px;border:0;border-radius:10px;
+    background:transparent;color:var(--muted);font-size:.68rem
+  }
+  .mobile-nav button.active{background:var(--soft);color:var(--brand)}
+  .mobile-nav .icon{display:block;font-size:1.1rem;margin-bottom:2px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const roles={
+  public:{
+    label:"Public preview",person:"Visitor",
+    pages:[
+      ["landing","⌂","Landing"],
+      ["roles","◫","Choose role"],
+      ["signin","→","Sign in"]
+    ]
+  },
+  member:{
+    label:"Pair member",person:"Jordan Reyes",
+    pages:[
+      ["home","⌂","Home"],
+      ["plan","☷","My plan"],
+      ["checkin","♡","Check in"],
+      ["patterns","⌁","Patterns"],
+      ["appointments","✚","Appointments"],
+      ["circle","◎","My circle"],
+      ["member-settings","⚙","Settings"]
+    ]
+  },
+  coach:{
+    label:"Coach / educator",person:"Dana Brooks",
+    pages:[
+      ["coach-home","⌂","Overview"],
+      ["learners","♙","Learners"],
+      ["learner-detail","◉","Jordan"],
+      ["library","▤","Activity library"],
+      ["coach-settings","⚙","Settings"]
+    ]
+  },
+  health:{
+    label:"Healthcare professional",person:"Dr. Priya Patel",
+    pages:[
+      ["health-home","⌂","Shared with me"],
+      ["packet","▧","Jordan’s packet"],
+      ["nextsteps","✓","Next steps"],
+      ["health-settings","⚙","Settings"]
+    ]
+  },
+  trusted:{
+    label:"Trusted person",person:"Marisol Reyes",
+    pages:[
+      ["trusted-home","⌂","Overview"],
+      ["summary","◉","Shared summary"],
+      ["trusted-settings","⚙","Settings"]
+    ]
+  },
+  admin:{
+    label:"Organization admin",person:"Alex Morgan",
+    pages:[
+      ["admin-home","⌂","Organization"],
+      ["people","♙","People & roles"],
+      ["audit","≡","Consent & audit"],
+      ["admin-settings","⚙","Settings"]
+    ]
+  }
+};
+
+let state={role:"public",page:"landing",theme:"ocean",modal:null};
+const app=document.getElementById("app");
+
+function go(page){
+  state.page=page;
+  state.modal=null;
+  render();
+  scrollTo(0,0);
+}
+function setRole(role){
+  state.role=role;
+  state.page=roles[role].pages[0][0];
+  state.modal=null;
+  render();
+}
+function setTheme(theme){
+  state.theme=theme;
+  document.body.className=theme==="ocean"?"":theme;
+  render();
+}
+function showModal(type){
+  state.modal=type;
+  render();
+}
+function closeModal(){
+  state.modal=null;
+  render();
+}
+function toast(message){
+  const el=document.createElement("div");
+  el.className="toast";
+  el.textContent=message;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2300);
+}
+function chip(text,type=""){
+  return `<span class="chip ${type}">${text}</span>`;
+}
+function avatar(text){
+  return `<span class="avatar">${text}</span>`;
+}
+function toggle(on=true){
+  return `<button class="toggle ${on?"on":""}" onclick="this.classList.toggle('on')"></button>`;
+}
+function head(section,title,description,action=""){
+  return `
+    <div class="screen-head">
+      <div>
+        <div class="eyebrow">${section}</div>
+        <h1>${title}</h1>
+        <p>${description}</p>
+      </div>
+      ${action?`<div class="actions">${action}</div>`:""}
+    </div>
+  `;
+}
+function shell(content){
+  const role=roles[state.role];
+  return `
+    <header class="topbar">
+      <div class="brand" onclick="setRole('public')">
+        <span class="mark">P</span>Pair
+      </div>
+      <div class="top-actions">
+        <button class="btn secondary role-button" onclick="showModal('roles')">
+          ${role.label} · Switch
+        </button>
+        <button class="btn soft" onclick="showModal('quick')">＋</button>
+      </div>
+    </header>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="identity">
+          <div class="eyebrow">${role.label}</div>
+          <h3>${role.person}</h3>
+          <p>${state.role==="member"?"Your information, your choices":"Role-based demonstration view"}</p>
+        </div>
+        <nav>
+          ${role.pages.map(page=>`
+            <button class="${state.page===page[0]?"active":""}" onclick="go('${page[0]}')">
+              <span class="icon">${page[1]}</span>${page[2]}
+            </button>
+          `).join("")}
+        </nav>
+        ${state.role!=="public"?`
+          <div class="side-note">
+            <b>Pair keeps the member in control</b>
+            <p>Access is based on the member’s choices, not simply a person’s job title.</p>
+            <button class="btn secondary" onclick="showModal('permissions')">View access</button>
+          </div>
+        `:""}
+      </aside>
+      <main>${content}</main>
+    </div>
+    <div class="mobile-nav">
+      ${role.pages.slice(0,5).map(page=>`
+        <button class="${state.page===page[0]?"active":""}" onclick="go('${page[0]}')">
+          <span class="icon">${page[1]}</span>${page[2]}
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function landing(){
+  return `
+    <div class="landing">
+      <div class="landing-nav">
+        <div class="brand"><span class="mark">P</span>Pair</div>
+        <div class="actions">
+          <button class="btn secondary" onclick="go('signin')">Sign in</button>
+          <button class="btn" onclick="go('roles')">Explore prototype</button>
+        </div>
+      </div>
+
+      <section class="hero">
+        <div class="eyebrow" style="color:#d8fff7">Independence, one clear step at a time</div>
+        <h1>Understand what matters. Decide what comes next.</h1>
+        <p>
+          Pair helps neurodivergent young adults learn life skills,
+          prepare for healthcare visits and turn important information
+          into manageable next steps.
+        </p>
+        <div class="actions">
+          <button class="btn" onclick="go('roles')">Explore each role</button>
+          <button class="btn secondary" onclick="setRole('member')">View Jordan’s home</button>
+        </div>
+      </section>
+
+      <div class="feature-strip">
+        <div class="card">
+          <div class="role-icon">◫</div>
+          <h3>Information your way</h3>
+          <p>Short sections, visual steps, read-aloud support and adjustable detail.</p>
+        </div>
+        <div class="card">
+          <div class="role-icon">✓</div>
+          <h3>One next step</h3>
+          <p>Life-skills activities and healthcare follow-up become understandable actions.</p>
+        </div>
+        <div class="card">
+          <div class="role-icon">◎</div>
+          <h3>Sharing you control</h3>
+          <p>The member decides what is shared, with whom and for how long.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function roleChooser(){
+  const options=[
+    ["member","◉","Pair member","Complete activities, notice personal patterns and manage sharing."],
+    ["coach","▤","Coach or educator","Assign activities and see only learning-relevant progress."],
+    ["health","✚","Healthcare professional","Review a submitted visit packet and propose follow-up steps."],
+    ["trusted","◎","Trusted person","See only the summaries and actions shared by the member."],
+    ["admin","⚙","Organization administrator","Manage accounts, roles and access records."]
+  ];
+  return shell(`
+    ${head(
+      "Prototype entry",
+      "Whose view would you like to explore?",
+      "Each person receives focused navigation and only the information needed for their role."
+    )}
+    <div class="role-grid">
+      ${options.map(option=>`
+        <button class="role-card" onclick="setRole('${option[0]}')">
+          <span class="role-icon">${option[1]}</span>
+          <h3>${option[2]}</h3>
+          <p>${option[3]}</p>
+          ${chip("Open view →")}
+        </button>
+      `).join("")}
+    </div>
+    <div class="privacy" style="margin-top:22px">
+      <b>Privacy by role.</b>
+      <span>A role changes available actions. It does not automatically provide access to a member’s information.</span>
+    </div>
+  `);
+}
+
+function signin(){
+  return shell(`
+    ${head(
+      "Secure access",
+      "Welcome to Pair",
+      "Members can use a personal Pair account. Approved program staff can use organization sign-in."
+    )}
+    <div class="grid g2">
+      <div class="card">
+        <h2>Personal sign-in</h2>
+        <div class="field"><label>Email address</label><input value="jordan@example.com"></div>
+        <div class="field"><label>Password</label><input type="password" value="password"></div>
+        <div class="actions">
+          <button class="btn" onclick="setRole('member')">Sign in</button>
+          <button class="btn secondary" onclick="toast('Secure sign-in link sent')">Email me a link</button>
+        </div>
+        <p class="sub">Face ID or device biometrics can be enabled after the first secure sign-in.</p>
+      </div>
+
+      <div class="card">
+        <h2>Organization sign-in</h2>
+        <p>For approved transition programs, schools and healthcare partners.</p>
+        <button class="btn soft" onclick="showModal('roles')">Continue with organization</button>
+        <div class="warning" style="margin-top:20px">
+          <b>New to Pair?</b><br>
+          A member creates their account first. Other roles join through a verified invitation.
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+function memberHome(){
+  return shell(`
+    <div class="hero">
+      <div class="eyebrow" style="color:#d8fff7">Tuesday · November 3</div>
+      <h1>Good afternoon, Jordan.</h1>
+      <p>Choose one thing. Details stay tucked away until you want them.</p>
+      <div class="actions">
+        <button class="btn" onclick="go('activity')">Continue laundry steps</button>
+        <button class="btn secondary" onclick="go('checkin')">How am I doing?</button>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card">
+        <div class="metric">
+          <div>
+            <div class="eyebrow">Your next step</div>
+            <h2>Move the clothes to the dryer</h2>
+          </div>
+          ${chip("About 5 min","gold")}
+        </div>
+        <p>One picture step at a time. You can pause whenever you need.</p>
+        <div class="progress"><span style="width:42%"></span></div>
+        <div class="sub">Step 3 of 7</div>
+      </div>
+
+      <div class="card">
+        <h2>Your day</h2>
+        <div class="timeline-item">
+          <div class="time">NOW</div><div class="line"><div class="dot"></div></div>
+          <div><b>Finish one laundry step</b><div class="sub">About 5 minutes</div></div>
+        </div>
+        <div class="timeline-item">
+          <div class="time">UP NEXT</div><div class="line"><div class="dot" style="background:var(--gold)"></div></div>
+          <div><b>Lunch and a quiet break</b><div class="sub">You chose 30 minutes</div></div>
+        </div>
+        <div class="timeline-item">
+          <div class="time">LATER</div><div class="line"><div class="dot" style="background:var(--line)"></div></div>
+          <div><b>Prepare for Friday’s appointment</b><div class="sub">No time set</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="metric">
+          <div><div class="eyebrow">Pair noticed</div><h2>Your week looks different</h2></div>
+          ${chip("Private")}
+        </div>
+        <p>You have slept less and requested more breaks than is usual for you.</p>
+        <div class="actions">
+          <button class="btn soft" onclick="go('checkin')">Check in</button>
+          <button class="btn secondary" onclick="go('patterns')">See why</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="metric">
+          <div>
+            <div class="eyebrow">Friday · 10:30 AM</div>
+            <h2>Primary care appointment</h2>
+          </div>
+          <span class="role-icon">✚</span>
+        </div>
+        <p>Your visit packet is started. Two questions are ready to review.</p>
+        <button class="btn soft" onclick="go('appointment-prep')">Continue preparing</button>
+      </div>
+    </div>
+  `);
+}
+
+function memberPlan(){
+  return shell(`
+    ${head(
+      "My plan",
+      "What matters today?",
+      "See only today’s activities, or open the week when you want more detail.",
+      `<button class="btn" onclick="toast('Personal activity form opened')">＋ Add my own</button>`
+    )}
+    <div class="tabs">
+      <button class="tab active">Today</button>
+      <button class="tab">This week</button>
+      <button class="tab">Completed</button>
+    </div>
+    <div class="grid g3">
+      <div class="card span2">
+        <h2>Now</h2>
+        <div class="row">
+          <div class="row-main">
+            ${avatar("🧺")}
+            <div><b>Finish one load of laundry</b><div class="sub">Added by Dana · 3 of 7 steps</div></div>
+          </div>
+          <button class="btn" onclick="go('activity')">Continue</button>
+        </div>
+        <div class="row">
+          <div class="row-main">
+            ${avatar("🍲")}
+            <div><b>Choose dinner and check ingredients</b><div class="sub">Added by you · Not started</div></div>
+          </div>
+          <button class="btn secondary">Start</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>My pace</h2>
+        <p>How much feels manageable right now?</p>
+        <button class="option selected" style="width:100%">One thing at a time</button>
+        <button class="option" style="width:100%;margin-top:10px">Show my full day</button>
+      </div>
+
+      <div class="card span2">
+        <h2>Later</h2>
+        <div class="row">
+          <div class="row-main">
+            ${avatar("📄")}
+            <div><b>Prepare for Friday’s appointment</b><div class="sub">Pair suggestion · About 10 minutes</div></div>
+          </div>
+          <button class="btn secondary" onclick="go('appointment-prep')">Open</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>This week</h2>
+        <div class="metric"><span>Goals reached</span><span class="num">3</span></div>
+        <div class="progress"><span style="width:60%"></span></div>
+        <p class="sub">Compared only with your own plan.</p>
+      </div>
+    </div>
+  `);
+}
+
+function activity(){
+  return shell(`
+    ${head(
+      "My plan · Activity",
+      "Do one load of laundry",
+      "Dana shared these steps. You can change how they are presented.",
+      `<button class="btn secondary" onclick="showModal('presentation')">Change presentation</button>`
+    )}
+    <div class="grid g3">
+      <div class="card span2">
+        <div class="eyebrow">Step 3 of 7</div>
+        <h1 style="font-size:2.2rem">Move the wet clothes into the dryer.</h1>
+        <div style="
+          height:230px;border-radius:22px;background:linear-gradient(145deg,var(--soft),#f7fbfa);
+          display:grid;place-items:center;font-size:5rem;margin:20px 0">
+          🧺 → ◯
+        </div>
+        <div class="actions">
+          <button class="btn" onclick="toast('Step completed. The next step is ready.')">I did this step</button>
+          <button class="btn secondary" onclick="toast('Progress saved. Take the time you need.')">I need a break</button>
+          <button class="btn secondary" onclick="toast('Help request sent to Dana')">I need help</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3>Change this explanation</h3>
+          <button class="btn soft" style="width:100%">Read aloud</button>
+          <button class="btn soft" style="width:100%;margin-top:8px">Show fewer words</button>
+          <button class="btn soft" style="width:100%;margin-top:8px">Show another example</button>
+          <button class="btn secondary" style="width:100%;margin-top:8px">View original</button>
+        </div>
+
+        <div class="card">
+          <h3>How is this step?</h3>
+          <div class="option-grid">
+            <button class="option">😊<br>Easy</button>
+            <button class="option selected">😐<br>Okay</button>
+            <button class="option">😣<br>Hard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+function checkin(){
+  return shell(`
+    ${head(
+      "Private check-in",
+      "How are you doing right now?",
+      "Choose what fits. Skip any question. Nothing is shared automatically."
+    )}
+    <div class="grid g2">
+      <div class="card">
+        <h2>How do you feel?</h2>
+        <div class="option-grid">
+          <button class="option"><span class="big">😊</span>Calm</button>
+          <button class="option selected"><span class="big">😐</span>Okay</button>
+          <button class="option"><span class="big">😴</span>Tired</button>
+          <button class="option"><span class="big">😟</span>Worried</button>
+          <button class="option"><span class="big">😣</span>Overwhelmed</button>
+          <button class="option"><span class="big">＋</span>Another feeling</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>What would help?</h2>
+        <div class="option-grid" style="grid-template-columns:1fr 1fr">
+          <button class="option selected">Quiet break</button>
+          <button class="option">Smaller next step</button>
+          <button class="option">Message someone</button>
+          <button class="option">Nothing right now</button>
+        </div>
+        <div class="field" style="margin-top:18px">
+          <label>Anything else? Optional</label>
+          <textarea placeholder="Type or use voice input"></textarea>
+        </div>
+        <div class="privacy"><span>🔒</span><span>This check-in stays private unless you choose to share it.</span></div>
+        <div class="actions" style="margin-top:18px">
+          <button class="btn" onclick="toast('Check-in saved privately')">Save check-in</button>
+          <button class="btn secondary">Skip</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+function patterns(){
+  const heights=[62,72,67,81,70,75,60,64,58,55,47,39,42,45];
+  return shell(`
+    ${head(
+      "My patterns",
+      "What has changed for you?",
+      "Pair compares recent signals with your own usual range. A change is information—not a diagnosis.",
+      `<button class="btn secondary" onclick="showModal('sources')">Manage data sources</button>`
+    )}
+    <div class="grid g4">
+      <div class="card"><div class="eyebrow">Sleep</div><div class="num">−52 min</div><p>Below usual range for four days.</p>${chip("Worth noticing","gold")}</div>
+      <div class="card"><div class="eyebrow">Movement</div><div class="num">−18%</div><p>A little below your usual range.</p>${chip("Small change")}</div>
+      <div class="card"><div class="eyebrow">Breaks requested</div><div class="num">+3</div><p>More than your recent average.</p>${chip("From Pair")}</div>
+      <div class="card"><div class="eyebrow">Check-ins</div><div class="num">2 tired</div><p>Entered by you this week.</p>${chip("Private")}</div>
+    </div>
+
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card">
+        <h2>Sleep over 14 days</h2>
+        <div class="chart">
+          ${heights.map(height=>`<div class="bar" style="height:${height}%"></div>`).join("")}
+        </div>
+        <div class="warning" style="margin-top:20px">
+          <b>Pair’s explanation:</b> Your sleep has been outside your usual range since Friday.
+          This may be useful to mention at your appointment.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Choose what happens</h2>
+        <div class="row">
+          <div><b>Add to appointment preparation</b><div class="sub">You review it before sharing</div></div>
+          <button class="btn soft" onclick="toast('Added to your private appointment draft')">Add</button>
+        </div>
+        <div class="row">
+          <div><b>Adjust today’s plan</b><div class="sub">Show fewer activities</div></div>
+          <button class="btn secondary">Review</button>
+        </div>
+        <div class="row">
+          <div><b>Share a short note</b><div class="sub">Choose exact details and recipient</div></div>
+          <button class="btn secondary" onclick="go('circle')">Choose</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+function appointments(){
+  return shell(`
+    ${head(
+      "Appointments",
+      "Prepare, remember and follow through",
+      "Pair organizes information before and after a visit. It does not diagnose or replace your healthcare team.",
+      `<button class="btn" onclick="go('appointment-prep')">＋ Prepare for a visit</button>`
+    )}
+    <div class="grid g3">
+      <div class="card span2">
+        <div class="eyebrow">Upcoming · Friday at 10:30 AM</div>
+        <h2>Primary care appointment</h2>
+        <p>Tempe Health Center · Dr. Priya Patel</p>
+        <div class="progress"><span style="width:65%"></span></div>
+        <p class="sub">Packet draft: 3 of 5 sections reviewed</p>
+        <div class="actions">
+          <button class="btn" onclick="go('appointment-prep')">Continue preparing</button>
+          <button class="btn secondary">View visit details</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">After the visit</div>
+        <h2>Next steps</h2>
+        <p>Review prescriptions, referrals, tests and follow-up actions.</p>
+        <button class="btn soft" onclick="go('followup')">Preview follow-up</button>
+      </div>
+
+      <div class="card">
+        <h3>October 12 · Dentist</h3>
+        <p>Completed. One private reminder remains.</p>
+        <button class="btn secondary">Open visit</button>
+      </div>
+
+      <div class="card">
+        <h3>September 4 · Dietitian</h3>
+        <p>Completed. No information was shared with your circle.</p>
+        <button class="btn secondary">Open visit</button>
+      </div>
+    </div>
+  `);
+}
+
+function appointmentPrep(){
+  return shell(`
+    ${head(
+      "Appointment preparation",
+      "Primary care visit",
+      "Friday, November 6 at 10:30 AM. Everything is private until you send or print it.",
+      `<button class="btn secondary" onclick="go('appointments')">Save and close</button>`
+    )}
+    <div class="tabs">
+      <button class="tab">1 · Visit</button>
+      <button class="tab">2 · Changes</button>
+      <button class="tab active">3 · Questions</button>
+      <button class="tab">4 · Review</button>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <h2>Questions I want to ask</h2>
+        <div class="activity-step">
+          <span class="step-number">1</span>
+          <div><b>Could my recent fatigue be related to my medication?</b><div class="sub">Added by Jordan</div></div>
+        </div>
+        <div class="activity-step">
+          <span class="step-number">2</span>
+          <div><b>What should I do if my sleep continues to change?</b><div class="sub">Suggested by Pair · Review before sharing</div></div>
+        </div>
+        <div class="field">
+          <label>Add a question</label>
+          <textarea placeholder="Type, speak or ask Pair for suggestions"></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn">Add question</button>
+          <button class="btn secondary">Suggest questions</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>What I may want to mention</h2>
+        <div class="row"><div><b>Sleeping less than usual</b><div class="sub">From phone sleep estimate</div></div>${toggle(true)}</div>
+        <div class="row"><div><b>Feeling tired twice</b><div class="sub">From my check-ins</div></div>${toggle(true)}</div>
+        <div class="row"><div><b>Movement change</b><div class="sub">From phone activity</div></div>${toggle(false)}</div>
+        <div class="privacy"><span>👁</span><span>Only switched-on items appear in the packet you review.</span></div>
+        <button class="btn" style="margin-top:18px" onclick="showModal('packet-review')">Review my packet</button>
+      </div>
+    </div>
+  `);
+}
+
+function followup(){
+  return shell(`
+    ${head(
+      "After the visit",
+      "Your proposed next steps",
+      "Review every item. Nothing is added to your plan until you accept it."
+    )}
+    <div class="grid g3">
+      <div class="card span2">
+        <div class="metric">
+          <div><div class="eyebrow">Proposed by Dr. Patel</div><h2>Visit follow-up</h2></div>
+          ${chip("Needs review","gold")}
+        </div>
+
+        <div class="activity-step">
+          <span class="step-number">1</span>
+          <div style="flex:1"><b>Complete laboratory tests</b><div class="sub">By November 12 · Lab location included</div></div>
+          <button class="btn soft" onclick="toast('Added to your plan')">Accept</button>
+        </div>
+        <div class="activity-step">
+          <span class="step-number">2</span>
+          <div style="flex:1"><b>Pick up new prescription</b><div class="sub">CVS Mill Avenue · Ask the pharmacist how to take it</div></div>
+          <button class="btn soft" onclick="toast('Added to your plan')">Accept</button>
+        </div>
+        <div class="activity-step">
+          <span class="step-number">3</span>
+          <div style="flex:1"><b>Schedule a follow-up visit</b><div class="sub">In about four weeks</div></div>
+          <button class="btn soft" onclick="toast('Added to your plan')">Accept</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3>Discharge document</h3>
+          <p>Pair created a plain-language draft from the uploaded instructions.</p>
+          <button class="btn secondary">View original</button>
+          <button class="btn soft" style="margin-top:8px">View summary</button>
+        </div>
+        <div class="warning">
+          <b>Pair can help explain instructions.</b><br>
+          Confirm medical questions with your healthcare team or pharmacist.
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+function circle(){
+  const people=[
+    ["MR","Marisol Reyes","Mom · Weekly plan summary","Plan only"],
+    ["DB","Dana Brooks","Life-skills coach · Activities and learning feedback","Learning"],
+    ["PP","Dr. Priya Patel","Primary care · Packet access until Nov. 10","Temporary"],
+    ["SK","Sam Kim","Friend · Encouragement only","Encouragement"]
+  ];
+  return shell(`
+    ${head(
+      "My circle",
+      "People I choose to involve",
+      "Each person sees only what you approve. Change or remove access at any time.",
+      `<button class="btn" onclick="showModal('invite')">＋ Invite someone</button>`
+    )}
+    <div class="grid g3">
+      <div class="card span2">
+        ${people.map(person=>`
+          <div class="row">
+            <div class="row-main">
+              ${avatar(person[0])}
+              <div><b>${person[1]}</b><div class="sub">${person[2]}</div></div>
+            </div>
+            <button class="btn secondary" onclick="showModal('access')">${person[3]}</button>
+          </div>
+        `).join("")}
+      </div>
+
+      <div class="card">
+        <h2>Sharing defaults</h2>
+        <div class="row"><div><b>Ask every time</b><div class="sub">Recommended</div></div>${toggle(true)}</div>
+        <div class="row"><div><b>Show access receipts</b><div class="sub">See who viewed what</div></div>${toggle(true)}</div>
+        <div class="row"><div><b>Expire temporary access</b><div class="sub">Automatically</div></div>${toggle(true)}</div>
+        <div class="privacy" style="margin-top:14px">
+          <span>🔒</span><span>Health details are not included in educator access by default.</span>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+function memberSettings(){
+  return settingsPage("Member settings",[
+    ["Appearance",`
+      <div class="option-grid">
+        <button class="option selected" onclick="setTheme('ocean')"><span class="big">🌊</span>Ocean</button>
+        <button class="option" onclick="setTheme('garden')"><span class="big">🌿</span>Garden</button>
+        <button class="option" onclick="setTheme('twilight')"><span class="big">🌙</span>Twilight</button>
+      </div>
+      <div class="row"><div><b>Larger text</b><div class="sub">Increase text throughout Pair</div></div>${toggle(false)}</div>
+      <div class="row"><div><b>Compact cards</b><div class="sub">Show more on each screen</div></div>${toggle(false)}</div>
+    `],
+    ["How Pair communicates",`
+      <div class="row"><div><b>One step at a time</b></div>${toggle(true)}</div>
+      <div class="row"><div><b>Read-aloud controls</b></div>${toggle(true)}</div>
+      <div class="row"><div><b>Reduce motion</b></div>${toggle(true)}</div>
+      <div class="row"><div><b>Celebrations</b><div class="sub">Soft glow, no animation</div></div><button class="btn secondary">Change</button></div>
+    `],
+    ["Privacy and data",`
+      <div class="row"><div><b>Paired sources</b><div class="sub">Phone activity and sleep estimate</div></div><button class="btn secondary" onclick="showModal('sources')">Manage</button></div>
+      <div class="row"><div><b>My circle</b><div class="sub">Four people have limited access</div></div><button class="btn secondary" onclick="go('circle')">Review</button></div>
+      <div class="row"><div><b>AI personalization profile</b><div class="sub">Review and correct what Pair has learned</div></div><button class="btn secondary">Review</button></div>
+    `],
+    ["Account and safety",`
+      <div class="row"><div><b>Face ID</b><div class="sub">Use this device to sign in</div></div>${toggle(true)}</div>
+      <div class="row"><div><b>Download my data</b></div><button class="btn secondary">Open</button></div>
+      <div class="row"><div><b>Delete my Pair account</b></div><button class="btn secondary">Review</button></div>
+    `]
+  ]);
+}
+
+function coachHome(){
+  return shell(`
+    ${head(
+      "Coach workspace",
+      "Good afternoon, Dana",
+      "See learning-relevant actions and requests. Private health details and check-ins are not shown.",
+      `<button class="btn" onclick="go('library')">＋ Create activity template</button>`
+    )}
+    <div class="grid g4">
+      <div class="card"><div class="eyebrow">Learners</div><div class="num">8</div><p>With active permission</p></div>
+      <div class="card"><div class="eyebrow">Needs attention</div><div class="num">3</div><p>Requests or stalled activities</p></div>
+      <div class="card"><div class="eyebrow">Completed</div><div class="num">17</div><p>Activities this week</p></div>
+      <div class="card"><div class="eyebrow">Drafts</div><div class="num">4</div><p>Activity templates</p></div>
+    </div>
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card">
+        <h2>Needs attention</h2>
+        <div class="row">
+          <div class="row-main">${avatar("JR")}<div><b>Jordan asked for help</b><div class="sub">Laundry · Step 3</div></div></div>
+          <button class="btn soft" onclick="go('learner-detail')">Open</button>
+        </div>
+        <div class="row">
+          <div class="row-main">${avatar("MC")}<div><b>Maya requested fewer words</b><div class="sub">Bus route activity</div></div></div>
+          <button class="btn secondary">Review</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Recent learning signals</h2>
+        <p>These describe interaction with assigned activities—not medical conclusions.</p>
+        <div class="notice"><b>Picture steps helped Jordan complete three steps without assistance.</b></div>
+        <div class="notice" style="margin-top:10px"><b>Theo completed four of five personal goals.</b></div>
+      </div>
+    </div>
+  `);
+}
+
+function learners(){
+  const people=[
+    ["JR","Jordan Reyes","Visual steps helped with laundry","2 active"],
+    ["MC","Maya Chen","Requested a shorter explanation","1 request"],
+    ["TO","Theo Okafor","Completed four of five goals","On track"],
+    ["AL","Amir Lee","Started transit planning","1 active"],
+    ["SB","Sofia Brown","No activities due today","Clear"],
+    ["NW","Noah Wilson","Asked to reschedule cooking","Review"]
+  ];
+  return shell(`
+    ${head(
+      "Coach workspace",
+      "Learners",
+      "Open a learner before assigning a specific activity. Reusable content belongs in the activity library.",
+      `<button class="btn secondary" onclick="go('library')">Open activity library</button>`
+    )}
+    <div class="field"><label>Find a learner</label><input placeholder="Search by name"></div>
+    <div class="grid g3">
+      ${people.map(person=>`
+        <div class="card">
+          <div class="row-main">${avatar(person[0])}<div><h3>${person[1]}</h3><div class="sub">${person[2]}</div></div></div>
+          <div class="metric" style="margin-top:20px">
+            ${chip(person[3],person[3]==="1 request"?"gold":"")}
+            <button class="btn secondary" onclick="go('learner-detail')">Open profile</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `);
+}
+
+function learnerDetail(){
+  return shell(`
+    ${head(
+      "Learners · Jordan Reyes",
+      "Jordan’s learning workspace",
+      "Jordan controls this profile. You see only activity and learning information shared with the program.",
+      `<button class="btn" onclick="showModal('assign')">＋ Assign activity</button>`
+    )}
+    <div class="tabs">
+      <button class="tab active">Overview</button>
+      <button class="tab">Activities</button>
+      <button class="tab">Learning preferences</button>
+      <button class="tab">Shared access</button>
+    </div>
+    <div class="grid g3">
+      <div class="card span2">
+        <h2>Active activities</h2>
+        <div class="row">
+          <div class="row-main">${avatar("🧺")}<div><b>Do one load of laundry</b><div class="sub">3 of 7 steps · Jordan asked for help</div></div></div>
+          <button class="btn soft">Respond</button>
+        </div>
+        <div class="row">
+          <div class="row-main">${avatar("🍲")}<div><b>Plan one dinner</b><div class="sub">Not started · Due Friday</div></div></div>
+          <button class="btn secondary">Open</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="metric"><h2>Learning preferences</h2>${chip("Editable by Jordan")}</div>
+        <div class="row"><b>Short sections</b><span>Preferred</span></div>
+        <div class="row"><b>Picture steps</b><span>Helpful</span></div>
+        <div class="row"><b>Information density</b><span>Low</span></div>
+        <div class="row"><b>Read aloud</b><span>Available</span></div>
+      </div>
+
+      <div class="card span2">
+        <h2>What worked recently</h2>
+        <div class="grid g3">
+          <div><div class="num">78%</div><p>Steps completed with picture support</p></div>
+          <div><div class="num">3</div><p>Different-explanation requests</p></div>
+          <div><div class="num">2</div><p>Breaks requested</p></div>
+        </div>
+        <div class="warning"><b>Use carefully:</b> Pair reports interaction patterns. Jordan and the coach decide what they mean.</div>
+      </div>
+
+      <div class="card">
+        <h2>Access boundary</h2>
+        <p>You cannot see diagnoses, appointment packets, health readings or private check-ins.</p>
+        <button class="btn secondary" onclick="showModal('permissions')">See exact permissions</button>
+      </div>
+    </div>
+  `);
+}
+
+function activityLibrary(){
+  const items=[
+    ["🧺","Do one load of laundry","7 steps · Pictures included"],
+    ["🍲","Plan and cook a simple meal","9 steps · Safety notes"],
+    ["🚌","Plan a bus trip","6 steps · Map practice"],
+    ["💳","Review a monthly bill","5 steps · Example document"],
+    ["🩺","Prepare for an appointment","5 sections · Member controlled"],
+    ["🧹","Clean the kitchen","8 steps · Checklist"]
+  ];
+  return shell(`
+    ${head(
+      "Activity library",
+      "Create once, personalize when assigned",
+      "Templates belong to the program library. Assignment happens from a specific learner’s page.",
+      `<button class="btn" onclick="showModal('create')">＋ Create template</button>`
+    )}
+    <div class="tabs">
+      <button class="tab active">All templates</button>
+      <button class="tab">Life at home</button>
+      <button class="tab">Community</button>
+      <button class="tab">Learning</button>
+      <button class="tab">My drafts</button>
+    </div>
+    <div class="grid g3">
+      ${items.map(item=>`
+        <div class="card">
+          <span class="role-icon">${item[0]}</span>
+          <h3>${item[1]}</h3>
+          <p>${item[2]}</p>
+          <div class="actions">
+            <button class="btn soft" onclick="showModal('assign')">Assign</button>
+            <button class="btn secondary">Preview</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `);
+}
+
+function coachSettings(){
+  return settingsPage("Coach settings",[
+    ["Workspace",`
+      <div class="field"><label>Default landing page</label><select><option>Overview</option><option>Learners</option><option>Activity library</option></select></div>
+      <div class="row"><div><b>Show help requests first</b></div>${toggle(true)}</div>
+      <div class="row"><div><b>Compact learner cards</b></div>${toggle(false)}</div>
+    `],
+    ["Notifications",`
+      <div class="row"><div><b>Member asks for help</b><div class="sub">In Pair and email</div></div>${toggle(true)}</div>
+      <div class="row"><div><b>Activity completed</b><div class="sub">Daily digest</div></div>${toggle(true)}</div>
+      <div class="row"><div><b>Member changes access</b><div class="sub">Immediate</div></div>${toggle(true)}</div>
+    `],
+    ["Activity templates",`
+      <div class="row"><div><b>Default instruction format</b><div class="sub">Short text with optional picture</div></div><button class="btn secondary">Edit</button></div>
+      <div class="row"><div><b>Review AI adaptations</b></div>${toggle(true)}</div>
+    `],
+    ["Account and access",`
+      <div class="row"><div><b>Organization sign-in</b><div class="sub">First Place demonstration program</div></div>${chip("Active")}</div>
+      <div class="row"><div><b>Assigned learners</b><div class="sub">Eight active permissions</div></div><button class="btn secondary">Review</button></div>
+      <div class="row"><div><b>Sign-in history</b></div><button class="btn secondary">View</button></div>
+    `]
+  ]);
+}
+
+function healthHome(){
+  return shell(`
+    ${head(
+      "Professional workspace",
+      "Information shared with you",
+      "This workspace supports visit preparation and follow-up. It is not a replacement for your clinical record system."
+    )}
+    <div class="grid g4">
+      <div class="card"><div class="eyebrow">New packets</div><div class="num">2</div><p>Awaiting review</p></div>
+      <div class="card"><div class="eyebrow">Follow-ups</div><div class="num">3</div><p>Member action needed</p></div>
+      <div class="card"><div class="eyebrow">Expiring access</div><div class="num">1</div><p>Within 48 hours</p></div>
+      <div class="card"><div class="eyebrow">Completed</div><div class="num">7</div><p>This month</p></div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <h2>Shared appointment packets</h2>
+      <div class="row">
+        <div class="row-main">
+          ${avatar("JR")}
+          <div><b>Jordan Reyes · Primary care</b><div class="sub">Friday at 10:30 AM · Access ends Nov. 10</div></div>
+        </div>
+        <div class="actions">${chip("New","gold")}<button class="btn" onclick="go('packet')">Review</button></div>
+      </div>
+      <div class="row">
+        <div class="row-main">
+          ${avatar("MC")}
+          <div><b>Maya Chen · Follow-up</b><div class="sub">Thursday at 2:00 PM · Packet reviewed</div></div>
+        </div>
+        <button class="btn secondary">Open</button>
+      </div>
+    </div>
+
+    <div class="privacy" style="margin-top:20px">
+      <b>Minimum necessary access.</b>
+      <span>You see only information included in a member-submitted packet for the authorized period.</span>
+    </div>
+  `);
+}
+
+function packet(){
+  return shell(`
+    ${head(
+      "Jordan Reyes · Shared packet",
+      "Primary care appointment",
+      "Member-reviewed summary · Shared November 2 · Access expires November 10.",
+      `<button class="btn secondary" onclick="toast('Access receipt recorded')">Download PDF</button>`
+    )}
+    <div class="grid g3">
+      <div class="card span2">
+        <h2>Jordan’s reason for the visit</h2>
+        <p style="font-size:1.15rem;color:var(--ink)">
+          “I have been more tired than usual and my sleep has changed.
+          I want to know whether this could be related to my medication.”
+        </p>
+        <h3 style="margin-top:24px">Questions Jordan wants to ask</h3>
+        <div class="activity-step"><span class="step-number">1</span><b>Could my fatigue be related to my medication?</b></div>
+        <div class="activity-step"><span class="step-number">2</span><b>What should I do if my sleep continues to change?</b></div>
+      </div>
+
+      <div class="card">
+        <h2>Communication preferences</h2>
+        <div class="row"><b>Use plain language</b>${chip("Preferred")}</div>
+        <div class="row"><b>Pause after questions</b>${chip("Helpful")}</div>
+        <div class="row"><b>Provide written next steps</b>${chip("Requested")}</div>
+      </div>
+
+      <div class="card span2">
+        <h2>Member-selected changes</h2>
+        <div class="row"><div><b>Sleep estimate</b><div class="sub">About 52 minutes below usual range for four days</div></div>${chip("Phone estimate")}</div>
+        <div class="row"><div><b>Self-reported fatigue</b><div class="sub">Tired in two of four check-ins</div></div>${chip("Entered by Jordan")}</div>
+        <div class="warning"><b>Context only.</b> Pair identifies deviations from Jordan’s baseline; it does not determine cause or diagnosis.</div>
+      </div>
+
+      <div class="card">
+        <h2>After the visit</h2>
+        <p>Send understandable proposed next steps for Jordan to review.</p>
+        <button class="btn" onclick="go('nextsteps')">Create next steps</button>
+      </div>
+    </div>
+  `);
+}
+
+function nextSteps(){
+  return shell(`
+    ${head(
+      "Jordan Reyes · Follow-up",
+      "Propose clear next steps",
+      "Jordan reviews every item. Accepted actions appear in Jordan’s plan."
+    )}
+    <div class="grid g2">
+      <div class="card">
+        <h2>Add a next step</h2>
+        <div class="field">
+          <label>Type of action</label>
+          <select>
+            <option>Laboratory or test</option>
+            <option>Prescription</option>
+            <option>Follow-up appointment</option>
+            <option>Referral</option>
+            <option>Self-care instruction</option>
+          </select>
+        </div>
+        <div class="field"><label>Plain-language instruction</label><textarea>Complete the laboratory tests before November 12.</textarea></div>
+        <div class="grid g2">
+          <div class="field"><label>Due date</label><input type="date" value="2026-11-12"></div>
+          <div class="field"><label>Where or who can help?</label><input value="Tempe Health Center Lab"></div>
+        </div>
+        <div class="field"><label>Document or additional details</label><input type="file"></div>
+        <button class="btn" onclick="toast('Next step added to draft')">Add to draft</button>
+      </div>
+
+      <div class="card">
+        <h2>Draft for Jordan</h2>
+        <div class="activity-step"><span class="step-number">1</span><div><b>Complete laboratory tests</b><div class="sub">By November 12</div></div></div>
+        <div class="activity-step"><span class="step-number">2</span><div><b>Pick up new prescription</b><div class="sub">CVS Mill Avenue</div></div></div>
+        <div class="activity-step"><span class="step-number">3</span><div><b>Schedule follow-up visit</b><div class="sub">In about four weeks</div></div></div>
+        <div class="privacy"><span>👁</span><span>Jordan sees who entered every item and may accept, question or decline it.</span></div>
+        <button class="btn" style="margin-top:18px" onclick="toast('Sent to Jordan for review')">Send for review</button>
+      </div>
+    </div>
+  `);
+}
+
+function healthSettings(){
+  return settingsPage("Professional settings",[
+    ["Security",`
+      <div class="row"><div><b>Multi-factor authentication</b></div>${chip("Required")}</div>
+      <div class="row"><div><b>Automatic sign-out</b><div class="sub">After 15 minutes</div></div><button class="btn secondary">Change</button></div>
+      <div class="row"><div><b>Viewed-packet receipts</b></div>${toggle(true)}</div>
+    `],
+    ["Clinical workflow",`
+      <div class="row"><div><b>Default follow-up format</b><div class="sub">Plain language and due date</div></div><button class="btn secondary">Edit</button></div>
+      <div class="row"><div><b>Review before sending</b></div>${toggle(true)}</div>
+      <div class="row"><div><b>Export to clinical record</b><div class="sub">Future integration</div></div>${chip("Roadmap")}</div>
+    `],
+    ["Authorized members",`
+      <div class="row"><div><b>Jordan Reyes</b><div class="sub">Expires November 10</div></div><button class="btn secondary">View scope</button></div>
+      <div class="row"><div><b>Maya Chen</b><div class="sub">Expires November 8</div></div><button class="btn secondary">View scope</button></div>
+    `],
+    ["Account",`
+      <div class="row"><div><b>Professional identity</b><div class="sub">Dr. Priya Patel · Primary care</div></div><button class="btn secondary">Review</button></div>
+      <div class="row"><div><b>Access history</b></div><button class="btn secondary">Open log</button></div>
+    `]
+  ]);
+}
+
+function trustedHome(){
+  return shell(`
+    ${head(
+      "Trusted-person view",
+      "Jordan shared a small update",
+      "You see only support information Jordan selected. Private patterns, health details and check-ins are unavailable."
+    )}
+    <div class="grid g2">
+      <div class="card">
+        <div class="row-main">${avatar("JR")}<div><h2>Jordan Reyes</h2><div class="sub">Weekly plan summary and encouragement</div></div></div>
+        <div class="metric" style="margin-top:24px">
+          <div><div class="eyebrow">This week</div><div class="num">3 of 5</div><p>Personal goals completed</p></div>
+          <span class="role-icon">⛰</span>
+        </div>
+        <button class="btn soft" onclick="go('summary')">Open shared summary</button>
+      </div>
+
+      <div class="card">
+        <h2>A helpful action</h2>
+        <p>Jordan has chosen to receive encouragement after completing a goal.</p>
+        <div class="field"><label>Send a short note</label><textarea>Nice work taking the next step today!</textarea></div>
+        <button class="btn" onclick="toast('Encouragement sent to Jordan')">Send encouragement</button>
+      </div>
+
+      <div class="warning span2">
+        <b>Support without surveillance.</b>
+        Pair shows what Jordan decided would help—not a live feed of Jordan’s activity.
+      </div>
+    </div>
+  `);
+}
+
+function sharedSummary(){
+  return shell(`
+    ${head(
+      "Shared with you",
+      "Jordan’s weekly summary",
+      "This contains no private check-ins, health readings or appointment information."
+    )}
+    <div class="grid g3">
+      <div class="card"><div class="eyebrow">Goals</div><div class="num">3 / 5</div><p>Completed this week</p></div>
+      <div class="card"><div class="eyebrow">Current activity</div><h2>Laundry</h2><p>Step-level progress is not shared.</p></div>
+      <div class="card"><div class="eyebrow">Support preference</div><h2>Encouragement</h2><p>Messages are welcome after a completed goal.</p></div>
+
+      <div class="card span2">
+        <h2>Jordan’s shared wins</h2>
+        <div class="row"><div class="row-main">${avatar("✓")}<div><b>Checked in three times</b><div class="sub">Responses remain private</div></div></div>${chip("Completed")}</div>
+        <div class="row"><div class="row-main">${avatar("✓")}<div><b>Reached usual movement goal twice</b><div class="sub">Shared by Jordan</div></div></div>${chip("Completed")}</div>
+      </div>
+
+      <div class="card">
+        <h2>Your access</h2>
+        <p>Jordan can change this view at any time.</p>
+        <button class="btn secondary" onclick="showModal('permissions')">What I can see</button>
+      </div>
+    </div>
+  `);
+}
+
+function trustedSettings(){
+  return settingsPage("Trusted-person settings",[
+    ["Notifications",`
+      <div class="row"><div><b>New shared update</b></div>${toggle(true)}</div>
+      <div class="row"><div><b>Encouragement invitation</b></div>${toggle(true)}</div>
+      <div class="row"><div><b>Access changed</b></div>${toggle(true)}</div>
+    `],
+    ["My access",`
+      <div class="row"><div><b>Jordan Reyes</b><div class="sub">Weekly summary and encouragement</div></div><button class="btn secondary" onclick="showModal('permissions')">View</button></div>
+      <div class="privacy"><span>🔒</span><span>Jordan must initiate changes to the information available here.</span></div>
+    `],
+    ["Account",`
+      <div class="row"><div><b>Face ID</b></div>${toggle(true)}</div>
+      <div class="row"><div><b>Sign-in history</b></div><button class="btn secondary">View</button></div>
+    `]
+  ]);
+}
+
+function adminHome(){
+  return shell(`
+    ${head(
+      "Administration",
+      "First Place demonstration program",
+      "Manage accounts, roles and policies. Administrators do not automatically receive access to member content."
+    )}
+    <div class="grid g4">
+      <div class="card"><div class="eyebrow">Members</div><div class="num">42</div><p>38 active this month</p></div>
+      <div class="card"><div class="eyebrow">Staff</div><div class="num">11</div><p>Coach or educator roles</p></div>
+      <div class="card"><div class="eyebrow">Invitations</div><div class="num">5</div><p>Awaiting acceptance</p></div>
+      <div class="card"><div class="eyebrow">Access alerts</div><div class="num">0</div><p>No unresolved events</p></div>
+    </div>
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card">
+        <h2>Administrative tasks</h2>
+        <div class="row"><div><b>Review three staff invitations</b><div class="sub">Role verification required</div></div><button class="btn soft">Review</button></div>
+        <div class="row"><div><b>Quarterly access review</b><div class="sub">Due November 30</div></div><button class="btn secondary">Open</button></div>
+      </div>
+      <div class="card">
+        <h2>Privacy posture</h2>
+        <p>Role assignment grants product capabilities, not access to individual member content.</p>
+        <div class="notice"><b>Member authorization remains the source of content access.</b></div>
+      </div>
+    </div>
+  `);
+}
+
+function people(){
+  const people=[
+    ["JR","Jordan Reyes","Pair member","Active"],
+    ["DB","Dana Brooks","Coach or educator","Active"],
+    ["PP","Dr. Priya Patel","Healthcare professional","Verified"],
+    ["MR","Marisol Reyes","Trusted person","Invited"],
+    ["AM","Alex Morgan","Organization administrator","Active"]
+  ];
+  return shell(`
+    ${head(
+      "Administration",
+      "People and roles",
+      "Invite people, verify staff roles and deactivate accounts.",
+      `<button class="btn">＋ Invite person</button>`
+    )}
+    <div class="card">
+      <div class="field"><label>Search people</label><input placeholder="Name, email or role"></div>
+      ${people.map(person=>`
+        <div class="row">
+          <div class="row-main">${avatar(person[0])}<div><b>${person[1]}</b><div class="sub">${person[2]}</div></div></div>
+          <div class="actions">${chip(person[3],person[3]==="Invited"?"gold":"")}<button class="btn secondary">Manage</button></div>
+        </div>
+      `).join("")}
+    </div>
+  `);
+}
+
+function audit(){
+  const events=[
+    ["1:42 PM","Jordan shared an appointment packet with Dr. Patel"],
+    ["12:18 PM","Dana viewed Jordan’s activity-help request"],
+    ["10:05 AM","Maya removed trusted-person access"],
+    ["9:31 AM","Dr. Patel opened Maya’s submitted packet"]
+  ];
+  return shell(`
+    ${head(
+      "Administration",
+      "Consent and access records",
+      "Review permission changes and access events without opening the underlying private content.",
+      `<button class="btn secondary">Export audit report</button>`
+    )}
+    <div class="grid g3">
+      <div class="card"><div class="eyebrow">Today</div><div class="num">14</div><p>Recorded access events</p></div>
+      <div class="card"><div class="eyebrow">Permission changes</div><div class="num">3</div><p>All initiated by members</p></div>
+      <div class="card"><div class="eyebrow">Alerts</div><div class="num">0</div><p>No unusual access detected</p></div>
+
+      <div class="card span2">
+        <h2>Recent events</h2>
+        ${events.map(event=>`
+          <div class="row">
+            <div><b>${event[1]}</b><div class="sub">${event[0]} · Receipt recorded</div></div>
+            <button class="btn secondary">Details</button>
+          </div>
+        `).join("")}
+      </div>
+
+      <div class="card">
+        <h2>Filters</h2>
+        <div class="field"><label>Event type</label><select><option>All access events</option><option>Permission changes</option><option>Exports</option></select></div>
+        <div class="field"><label>Date range</label><select><option>Today</option><option>Last 7 days</option><option>Last 30 days</option></select></div>
+        <button class="btn soft">Apply filters</button>
+      </div>
+    </div>
+  `);
+}
+
+function adminSettings(){
+  return settingsPage("Organization settings",[
+    ["Authentication",`
+      <div class="row"><div><b>Organization sign-in</b><div class="sub">Single sign-on configured</div></div>${chip("Active")}</div>
+      <div class="row"><div><b>Staff multi-factor authentication</b></div>${chip("Required")}</div>
+      <div class="row"><div><b>Professional session timeout</b><div class="sub">15 minutes</div></div><button class="btn secondary">Edit</button></div>
+    `],
+    ["Roles",`
+      <div class="row"><div><b>Coach or educator</b><div class="sub">Activities and learning signals</div></div><button class="btn secondary">Review</button></div>
+      <div class="row"><div><b>Healthcare professional</b><div class="sub">Submitted packets and follow-up</div></div><button class="btn secondary">Review</button></div>
+      <div class="row"><div><b>Administrator</b><div class="sub">Accounts and audit metadata</div></div><button class="btn secondary">Review</button></div>
+    `],
+    ["Data governance",`
+      <div class="row"><div><b>Retention schedule</b></div><button class="btn secondary">Configure</button></div>
+      <div class="row"><div><b>Consent receipts</b></div>${chip("Policy controlled")}</div>
+      <div class="row"><div><b>AI feature review</b></div>${chip("Quarterly")}</div>
+    `],
+    ["Program design",`
+      <div class="row"><div><b>Approved activity library</b><div class="sub">24 published templates</div></div><button class="btn secondary">Open</button></div>
+      <div class="row"><div><b>Available themes</b><div class="sub">Ocean, Garden and Twilight</div></div><button class="btn secondary">Edit</button></div>
+    `]
+  ]);
+}
+
+function settingsPage(title,sections){
+  return shell(`
+    ${head("Settings",title,"Settings are separated by role so one person cannot change another person’s experience.")}
+    <div class="grid g2">
+      ${sections.map(section=>`<div class="card"><h2>${section[0]}</h2>${section[1]}</div>`).join("")}
+    </div>
+  `);
+}
+
+function modalContent(){
+  if(!state.modal)return "";
+
+  let content="";
+  if(state.modal==="roles"){
+    content=`
+      <h2>Switch demonstration role</h2>
+      <p class="muted">Inspect each role’s navigation, permissions and settings.</p>
+      <div class="option-grid">
+        ${Object.entries(roles).filter(([key])=>key!=="public").map(([key,value])=>`
+          <button class="option" onclick="setRole('${key}')">
+            <b>${value.label}</b><br><span class="sub">${value.person}</span>
+          </button>
+        `).join("")}
+      </div>
+    `;
+  }else if(state.modal==="quick"){
+    content=`
+      <h2>Quick actions</h2>
+      <button class="btn soft" style="width:100%" onclick="showModal('roles')">Switch demonstration role</button>
+      <button class="btn secondary" style="width:100%;margin-top:9px" onclick="go('${state.role==="member"?"member-settings":state.role+"-settings"}')">Open settings</button>
+    `;
+  }else if(state.modal==="permissions"){
+    content=`
+      <h2>What this role can access</h2>
+      <div class="privacy"><span>🔒</span><span>Access follows explicit member permission and may expire or be revoked.</span></div>
+      <div class="row"><b>Assigned activities</b>${chip(state.role==="health"?"No":"Role dependent")}</div>
+      <div class="row"><b>Learning preferences</b>${chip(["member","coach"].includes(state.role)?"Allowed":"Limited")}</div>
+      <div class="row"><b>Private check-ins</b>${chip(state.role==="member"?"Member only":"No")}</div>
+      <div class="row"><b>Appointment packet</b>${chip(["member","health"].includes(state.role)?"When submitted":"No")}</div>
+      <div class="row"><b>Full medical record</b>${chip("Not stored")}</div>
+    `;
+  }else if(state.modal==="assign"){
+    content=`
+      <h2>Assign an activity to Jordan</h2>
+      <p class="muted">This action occurs inside Jordan’s profile. Review the personalized version before sending.</p>
+      <div class="field"><label>Activity</label><select><option>Do one load of laundry</option><option>Plan a simple meal</option><option>Plan a bus trip</option></select></div>
+      <div class="field"><label>Goal</label><input value="Practice completing a household routine"></div>
+      <div class="field"><label>Due date</label><input type="date" value="2026-11-07"></div>
+      <div class="row"><div><b>Use Jordan’s preferences</b><div class="sub">Picture steps, short sections, low density</div></div>${toggle(true)}</div>
+      <button class="btn" onclick="toast('Activity assigned to Jordan');closeModal()">Review and assign</button>
+    `;
+  }else if(state.modal==="create"){
+    content=`
+      <h2>Create activity template</h2>
+      <div class="field"><label>Activity name</label><input placeholder="Example: Grocery shopping"></div>
+      <div class="field"><label>Learning objective</label><textarea placeholder="What should the member be able to do?"></textarea></div>
+      <div class="field"><label>First instruction step</label><input placeholder="Write one short, concrete action"></div>
+      <div class="row"><div><b>Allow Pair to adapt presentation</b><div class="sub">The learning objective stays locked</div></div>${toggle(true)}</div>
+      <button class="btn" onclick="toast('Template saved as draft');closeModal()">Save draft</button>
+    `;
+  }else if(state.modal==="packet-review"){
+    content=`
+      <h2>Review before sharing</h2>
+      <p class="muted">Only the items below will be included.</p>
+      <div class="row"><b>Reason for visit</b>${chip("Included")}</div>
+      <div class="row"><b>Two questions</b>${chip("Included")}</div>
+      <div class="row"><b>Sleep estimate</b>${chip("Included")}</div>
+      <div class="row"><b>Private notes</b>${chip("Not included")}</div>
+      <div class="field"><label>Share with</label><select><option>Dr. Priya Patel</option><option>Print or save as PDF</option></select></div>
+      <div class="field"><label>Access expires</label><input type="date" value="2026-11-10"></div>
+      <button class="btn" onclick="toast('Packet shared with Dr. Patel');closeModal()">Share packet</button>
+    `;
+  }else if(state.modal==="sources"){
+    content=`
+      <h2>Optional data sources</h2>
+      <p class="muted">Every source must support a purpose selected by the member.</p>
+      <div class="row"><div><b>Phone activity</b><div class="sub">Supports routine patterns</div></div>${toggle(true)}</div>
+      <div class="row"><div><b>Sleep estimate</b><div class="sub">Supports appointment preparation</div></div>${toggle(true)}</div>
+      <div class="row"><div><b>Smart washing machine</b><div class="sub">Supports laundry completion</div></div>${toggle(false)}</div>
+      <button class="btn secondary">Connect another source</button>
+    `;
+  }else if(state.modal==="invite"){
+    content=`
+      <h2>Invite someone to my circle</h2>
+      <div class="field"><label>Name</label><input placeholder="Person’s name"></div>
+      <div class="field"><label>Email</label><input placeholder="name@example.com"></div>
+      <div class="field"><label>Relationship</label><select><option>Family or trusted person</option><option>Coach or educator</option><option>Healthcare professional</option></select></div>
+      <p class="sub">You choose exact access after the person accepts.</p>
+      <button class="btn" onclick="toast('Invitation created');closeModal()">Continue</button>
+    `;
+  }else if(state.modal==="access"){
+    content=`
+      <h2>Edit access</h2>
+      <div class="row"><b>Weekly plan summary</b>${toggle(true)}</div>
+      <div class="row"><b>Activity progress</b>${toggle(false)}</div>
+      <div class="row"><b>Private check-ins</b>${toggle(false)}</div>
+      <div class="row"><b>Appointment information</b>${toggle(false)}</div>
+      <div class="actions">
+        <button class="btn" onclick="toast('Access updated');closeModal()">Save access</button>
+        <button class="btn secondary" onclick="toast('Access removed');closeModal()">Remove person</button>
+      </div>
+    `;
+  }else{
+    content=`
+      <h2>Presentation options</h2>
+      <div class="row"><b>Show fewer words</b>${toggle(true)}</div>
+      <div class="row"><b>Show picture steps</b>${toggle(true)}</div>
+      <div class="row"><b>Read instructions aloud</b>${toggle(false)}</div>
+      <div class="row"><b>Show one step at a time</b>${toggle(true)}</div>
+      <button class="btn" onclick="toast('Presentation updated');closeModal()">Apply</button>
+    `;
+  }
+
+  return `
+    <div class="modal-back" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-head"><div></div><button class="close" onclick="closeModal()">×</button></div>
+        ${content}
+      </div>
+    </div>
+  `;
+}
+
+function render(){
+  document.body.className=state.theme==="ocean"?"":state.theme;
+  const pages={
+    landing,
+    roles:roleChooser,
+    signin,
+    home:memberHome,
+    plan:memberPlan,
+    activity,
+    checkin,
+    patterns,
+    appointments,
+    "appointment-prep":appointmentPrep,
+    followup,
+    circle,
+    "member-settings":memberSettings,
+    "coach-home":coachHome,
+    learners,
+    "learner-detail":learnerDetail,
+    library:activityLibrary,
+    "coach-settings":coachSettings,
+    "health-home":healthHome,
+    packet,
+    nextsteps:nextSteps,
+    "health-settings":healthSettings,
+    "trusted-home":trustedHome,
+    summary:sharedSummary,
+    "trusted-settings":trustedSettings,
+    "admin-home":adminHome,
+    people,
+    audit,
+    "admin-settings":adminSettings
+  };
+  const page=pages[state.page]||landing;
+  app.innerHTML=page()+modalContent();
+}
+render();
+</script>
+</body>
+</html>
