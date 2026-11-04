@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Encouragement offers short supportive messages without exposing more member information. -->
+  <a class="text-link" href="{{ url_for('trusted', contact=selected.name) if selected else url_for('trusted') }}">‹ Shared with Me</a>
+  <h1>Send Encouragement</h1>
+  <p class="note">Messages are supportive options only. They do not reveal or request private information.</p>
+
+  <!-- A trusted person can send a prewritten note only when a member-shared snapshot exists. -->
+  {% if selected %}
+    <section class="card">
+      <h2>To {{ selected.snapshot.member_name }}</h2>
+      <p>Choose one message to send:</p>
+      <form method="post">
+        <input type="hidden" name="contact" value="{{ selected.name }}">
+        {% for key, message in options.items() %}
+          <label class="share-pick"><input type="radio" name="encouragement" value="{{ key }}" required> {{ message }}</label>
+        {% endfor %}
+        <button type="submit" class="btn-primary">Send encouragement</button>
+      </form>
+      <p class="note">This demo does not send messages outside this browser session.</p>
+    </section>
+  {% else %}
+    <p class="card">Encouragement is available only for a trusted person who has received a member-shared snapshot.</p>
+  {% endif %}
+{% endblock %}

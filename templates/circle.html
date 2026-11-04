@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% from "macros.html" import initials %}
 
-{# A dropdown of the five levels, with the current one picked #}
-{% macro level_select(id, current) %}
+{# A dropdown shows only access levels allowed for this type of Circle contact. #}
+{% macro level_select(id, current, member_type) %}
 <select id="{{ id }}" name="access">
   {% for key, (label, meaning) in levels.items() %}
-    <option value="{{ key }}" {% if key == current %}selected{% endif %}>{{ label }}</option>
+    {% if key in access_by_type[member_type] %}<option value="{{ key }}" {% if key == current %}selected{% endif %}>{{ label }}</option>{% endif %}
   {% endfor %}
 </select>
 {% endmacro %}
@@ -13,7 +13,7 @@
 {% block content %}
   <!-- Page title and the one rule that matters -->
   <h1>Circle</h1>
-  <p>You choose what each person sees. Nothing is shared without you.</p>
+  <p>Choose each person's type and exact access. Summaries are shared only when you preview and choose to share them.</p>
 
   <!-- What each level means, folded away until needed -->
   <details class="card levels-help">
@@ -25,6 +25,7 @@
       {% endfor %}
     </dl>
     <p class="note">Time away from home and check in notes are never shared, at any level.</p>
+    <p class="note">A Circle permission does not create continuous monitoring. Each summary is a one-time snapshot.</p>
   </details>
 
   <!-- One clean list: each row shows initials, name, relationship and a level chip.
@@ -43,8 +44,13 @@
           </summary>
           <form method="post" action="{{ url_for('circle_save') }}" class="edit-panel">
             <input type="hidden" name="name" value="{{ c.name }}">
+            <label for="type-{{ loop.index }}">Person type</label>
+            <select id="type-{{ loop.index }}" name="member_type">
+              {% for key, label in circle_types.items() %}<option value="{{ key }}" {% if key == c.member_type %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
             <label for="level-{{ loop.index }}">What {{ c.name }} sees</label>
-            {{ level_select("level-" ~ loop.index, c.access) }}
+            {{ level_select("level-" ~ loop.index, c.access, c.member_type) }}
+            <p class="note">If you change the person type, save it first. The access choices will update to match that type.</p>
             <label for="rel-{{ loop.index }}">Relationship <span class="note">(optional)</span></label>
             <input type="text" id="rel-{{ loop.index }}" name="relationship" maxlength="40" value="{{ c.relationship }}">
             <label class="share-pick">
@@ -55,6 +61,16 @@
               <button type="submit" class="btn-secondary" formaction="{{ url_for('circle_remove') }}">Remove</button>
             </div>
           </form>
+          {% if c.name in snapshots %}
+            <div class="circle-shared-snapshot">
+              <p class="note">One-time snapshot shared {{ snapshots[c.name].shared_on | long_day }}. It will not update automatically.</p>
+              {% if c.member_type in ["family", "friend"] %}<a class="text-link" href="{{ url_for('trusted', contact=c.name) }}">Preview trusted-person view</a>{% endif %}
+              <form method="post" action="{{ url_for('circle_revoke_share') }}">
+                <input type="hidden" name="name" value="{{ c.name }}">
+                <button type="submit" class="btn-secondary">Stop sharing this snapshot</button>
+              </form>
+            </div>
+          {% endif %}
         </details>
       </li>
     {% else %}
@@ -62,20 +78,34 @@
     {% endfor %}
   </ul>
 
-  <!-- Add someone I trust: only a name is needed -->
+  <!-- Invite a person with no access by default, then choose a compatible level in their Circle row. -->
   <form method="post" action="{{ url_for('circle_add') }}" class="card">
-    <h2>Add someone I trust</h2>
+    <h2>Invite someone to my Circle</h2>
     <label for="new-name">Name</label>
     <input type="text" id="new-name" name="name" maxlength="40" required>
+    <label for="new-type">Person type</label>
+    <select id="new-type" name="member_type" required>
+      <option value="">Choose a type</option>
+      {% for key, label in circle_types.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select>
     <details>
-      <summary class="text-link">Add a relationship or level (optional)</summary>
+      <summary class="text-link">Add a relationship label (optional)</summary>
       <label for="new-relationship">Relationship</label>
       <input type="text" id="new-relationship" name="relationship" maxlength="40" placeholder="For example: Friend">
-      <label for="new-level">What they see</label>
-      {{ level_select("new-level", "none") }}
     </details>
-    <button type="submit" class="btn-primary">Add</button>
+    <p class="note">New people start with no access. After adding them, open their row to choose an exact level. This demo does not send an external invitation.</p>
+    <button type="submit" class="btn-primary">Add to Circle</button>
   </form>
+
+  <!-- Encouragement returns to the member without granting access to more information. -->
+  {% if encouragements %}
+    <section class="card" aria-labelledby="encouragement-title">
+      <h2 id="encouragement-title">Encouragement received</h2>
+      {% for message in encouragements | reverse %}
+        <p><strong>{{ message.from }}</strong>: {{ message.message }} <span class="note">· {{ message.date | long_day }}</span></p>
+      {% endfor %}
+    </section>
+  {% endif %}
 
   <!-- Emergency line -->
   <p class="emergency"><strong>In an emergency, call 911.</strong>

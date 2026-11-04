@@ -62,8 +62,8 @@ ROLE_NAVIGATION = {
         ("Professional Settings", "professional_settings", "gear", ["professional_settings"]),
     ],
     "trusted": [
-        ("Shared with Me", None, "heart", []), ("Accomplishments", None, "flag", []),
-        ("Support Requests", None, "people", []), ("Settings", None, "gear", []),
+        ("Shared with Me", "trusted", "heart", ["trusted"]),
+        ("Send Encouragement", "trusted_encouragement", "wave", ["trusted_encouragement"]),
     ],
     "admin": [
         ("Accounts", None, "people", []), ("Verify Roles", None, "check", []),
@@ -331,7 +331,15 @@ LEVELS = {
     "celebrations": ("Cheers me on", "Sees my celebrations and badges only."),
     "summary": ("Weekly summary", "Sees my week status and summary in words, no numbers, plus celebrations."),
     "wellness": ("Wellness details", "Sees the summary, signal trends and celebrations (for a coach or 360 wellness staff)."),
-    "health": ("Health summary", "Sees the doctor visit summary only when I send it."),
+    "health": ("Health summary", "May receive an appointment packet only after I review and send it."),
+}
+CIRCLE_TYPES = {"coach": "Coach", "healthcare": "Healthcare professional",
+                "family": "Family member", "friend": "Friend"}
+ACCESS_BY_TYPE = {
+    "coach": ["none", "celebrations", "summary", "wellness"],
+    "healthcare": ["none", "health"],
+    "family": ["none", "celebrations", "summary"],
+    "friend": ["none", "celebrations", "summary"],
 }
 
 # Each change in words with no numbers, for the Weekly summary level.
@@ -346,7 +354,41 @@ SHARE_UNITS = {"sleep_min": "min", "steps": "steps", "late_screen_min": "min", "
 
 # A person's circle. After the first change it is kept whole in the session (the CSV never changes).
 def circle_for(person):
-    return [dict(m) for m in saved("circle", person["id"], None) or data.get_circle(person["id"])]
+    members = [dict(m) for m in saved("circle", person["id"], None) or data.get_circle(person["id"])]
+    for member in members:
+        relationship = member.get("relationship", "").lower()
+        if member.get("member_type") not in CIRCLE_TYPES:
+            if member.get("access") == "health" or "doctor" in relationship or "health" in relationship:
+                member["member_type"] = "healthcare"
+            elif "coach" in relationship or "fitness" in relationship:
+                member["member_type"] = "coach"
+            elif relationship in ["family", "mother", "father", "sibling"] or member["name"].lower() in ["mom", "dad"]:
+                member["member_type"] = "family"
+            else:
+                member["member_type"] = "friend"
+    return members
+
+
+# Remove a shared snapshot when the member changes or revokes that person's permission.
+def clear_circle_snapshot(person_id, name):
+    snapshots = session.get("circle_shared_snapshots", {})
+    person_snapshots = snapshots.get(person_id, {})
+    person_snapshots.pop(name, None)
+    snapshots[person_id] = person_snapshots
+    session["circle_shared_snapshots"] = snapshots
+
+
+# Return only one-time snapshots explicitly shared with a family member or friend.
+def trusted_shared_contacts(person):
+    snapshots = session.get("circle_shared_snapshots", {}).get(person["id"], {})
+    contacts = []
+    for member in circle_for(person):
+        snapshot = snapshots.get(member["name"])
+        if (snapshot and member["member_type"] in ["family", "friend"]
+                and member["access"] in ["summary", "celebrations"]
+                and snapshot["access"] == member["access"]):
+            contacts.append({**member, "snapshot": snapshot})
+    return contacts
 
 
 # A person's routines. After the first edit they are kept whole in the session (the CSV never changes).
@@ -1057,7 +1099,11 @@ def circle():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
-    return render_template("circle.html", title="Circle", circle=circle_for(person), levels=LEVELS)
+    snapshots = session.get("circle_shared_snapshots", {}).get(person["id"], {})
+    encouragements = session.get("trusted_encouragements", {}).get(person["id"], [])
+    return render_template("circle.html", title="Circle", circle=circle_for(person), levels=LEVELS,
+                           circle_types=CIRCLE_TYPES, access_by_type=ACCESS_BY_TYPE,
+                           snapshots=snapshots, encouragements=encouragements)
 
 
 # Save one member's level, relationship and "Can add routines" (the whole circle goes in the session)
@@ -1068,9 +1114,18 @@ def circle_save():
         return redirect(url_for("choose"))
     members = circle_for(person)
     member = next((m for m in members if m["name"] == request.form.get("name")), None)
-    if member and request.form.get("access") in LEVELS:
-        member.update(access=request.form["access"], routines="routines" in request.form,
-                      relationship=request.form.get("relationship", "").strip()[:40])
+    if member:
+        member_type = request.form.get("member_type")
+        member_type = member_type if member_type in CIRCLE_TYPES else member["member_type"]
+        access = request.form.get("access")
+        if access not in ACCESS_BY_TYPE[member_type]:
+            access = "none"
+            flash("That access level is not available for this person type. No access was granted.")
+        if member_type != member["member_type"] or access != member["access"]:
+            clear_circle_snapshot(person["id"], member["name"])
+        relationship = request.form.get("relationship", "").strip()[:40] or CIRCLE_TYPES[member_type]
+        member.update(member_type=member_type, access=access, routines="routines" in request.form,
+                      relationship=relationship)
         save("circle", person["id"], members)
         flash(f"Saved. {member['name']}: {LEVELS[member['access']][0]}.")
     return redirect(url_for("circle"))
@@ -1083,13 +1138,13 @@ def circle_remove():
     if not person:
         return redirect(url_for("choose"))
     name = request.form.get("name")
+    clear_circle_snapshot(person["id"], name)
     save("circle", person["id"], [m for m in circle_for(person) if m["name"] != name])
     flash(f"{name} removed from your circle.")
     return redirect(url_for("circle"))
 
 
-# Add someone I trust: only the name is needed; relationship and level are optional
-# (a new person starts at "Just in my circle")
+# Add a person type and exact permission; no access is granted unless the member chooses it.
 @app.route("/circle/add", methods=["POST"])
 def circle_add():
     person = current_person()
@@ -1097,39 +1152,108 @@ def circle_add():
         return redirect(url_for("choose"))
     members = circle_for(person)
     name = request.form.get("name", "").strip()[:40]
-    access = request.form.get("access") if request.form.get("access") in LEVELS else "none"
+    member_type = request.form.get("member_type", "")
+    access = request.form.get("access", "none")
     if not name:
         flash("Please add a name.")
+    elif member_type not in CIRCLE_TYPES:
+        flash("Choose a coach, healthcare professional, family member, or friend.")
     elif any(m["name"] == name for m in members):
         flash(f"{name} is already in your circle.")
     else:
-        members.append({"name": name, "relationship": request.form.get("relationship", "").strip()[:40],
-                        "access": access, "routines": False})
+        if access not in ACCESS_BY_TYPE[member_type]:
+            access = "none"
+            flash("That access level is not available for this person type. They were added with no access.")
+        relationship = request.form.get("relationship", "").strip()[:40] or CIRCLE_TYPES[member_type]
+        members.append({"name": name, "member_type": member_type, "relationship": relationship,
+                        "access": access, "routines": False, "status": "demo_invited"})
         save("circle", person["id"], members)
-        flash(f"{name} added to your circle.")
+        flash(f"{name} was added to your demo Circle. No external invitation was sent.")
     return redirect(url_for("circle"))
 
 
-# Share with my circle: a preview of exactly what each member would see, with a checkbox each
-# (all unticked). "Send" only shows a confirmation; nothing is really sent in the prototype.
+# Revoke a one-time snapshot without removing the Circle contact or changing their access level.
+@app.route("/circle/revoke-share", methods=["POST"])
+def circle_revoke_share():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    name = request.form.get("name", "")
+    clear_circle_snapshot(person["id"], name)
+    flash(f"Stopped sharing the saved snapshot with {name}.")
+    return redirect(url_for("circle"))
+
+
+# Preview summaries and save only the one-time snapshots the member explicitly selects.
 @app.route("/share", methods=["GET", "POST"])
 def share():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
     members = circle_for(person)
+    patterns = get_patterns(person["id"], devices_for(person))
+    celebrations = celebrations_for(person)
     if request.method == "POST":
-        names = [m["name"] for m in members
-                 if m["name"] in request.form.getlist("share") and m["access"] not in ["none", "health"]]
+        selected = [m for m in members if m["name"] in request.form.getlist("share")
+                    and m["access"] not in ["none", "health"]]
+        snapshots = session.get("circle_shared_snapshots", {})
+        person_snapshots = snapshots.get(person["id"], {})
+        for member in selected:
+            person_snapshots[member["name"]] = {
+                "access": member["access"], "shared_on": data.get_today(),
+                "member_name": person["first_name"],
+                "items": shared_view(member["access"], patterns, celebrations),
+            }
+        if selected:
+            snapshots[person["id"]] = person_snapshots
+            session["circle_shared_snapshots"] = snapshots
+        names = [m["name"] for m in selected]
         if names:
-            flash(f"Prototype: nothing was really sent. In the real app, {words_filter(names)} would now see their view.")
+            flash(f"Saved a one-time summary for {words_filter(names)} in this demo. No automatic updates will be shared.")
         else:
             flash("No one was ticked, so nothing was shared.")
         return redirect(url_for("today"))
-    patterns = get_patterns(person["id"], devices_for(person))
-    celebrations = celebrations_for(person)
     return render_template("share.html", title="Share with my circle", levels=LEVELS,
                            members=[{**m, "view": shared_view(m["access"], patterns, celebrations)} for m in members])
+
+
+# Show only a one-time summary the member explicitly shared with a family member or friend.
+@app.route("/trusted")
+def trusted():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    contacts = trusted_shared_contacts(person)
+    name = request.args.get("contact", "")
+    selected = next((item for item in contacts if item["name"] == name), contacts[0] if contacts else None)
+    return render_template("trusted.html", title="Shared with Me", contacts=contacts,
+                           selected=selected, levels=LEVELS)
+
+
+# Save an encouragement option without sharing any additional member information.
+@app.route("/trusted/encouragement", methods=["GET", "POST"])
+def trusted_encouragement():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    contacts = trusted_shared_contacts(person)
+    name = request.values.get("contact", "")
+    selected = next((item for item in contacts if item["name"] == name), contacts[0] if contacts else None)
+    options = {"cheer": "You have got this.", "here": "I am here if you want to talk.",
+               "together": "Would you like to work on this together?"}
+    if request.method == "POST":
+        option = request.form.get("encouragement", "")
+        if not selected or option not in options:
+            abort(403)
+        messages = session.get("trusted_encouragements", {})
+        received = messages.get(person["id"], [])
+        received.append({"from": selected["name"], "message": options[option], "date": data.get_today()})
+        messages[person["id"]] = received
+        session["trusted_encouragements"] = messages
+        flash("Encouragement sent in this demo. No additional member information was shared.")
+        return redirect(url_for("trusted_encouragement", contact=selected["name"]))
+    return render_template("trusted_encouragement.html", title="Send Encouragement",
+                           contacts=contacts, selected=selected, options=options)
 
 
 # The old address /doctor opens the Visit companion

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Shared with Me contains only snapshots that the member explicitly shared. -->
+  <h1>Shared with Me</h1>
+  <p class="note">Trusted-person demo preview. Choosing this role does not grant access. A summary appears only after the member shares it.</p>
+
+  <!-- The contact selector can choose only an existing member-shared snapshot. -->
+  {% if contacts %}
+    <nav class="filter-list" aria-label="Shared summaries">
+      {% for contact in contacts %}<a class="filter-chip" href="{{ url_for('trusted', contact=contact.name) }}" {% if selected and selected.name == contact.name %}aria-current="true"{% endif %}>{{ contact.name }}</a>{% endfor %}
+    </nav>
+  {% endif %}
+
+  <!-- Show the fixed summary that was shared, with its date and permission level. -->
+  {% if selected %}
+    <section class="card">
+      <h2>Shared by {{ selected.snapshot.member_name }}</h2>
+      <p class="note">{{ levels[selected.snapshot.access][0] }} · Shared {{ selected.snapshot.shared_on | long_day }}</p>
+      <p>This is a one-time snapshot. New information will not appear unless the member shares it again.</p>
+      <ul>{% for item in selected.snapshot["items"] %}<li>{{ item }}</li>{% else %}<li>Nothing is included in this snapshot.</li>{% endfor %}</ul>
+      <a class="btn-secondary" href="{{ url_for('trusted_encouragement', contact=selected.name) }}">Send encouragement</a>
+    </section>
+  {% else %}
+    <p class="card">No summary has been shared with this trusted person. The member controls what is shared and when.</p>
+  {% endif %}
+{% endblock %}

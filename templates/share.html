@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <!-- Link back to Today, page title and short intro -->
+  <!-- Link back to Today and explain that this action shares one fixed snapshot. -->
   <a class="text-link" href="{{ url_for('today') }}">‹ Today</a>
-  <h1>Share with my circle</h1>
-  <p>Here is exactly what each person would see. Nothing is sent unless you tick their name and press Send.</p>
+  <h1>Share with my Circle</h1>
+  <p>Preview each person's exact access. Only the people you select receive this one-time snapshot.</p>
 
   <!-- One card per member: a checkbox (unticked), their level, and their exact view -->
   <form method="post">
@@ -12,7 +12,7 @@
       <section class="card">
         {% if m.access == "health" %}
           <p><strong>{{ m.name }}</strong> · {{ levels[m.access][0] }}</p>
-          <p class="note">Nothing to share here. {{ m.name }} only sees a doctor visit summary when you send one.</p>
+          <p class="note">Appointment packets are shared separately from Health after you review and send one. This Circle summary does not include medical information.</p>
         {% elif m.access == "none" %}
           <p><strong>{{ m.name }}</strong> · {{ levels[m.access][0] }}</p>
           <p class="note">{{ m.name }} sees nothing. You can change this on the Circle page.</p>
@@ -30,10 +30,10 @@
       <p class="card">No one in your circle yet.</p>
     {% endfor %}
 
-    <!-- What is never shared, then Send (a confirmation only in the prototype) -->
-    <p class="note">Time away from home and check in notes are never shared.</p>
+    <!-- Private check-ins and location details never enter a Circle snapshot. -->
+    <p class="note">Time away from home, private check-ins, and medical records are not included. Appointment packets are shared separately from Health after you review them and choose a recipient and expiration date. New summaries are not shared automatically.</p>
     <div class="actions">
-      <button type="submit" class="btn-primary">Send</button>
+      <button type="submit" class="btn-primary">Share selected snapshot</button>
       <a class="btn-secondary" href="{{ url_for('today') }}">Not now</a>
     </div>
   </form>
