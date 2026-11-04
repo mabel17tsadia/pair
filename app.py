@@ -29,6 +29,7 @@ app.register_blueprint(google_health.google)
 
 # The themes a user can pick from
 THEMES = ["ocean", "garden", "twilight"]
+DEFAULT_PLAN_PACE = "one_at_a_time"
 # Keep saved theme choices from older browser sessions working
 OLD_THEMES = {"calm": "ocean", "bright": "garden", "dark": "twilight"}
 
@@ -39,11 +40,11 @@ DEMO_ROLES = {"member": "Pair member", "coach": "Coach or educator",
 ROLE_NAVIGATION = {
     "member": [
         ("Home", "today", "sun", ["today"]),
-        ("My Plan", "plan", "calendar", ["plan"]),
         ("Check In", "checkin", "check", ["checkin"]),
         ("Health", "health", "heart", ["health", "health_packets", "health_packet", "health_next_steps", "health_instructions",
                                           "health_follow_up_action", "health_medications",
                                           "health_plan_action", "devices", "pair_device", "stop_pairing"]),
+        ("My Plan", "plan", "calendar", ["plan"]),
         ("Patterns", "patterns", "chart", ["patterns", "body"]),
         ("Appointments", "visit_start", "clipboard", ["visit_start", "visit_page", "visit_suggest",
                                                          "visit_add_question", "visit_entry", "visit_review",
@@ -377,6 +378,24 @@ def activities_for_member(person_id, records=None):
     return activity_assignments(records, person_id, extra)
 
 
+# Describe one measured change as a supportive, non-diagnostic next step.
+def home_supportive_area(change):
+    signal = change["signal"]
+    if signal == "sleep_min":
+        amount = format_minutes(max(0, change["usual"] - change["recent"]))
+        return f"Recent sleep was about {amount} below your usual range. You can review it privately in Health Patterns."
+    if signal == "steps":
+        difference = round((change["usual"] - change["recent"]) / change["usual"] * 100)
+        return f"Recent movement was about {difference}% below your usual range. A small, comfortable step may help if you want one."
+    if signal == "late_screen_min":
+        amount = format_minutes(max(0, change["recent"] - change["usual"]))
+        return f"Late-night phone use was about {amount} above your usual range. You can review the pattern privately."
+    if signal == "unlocks":
+        difference = round((change["recent"] - change["usual"]) / change["usual"] * 100)
+        return f"Phone pickups were about {difference}% above your usual range. You can review the pattern privately."
+    return "Time away from home was below your usual range. You can review the pattern privately when you are ready."
+
+
 # ===== My climb =====
 # Flag positions on the climb mountain (400 x 300, peak at 200,30): goals go from the bottom
 # (first) to the summit (last), zig-zagging up the slope, and the dotted path joins them
@@ -696,20 +715,35 @@ def today():
     today_activities = plan_activities(home_records, data.get_today(), "today", "all",
                                        session.get("activity_progress", {}))
     today_activities = [item for item in today_activities if item["status"] != "completed"]
-    completed = next((item for item in activities if item.get("status") == "completed"), None)
-    positive_observation = ("An activity in your plan is marked complete." if completed else
-                            f"You have {len(today_activities)} activities planned for today." if today_activities else "")
+    progress = session.get("activity_progress", {})
+    completed = next(({**item, **progress.get(item["id"], {})} for item in activities
+                      if progress.get(item["id"], {}).get("status", item.get("status")) == "completed"), None)
+    in_progress = next(({**item, **progress.get(item["id"], {})} for item in activities
+                        if progress.get(item["id"], {}).get("status", item.get("status")) == "in_progress"), None)
+    positive_observations = []
+    if completed:
+        positive_observations.append(f'You completed “{completed["title"]}.”')
+    if in_progress:
+        positive_observations.append(f'You are partway through “{in_progress["title"]}.”')
+    positive_observations.extend(patterns["positive_notes"])
+    climb = climb_for(person)
+    if climb["reached"]:
+        positive_observations.append(f'You have reached {climb["reached"]} of {climb["total"]} My Climb goals.')
+    positive_observations = positive_observations[:2]
+    supportive_area = (home_supportive_area(patterns["changes"][0]) if patterns["changes"] else
+                       "Pair is still learning your usual patterns. You can review them privately when you are ready.")
     upcoming = next((item for item in records["appointment_packets"]
                      if item["member_id"] == records["member"]["id"] and item["status"] == "upcoming"), None) if demo_member else None
     if upcoming:
         appointment_date = datetime.fromisoformat(upcoming["appointment_on"])
         upcoming = {**upcoming, "date_label": f"{appointment_date:%A}, {appointment_date:%B} {appointment_date.day}"}
-    return render_template("today.html", title="Today", person=person, climb=climb_for(person),
+    return render_template("today.html", title="Today", person=person, climb=climb,
                            patterns=patterns, week=week_text(person, patterns),
                            circle=circle_for(person),
                            today_activities=today_activities,
-                           pace=session.get("plan_pace", {}).get(pid, "one_at_a_time"),
-                           positive_observation=positive_observation,
+                           pace=session.get("plan_pace", {}).get(pid, DEFAULT_PLAN_PACE),
+                           positive_observations=positive_observations,
+                           supportive_area=supportive_area,
                            upcoming_appointment=upcoming, today_iso=data.get_today())
 
 
@@ -742,7 +776,7 @@ def plan():
     source_filter = request.args.get("source", "all")
     activities = plan_activities(records, data.get_today(), time_filter, source_filter,
                                  session.get("activity_progress", {})) if has_activities else []
-    pace = session.get("plan_pace", {}).get(person["id"], "one_at_a_time")
+    pace = session.get("plan_pace", {}).get(person["id"], DEFAULT_PLAN_PACE)
     focused = next((item for item in activities if item["id"] == request.args.get("activity")), None)
     visible_activities = activities if pace == "full_day" else [focused] if focused else activities[:1]
     visible_ids = {item["id"] for item in visible_activities}
@@ -2337,7 +2371,7 @@ def settings_export():
     person_id = person["id"]
     saved_keys = ["profile", "member_preferences", "circle", "circle_shared_snapshots", "paired",
                   "checkin_display", "checkin_response", "goals_added", "goals_done", "climb_seen",
-                  "badges", "routines", "health_action_states", "health_plan_states",
+                  "badges", "routines", "plan_pace", "health_action_states", "health_plan_states",
                   "medication_reminder_choice", "medication_states", "professional_proposals",
                   "trusted_encouragements", "coach_assignments",
                   "visit_questions", "visit_suggestions", "visit_entries", "visit_packet_drafts"]
@@ -2386,7 +2420,7 @@ def settings_delete_data():
                 "checkin_display", "checkin_response", "week", "doctor", "goals_added", "goals_done",
                 "climb_seen", "badges", "routines", "health_action_states", "health_plan_states",
                 "medication_reminder_choice", "medication_states", "professional_proposals",
-                "trusted_encouragements", "coach_assignments", "visit_questions", "visit_suggestions",
+                "trusted_encouragements", "coach_assignments", "plan_pace", "visit_questions", "visit_suggestions",
                 "visit_entries", "visit_packet_drafts"]:
         values = session.get(key)
         if isinstance(values, dict):

@@ -9,12 +9,12 @@
     <div class="home-mountain" aria-label="My Climb: small steps at Jordan's own pace">{% include "partials/climb_mountain.html" %}</div>
   </section>
 
-  <!-- Share one supported positive observation before up to two gentle changes. -->
+  <!-- Name two real positives and one gentle, data-supported area to support. -->
   <div class="home-primary-grid">
     <section class="card home-health-summary" aria-labelledby="noticed-title">
       <p class="eyebrow">Pair noticed</p><h2 id="noticed-title">Your week at a glance</h2>
-      {% if positive_observation %}<p class="home-observation">{{ positive_observation }}</p>{% endif %}
-      {% for change in patterns.changes[:2] %}<p class="home-observation">{{ change.words }}</p>{% endfor %}
+      {% for observation in positive_observations %}<p class="home-observation">{{ observation }}</p>{% endfor %}
+      <p class="home-supportive-area"><strong>A supportive area:</strong> {{ supportive_area }}</p>
       <p class="note">{{ "Adapted with AI" if week.source == "ai" else "Using built-in guidance" }} · This is information, not a diagnosis.</p>
       <div class="actions"><a class="btn-primary" href="{{ url_for('checkin') }}">Check in</a><a class="btn-secondary" href="{{ url_for('patterns') }}">Review privately</a></div>
     </section>
@@ -23,20 +23,23 @@
     <section class="card home-day" aria-labelledby="day-title">
       <p class="eyebrow">Today</p><h2 id="day-title">Your Day</h2><p class="note">Fictional demo schedule</p>
       <ol class="day-timeline">
-        {% for marker in ["Now", "Up Next", "Later"] %}
+        {% set markers = ["Now", "Up Next", "Later"] if pace == "full_day" else ["Now", "Up Next"] %}
+        {% for marker in markers %}
           <li><span class="timeline-marker">{{ marker }}</span><div>
-            {% if pace == "full_day" or loop.first %}
-              {% set visible = today_activities if pace == "full_day" else today_activities[:1] %}
+            {% set visible = today_activities if pace == "full_day" else today_activities[:2] %}
+            {% if marker == "Now" or marker == "Up Next" %}
               {% if marker == "Now" %}{% set activity = visible[0] if visible else none %}
-              {% elif marker == "Up Next" %}{% set activity = visible[1] if visible|length > 1 else none %}
-              {% else %}{% set activity = visible[2:] if visible|length > 2 else [] %}{% endif %}
-              {% if marker == "Later" and activity %}
-                {% for item in activity %}<a class="day-activity" href="{{ url_for('plan', time='today', source='all', activity=item.id) }}#{{ item.id }}"><strong>{{ icon('medical' if item.source == 'health' else 'book' if item.source == 'coach' else 'heart') }} {{ item.title }}</strong><span>Scheduled time: {{ item.time_label or 'Anytime today' }} · Duration: About {{ item.estimated_minutes }} minutes</span><span>{{ item.source_label }} · {{ item.status_label }}</span></a>{% endfor %}
-              {% elif activity %}
-                <a class="day-activity" href="{{ url_for('plan', time='today', source='all', activity=activity.id) }}#{{ activity.id }}"><strong>{{ icon('medical' if activity.source == 'health' else 'book' if activity.source == 'coach' else 'heart') }} {{ activity.title }}</strong><span>Scheduled time: {{ activity.time_label or 'Anytime today' }} · Duration: About {{ activity.estimated_minutes }} minutes</span><span>{{ activity.source_label }} · {{ activity.status_label }}</span></a>
-              {% else %}<p>No activity is scheduled for this part of today.</p>{% endif %}
-            {% elif marker == "Up Next" and today_activities|length > 1 %}<p>{{ today_activities|length - 1 }} more {{ 'activity' if today_activities|length == 2 else 'activities' }} are hidden. <a href="{{ url_for('plan', time='today') }}">Open My Plan</a> to show your full day.</p>
-            {% else %}<p>More of today stays hidden in this view.</p>{% endif %}
+              {% else %}{% set activity = visible[1] if visible|length > 1 else none %}
+              {% endif %}
+            {% else %}
+              {% set activity = visible[2:] if visible|length > 2 else [] %}
+            {% endif %}
+            {% if marker == "Later" and activity %}
+              {% for item in activity %}<a class="day-activity" href="{{ url_for('plan', time='today', source='all', activity=item.id) }}#{{ item.id }}"><strong class="day-activity-title">{{ icon('medical' if item.source == 'health' else 'book' if item.source == 'coach' else 'heart') }} {{ item.title }}</strong><span class="day-activity-time">Scheduled time: {{ item.time_label or 'Anytime today' }} · Duration: About {{ item.estimated_minutes }} minutes</span><span class="day-activity-meta">{{ item.source_label }} · {{ item.status_label }}</span></a>{% endfor %}
+            {% elif activity %}
+              <a class="day-activity" href="{{ url_for('plan', time='today', source='all', activity=activity.id) }}#{{ activity.id }}"><strong class="day-activity-title">{{ icon('medical' if activity.source == 'health' else 'book' if activity.source == 'coach' else 'heart') }} {{ activity.title }}</strong><span class="day-activity-time">Scheduled time: {{ activity.time_label or 'Anytime today' }} · Duration: About {{ activity.estimated_minutes }} minutes</span><span class="day-activity-meta">{{ activity.source_label }} · {{ activity.status_label }}</span></a>
+            {% elif marker == "Up Next" %}<p>No activity is scheduled next.</p>
+            {% else %}<p>No activity is scheduled for this part of today.</p>{% endif %}
           </div></li>
         {% endfor %}
       </ol>

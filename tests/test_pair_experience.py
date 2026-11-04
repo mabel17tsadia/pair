@@ -139,7 +139,7 @@ class PairExperienceTests(unittest.TestCase):
     def test_member_home_summarizes_without_showing_all_pattern_details(self):
         page = self.client.get("/today")
         self.assertEqual(page.status_code, 200)
-        for label in [b"Good afternoon, Jordan.", b"Your Day", b"Up Next", b"Later", b"My Climb",
+        for label in [b"Good afternoon, Jordan.", b"Your Day", b"Up Next", b"My Climb",
                       b"Your week at a glance", b"Upcoming appointment", b"Fictional demo schedule"]:
             self.assertIn(label, page.data)
         self.assertNotIn(b"Your usual average", page.data)
@@ -153,6 +153,19 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"pace-day-icon", plan_page.data)
         self.assertIn(b"activity-pictogram", plan_page.data)
 
+    # Show two named positives followed by exactly one supportive pattern observation.
+    def test_home_summary_uses_specific_supported_observations(self):
+        page = self.client.get("/today").data
+        summary = page.split(b'class="card home-health-summary"', 1)[1].split(b"</section>", 1)[0]
+        self.assertEqual(summary.count(b'class="home-observation"'), 2)
+        self.assertEqual(summary.count(b'class="home-supportive-area"'), 1)
+        self.assertIn("You completed “Choose music for tomorrow.”".encode(), summary)
+        self.assertIn("You are partway through “Practice a simple meal.”".encode(), summary)
+        self.assertIn(b"below your usual range", summary)
+        self.assertNotIn(b"An activity in your plan is marked complete", summary)
+        self.assertNotIn(b"normal", summary.lower())
+        self.assertNotIn(b"abnormal", summary.lower())
+
     # Keep the Home timeline limited to current-day items and preserve both My Pace views.
     def test_home_schedule_today_filter_pace_and_plan_links(self):
         page = self.client.get("/today")
@@ -161,6 +174,10 @@ class PairExperienceTests(unittest.TestCase):
         self.assertNotIn(b"Primary care", day)
         self.assertIn(b"Scheduled time:", day)
         self.assertIn(b"Duration: About", day)
+        self.assertIn(b"Tidy my desk", day)
+        self.assertIn(b"Write down one question", day)
+        self.assertNotIn(b"Later", day)
+        self.assertNotIn(b"activities are hidden", day)
         self.assertIn(b"/my-plan?time=today", day)
         focused = self.client.get("/my-plan", query_string={"time": "today", "activity": "assignment-wellness-demo-today"})
         self.assertIn(b'id="assignment-wellness-demo-today"', focused.data)
@@ -169,6 +186,22 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"Practice a simple meal", full_day)
         self.assertIn(b"Tidy my desk", full_day)
         self.assertIn(b"Write down one question", full_day)
+        self.assertIn(b"Later", full_day)
+        self.assertGreaterEqual(full_day.count(b'class="day-activity"'), 4)
+
+    # Keep the default pace focused, retain a saved choice, and clear it with the member's demo data.
+    def test_my_pace_default_saved_and_reset(self):
+        self.assertNotIn(b"Later", self.client.get("/today").data.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0])
+        with self.client.session_transaction() as state:
+            self.assertNotIn("plan_pace", state)
+        self.client.post("/my-plan", data={"action": "pace", "pace": "full_day"})
+        self.assertIn(b"Later", self.client.get("/today").data.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0])
+        self.client.post("/settings/delete-data", data={"confirm_delete": "yes"})
+        with self.client.session_transaction() as state:
+            self.assertNotIn("p1", state.get("plan_pace", {}))
+            state["person_id"] = "p1"
+            state["demo_role"] = "member"
+        self.assertNotIn(b"Later", self.client.get("/today").data.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0])
 
     # Keep care-team instructions private and separate from prescription details.
     def test_health_instructions_are_member_only_and_keep_original_sources(self):
@@ -368,12 +401,23 @@ class PairExperienceTests(unittest.TestCase):
         page = self.client.get("/today")
         self.assertEqual(page.status_code, 200)
         for label in [b"Good afternoon, Jordan.", b"Choose one thing. Details stay tucked away until you want them.",
-                      b"Pair noticed", b"Your week at a glance", b"Your Day", b"Now", b"Up Next", b"Later",
+                      b"Pair noticed", b"Your week at a glance", b"Your Day", b"Now", b"Up Next",
                       b"Upcoming appointment", b"My Climb", b"data-demo-role=\"member\""]:
             self.assertIn(label, page.data)
         self.assertNotIn(b"Last Check In", page.data)
         self.assertNotIn(b"What feels like a good next step?", page.data)
         self.assertIn(b"day-timeline", page.data)
+
+    # Keep sidebar and mobile member navigation in the approved order.
+    def test_member_navigation_order_matches_across_screen_sizes(self):
+        page = self.client.get("/today").data.decode()
+        expected = ["Home", "Check In", "Health", "My Plan", "Patterns", "Appointments", "My Circle", "Settings"]
+        sidebar = page.split('<nav aria-label="Pair member navigation">', 1)[1].split("</nav>", 1)[0]
+        mobile = page.split('<nav class="mobile-role-nav"', 1)[1].split("</nav>", 1)[0]
+        for nav in [sidebar, mobile]:
+            positions = [nav.find(f">{label}</span>") for label in expected]
+            self.assertTrue(all(position >= 0 for position in positions))
+            self.assertEqual(positions, sorted(positions))
 
     # Preserve appointment answers when moving through the one-stage-at-a-time wizard.
     def test_appointment_wizard_steps_back_save_and_review_selected_items(self):

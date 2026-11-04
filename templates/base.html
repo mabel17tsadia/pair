@@ -82,17 +82,11 @@
       </main>
   {% if not public_view %}
     </div>
-    <!-- Mobile navigation prioritizes common member destinations and keeps each staff list reachable. -->
+    <!-- Mobile navigation follows the same role-specific destination order as the sidebar. -->
     <nav class="mobile-role-nav" aria-label="{{ demo_roles[demo_role] }} navigation">
-      {% if demo_role == "member" %}
-        {% for label, endpoint, icon_name, active_endpoints in [("Home", "today", "sun", ["today"]), ("My Plan", "plan", "calendar", ["plan", "health_plan_action"]), ("Check In", "checkin", "check", ["checkin"]), ("Health", "health", "heart", ["health", "health_packets", "health_packet", "health_next_steps", "health_instructions", "health_follow_up_action", "health_medications", "devices", "pair_device", "stop_pairing"]), ("More", "me", "user", ["me", "me_edit", "circle", "patterns", "body", "visit_start", "visit_page", "visit_suggest", "visit_add_question", "visit_entry", "visit_review", "visit_packet_review", "visit_finish_later", "visit_send", "visit_not_sure", "settings", "climb", "climb_done", "climb_add", "routines", "routine_steps", "routine_edit"])] %}
-          <a href="{{ url_for(endpoint) }}" {% if request.endpoint in active_endpoints %}aria-current="page"{% endif %}>{{ icon(icon_name) }}<span>{{ label }}</span></a>
-        {% endfor %}
-      {% else %}
-        {% for label, endpoint, icon_name, active_endpoints in role_navigation if endpoint %}
-          <a href="{{ url_for(endpoint) }}" {% if request.endpoint in active_endpoints %}aria-current="page"{% endif %}>{{ icon(icon_name) }}<span>{{ label }}</span></a>
-        {% endfor %}
-      {% endif %}
+      {% for label, endpoint, icon_name, active_endpoints in role_navigation if endpoint %}
+        <a href="{{ url_for(endpoint) }}" {% if request.endpoint in active_endpoints %}aria-current="page"{% endif %}>{{ icon(icon_name) }}<span>{{ label }}</span></a>
+      {% endfor %}
     </nav>
   {% endif %}
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
