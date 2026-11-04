@@ -45,8 +45,10 @@ if (readAloudButton) {
   readAloudButton.addEventListener("click", () => {
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(
+    const speech = new SpeechSynthesisUtterance(
       document.getElementById("activity-instruction").textContent
-    ));
+    );
+    speech.rate = Number(document.body.dataset.speechRate) || 1;
+    window.speechSynthesis.speak(speech);
   });
 }

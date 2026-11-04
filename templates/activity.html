@@ -42,14 +42,14 @@
     <form class="activity-controls" method="post">
       <input type="hidden" name="step" value="{{ step_number }}">
       <div class="actions activity-presentation-controls">
-        <button type="button" class="btn-secondary" data-read-aloud>Read Aloud</button>
+        <button type="button" class="btn-secondary" data-read-aloud {% if not read_aloud %}disabled aria-disabled="true"{% endif %}>Read Aloud</button>
         <button type="submit" class="btn-secondary" name="action" value="fewer">Show Fewer Words</button>
         <button type="submit" class="btn-secondary" name="action" value="example">{{ "Hide Example" if state.get("examples", {}).get(step_number | string) else "Show an Example" }}</button>
         <button type="submit" class="btn-secondary" name="action" value="different">Explain Differently</button>
         <button type="submit" class="btn-secondary" name="action" value="original">View Original</button>
         <button type="submit" class="btn-secondary" name="action" value="pictures">{{ "Hide Pictures" if pictures else "Show Pictures and Words" }}</button>
       </div>
-      <p class="note">Read Aloud uses a voice provided by your browser or device.</p>
+      <p class="note">{% if read_aloud %}Read Aloud uses a voice provided by your browser or device.{% else %}Read Aloud is turned off in My Settings.{% endif %}</p>
 
       <!-- Difficulty feedback belongs to this step and is kept in the demo session. -->
       <fieldset class="feedback-choices">

@@ -2,53 +2,101 @@
 {% from "macros.html" import theme_choices %}
 
 {% block content %}
-  <!-- Page title -->
-  <h1>Settings</h1>
+  <!-- Page title keeps personal controls together in one place. -->
+  <h1>My Settings</h1>
 
-  <!-- How Pair looks: three large preview cards; picking one previews it on the whole page,
-       and Save keeps it (leaving without saving shows the saved theme again) -->
-  <form method="post" action="{{ url_for('save_theme') }}" class="card">
-    <h2>How Pair looks</h2>
+  <!-- Appearance and reading controls affect this member's display in the demo. -->
+  <form method="post" class="card">
+    <input type="hidden" name="action" value="save_member_preferences">
+    <h2>How Pair looks and reads</h2>
     {{ theme_choices(themes, theme, "Choose a theme") }}
-    <button type="submit" class="btn-primary">Save</button>
+    <fieldset class="choices">
+      <legend>Display density</legend>
+      {% for key, label in [("comfortable", "Comfortable spacing"), ("compact", "Compact spacing")] %}
+        <label class="share-pick"><input type="radio" name="density" value="{{ key }}" {% if preferences.density == key %}checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+    </fieldset>
+    <fieldset class="choices">
+      <legend>Pictures and words</legend>
+      {% for key, label in display_options %}
+        <label class="share-pick"><input type="radio" name="picture_preference" value="{{ key }}" {% if preferences.picture_preference == key %}checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+    </fieldset>
+    <fieldset class="choices">
+      <legend>Read Aloud</legend>
+      <label class="share-pick"><input type="checkbox" name="read_aloud" {% if preferences.read_aloud %}checked{% endif %}> Enable the browser's Read Aloud button</label>
+      <label for="speech-rate">Reading speed</label>
+      <select id="speech-rate" name="speech_rate">
+        {% for rate, label in [("0.8", "Slower"), ("1", "Usual"), ("1.2", "Faster")] %}
+          <option value="{{ rate }}" {% if preferences.speech_rate == rate %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <p class="note">Read Aloud uses a voice provided by your browser or device.</p>
+    </fieldset>
+    <button type="submit" class="btn-primary">Save display settings</button>
   </form>
 
-  <!-- Celebrations: Big (silent confetti, the default), Calm or Off. If the device asks for less motion
-       and the person has not chosen yet, main.js shows Calm picked and swaps the line below. -->
+  <!-- Motion choices reuse the existing celebration preference and honor reduced-motion devices. -->
   <form method="post" action="{{ url_for('set_celebrations') }}" class="card" id="celebrations-form"
         data-chosen="{{ 'yes' if celebrations_chosen else 'no' }}">
     <fieldset class="choices">
-      <legend>Celebrations</legend>
+      <legend>Motion and celebrations</legend>
       {% for key, label, meaning in [("big", "Big", "Confetti"), ("calm", "Calm", "A soft glow, no movement"), ("off", "Off", "Message only")] %}
-        <label class="choice">
-          <input type="radio" name="celebrations" value="{{ key }}" class="visually-hidden"
-                 {% if key == celebrations %}checked{% endif %}>
-          <span class="choice-box">{{ label }}<br><span class="note">{{ meaning }}</span></span>
-        </label>
+        <label class="choice"><input type="radio" name="celebrations" value="{{ key }}" class="visually-hidden" {% if key == celebrations %}checked{% endif %}><span class="choice-box">{{ label }}<br><span class="note">{{ meaning }}</span></span></label>
       {% endfor %}
     </fieldset>
-    {% if celebrations == "big" %}
-      <p class="note" id="confetti-note">Confetti is on. You can switch to Calm or Off at any time.</p>
-    {% endif %}
-    <button type="submit" class="btn-primary">Save</button>
+    {% if celebrations == "big" %}<p class="note" id="confetti-note">Confetti is on. You can switch to Calm or Off at any time.</p>{% endif %}
+    <button type="submit" class="btn-primary">Save motion setting</button>
   </form>
 
-  <!-- Privacy: a short plain summary and links to the two places where the person decides -->
+  <!-- Source and sharing links take the member to the controls they already use. -->
   <section class="card">
-    <h2>Privacy</h2>
-    <p>Your data stays yours. You choose what to pair and who sees what.</p>
-    <nav class="link-list" aria-label="Privacy">
+    <h2>Connected sources and Circle permissions</h2>
+    <p>Pair works without a connected source. You choose what each Circle person may receive.</p>
+    <nav class="link-list" aria-label="Data and sharing settings">
       <a href="{{ url_for('devices') }}">Connected Data Sources <span aria-hidden="true">›</span></a>
-      <a href="{{ url_for('circle') }}">Circle <span aria-hidden="true">›</span></a>
+      <a href="{{ url_for('circle') }}">Review Circle permissions <span aria-hidden="true">›</span></a>
     </nav>
   </section>
 
-  <!-- Demo controls, collapsed at the very bottom: switch demo person, data source, coach view -->
+  <!-- Show the personal information that can shape AI suggestions and link to its editor. -->
+  <section class="card">
+    <h2>AI personalization review</h2>
+    <p>Pair may use these choices to tailor plain-language suggestions. Review what is saved:</p>
+    <h3>What drains me</h3>
+    <p>{{ person.drains | join(", ") if person.drains else "Nothing saved." }}</p>
+    <h3>What calms me</h3>
+    <p>{{ person.calms | join(", ") if person.calms else "Nothing saved." }}</p>
+    <a class="btn-secondary" href="{{ url_for('me') }}">Edit personalization</a>
+  </section>
+
+  <!-- Explain biometric handling without collecting face or fingerprint information. -->
+  <section class="card">
+    <h2>Biometrics</h2>
+    <p>Pair does not collect face scans or fingerprints. Biometric sign-in is not available in this demo; use your device's own lock settings.</p>
+  </section>
+
+  <!-- Export the current member's session changes as a JSON download. -->
+  <section class="card">
+    <h2>Export my data</h2>
+    <p>The download contains your saved changes, Circle choices, and source choices. Baseline health readings from the simulated CSV files are not included.</p>
+    <a class="btn-secondary" href="{{ url_for('settings_export') }}">Download my demo data</a>
+  </section>
+
+  <!-- Require a separate checkbox before removing this member's session-only changes. -->
+  <section class="card">
+    <h2>Delete my demo data</h2>
+    <p>Remove your saved changes and disconnect the optional Google Health token in this browser session. The simulated sample records remain available in the demo.</p>
+    <form method="post" action="{{ url_for('settings_delete_data') }}">
+      <label class="share-pick"><input type="checkbox" name="confirm_delete" value="yes" required> I understand this removes my saved demo changes.</label>
+      <button type="submit" class="btn-secondary">Delete my demo data</button>
+    </form>
+  </section>
+
+  <!-- Keep sample-data controls available to the demo without mixing them with member settings. -->
   <details class="card demo-controls">
     <summary>Demo controls</summary>
     <p><a class="text-link" href="{{ url_for('choose') }}">Switch demo person</a></p>
-
-    <!-- Data source: sample data, or Google Health (sleep and steps, shown on the test page for now) -->
     <form method="post">
       <fieldset class="choices">
         <legend>Data source</legend>
@@ -62,8 +110,7 @@
       </fieldset>
       <button type="submit" class="btn-primary">Save</button>
     </form>
-
-    <!-- Google Health connection: sign in, or disconnect (which deletes the token) -->
+    <!-- Google Health connection: sign in, or disconnect and remove its in-memory token. -->
     {% if data_source == "google" %}
       <h3>Google Health</h3>
       {% if google_connected %}
@@ -78,7 +125,6 @@
       <p class="note">Testing mode: only test users added in Google Cloud can sign in.
         Your data is kept in memory only, never saved, and is deleted when you disconnect or the app restarts.</p>
     {% endif %}
-
     <p><a class="text-link" href="{{ url_for('coach') }}">Coach view (demo)</a></p>
   </details>
 {% endblock %}

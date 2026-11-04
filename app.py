@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
@@ -64,10 +65,11 @@ ROLE_NAVIGATION = {
     "trusted": [
         ("Shared with Me", "trusted", "heart", ["trusted"]),
         ("Send Encouragement", "trusted_encouragement", "wave", ["trusted_encouragement"]),
+        ("Support Settings", "trusted_settings", "gear", ["trusted_settings"]),
     ],
     "admin": [
         ("Accounts", None, "people", []), ("Verify Roles", None, "check", []),
-        ("Invitations", None, "clipboard", []), ("Org Settings", None, "home", []),
+        ("Invitations", None, "clipboard", []), ("Org Settings", "admin_settings", "home", ["admin_settings"]),
         ("Access Logs", None, "wave", []), ("Templates", None, "book", []),
     ],
 }
@@ -135,7 +137,18 @@ def add_settings():
             "in_health_section": request.endpoint in HEALTH_ENDPOINTS,
             "data_source": session.get("data_source", "sample"),
             "celebrations": session.get("celebrations", "big"),
+            "member_preferences": member_preferences(session.get("person_id")),
             "celebrations_chosen": "celebrations" in session}
+
+
+# Return this member's accessible display choices with calm defaults.
+def member_preferences(person_id):
+    preferences = session.get("member_preferences", {}).get(person_id, {})
+    return {"density": preferences.get("density", "comfortable"),
+            "picture_preference": preferences.get("picture_preference",
+                                                   session.get("checkin_display", {}).get(person_id, "pictures_words")),
+            "read_aloud": preferences.get("read_aloud", True),
+            "speech_rate": preferences.get("speech_rate", "1")}
 
 
 # Template filter: minutes as "6 h 40 min"
@@ -879,10 +892,12 @@ def activity_detail(activity_id):
         instruction = current_step["short_instruction"]
     elif mode == "different":
         instruction = current_step["different_explanation"]
+    preferences = member_preferences(person["id"])
     return render_template("activity.html", title=activity["title"], activity=activity,
                            step=current_step, step_number=step_number, mode=mode,
                            instruction=instruction, state=state,
-                           pictures=state.get("pictures", True))
+                           pictures=state.get("pictures", preferences["picture_preference"] != "words_only"),
+                           read_aloud=preferences["read_aloud"])
 
 
 # Check in screen: pick a mood and add an optional note, then Save (or Skip). After saving, a
@@ -896,7 +911,7 @@ def checkin():
     pid = person["id"]
     checkins = session.get("checkins", [])
     displays = dict(session.get("checkin_display", {}))
-    display = displays.get(pid, "pictures_words")
+    display = displays.get(pid, member_preferences(pid)["picture_preference"])
 
     if request.method == "POST" and request.form.get("action") == "display":
         choice = request.form.get("display")
@@ -1224,10 +1239,11 @@ def trusted():
     if not person:
         return redirect(url_for("choose"))
     contacts = trusted_shared_contacts(person)
+    support_enabled = session.get("trusted_settings", {}).get("encouragement", True)
     name = request.args.get("contact", "")
     selected = next((item for item in contacts if item["name"] == name), contacts[0] if contacts else None)
     return render_template("trusted.html", title="Shared with Me", contacts=contacts,
-                           selected=selected, levels=LEVELS)
+                           selected=selected, levels=LEVELS, support_enabled=support_enabled)
 
 
 # Save an encouragement option without sharing any additional member information.
@@ -1237,8 +1253,10 @@ def trusted_encouragement():
     if not person:
         return redirect(url_for("choose"))
     contacts = trusted_shared_contacts(person)
+    support_enabled = session.get("trusted_settings", {}).get("encouragement", True)
     name = request.values.get("contact", "")
-    selected = next((item for item in contacts if item["name"] == name), contacts[0] if contacts else None)
+    selected = (next((item for item in contacts if item["name"] == name), contacts[0] if contacts else None)
+                if support_enabled else None)
     options = {"cheer": "You have got this.", "here": "I am here if you want to talk.",
                "together": "Would you like to work on this together?"}
     if request.method == "POST":
@@ -1254,6 +1272,24 @@ def trusted_encouragement():
         return redirect(url_for("trusted_encouragement", contact=selected["name"]))
     return render_template("trusted_encouragement.html", title="Send Encouragement",
                            contacts=contacts, selected=selected, options=options)
+
+
+# Let a trusted person hide their encouragement options in this demo session.
+@app.route("/trusted/settings", methods=["GET", "POST"])
+def trusted_settings():
+    settings = session.get("trusted_settings", {"encouragement": True})
+    if request.method == "POST":
+        settings["encouragement"] = request.form.get("encouragement") == "on"
+        session["trusted_settings"] = settings
+        flash("Support settings saved for this demo session.")
+        return redirect(url_for("trusted_settings"))
+    return render_template("trusted_settings.html", title="Support Settings", settings=settings)
+
+
+# Explain that organization-wide controls are not available in this demonstration.
+@app.route("/admin/settings")
+def admin_settings():
+    return render_template("admin_settings.html", title="Organization Settings")
 
 
 # The old address /doctor opens the Visit companion
@@ -1635,16 +1671,120 @@ def body():
                            signals=[{**v, "chart": trend_chart(v["values"], v["usual"])} for v in signals])
 
 
-# Settings: theme choice, plus hidden Demo controls for the data source
+# Show settings that match the selected demo role and save member display preferences.
 @app.route("/settings", methods=["GET", "POST"])
 def settings():
+    role_routes = {"coach": "coach_settings", "healthcare": "professional_settings",
+                   "trusted": "trusted_settings", "admin": "admin_settings"}
+    if session.get("demo_role", "member") in role_routes:
+        return redirect(url_for(role_routes[session["demo_role"]]))
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
     # Demo controls: save the chosen data source
     if request.method == "POST" and request.form.get("source") in SOURCES:
         session["data_source"] = request.form["source"]
         flash(f"Data source set to {SOURCES[request.form['source']]}.")
         return redirect(url_for("settings"))
+    if request.method == "POST" and request.form.get("action") == "save_member_preferences":
+        density, pictures = request.form.get("density"), request.form.get("picture_preference")
+        rate = request.form.get("speech_rate")
+        if density in ["comfortable", "compact"] and pictures in dict(CHECKIN_DISPLAY) and rate in ["0.8", "1", "1.2"]:
+            preferences = {"density": density, "picture_preference": pictures,
+                           "read_aloud": request.form.get("read_aloud") == "on", "speech_rate": rate}
+            all_preferences = session.get("member_preferences", {})
+            all_preferences[person["id"]] = preferences
+            session["member_preferences"] = all_preferences
+            displays = session.get("checkin_display", {})
+            displays[person["id"]] = pictures
+            session["checkin_display"] = displays
+            if request.form.get("theme") in THEMES:
+                session["theme"] = request.form["theme"]
+            flash("Your display and reading preferences were saved in this demo.")
+        return redirect(url_for("settings"))
     return render_template("settings.html", title="Settings", sources=SOURCES,
-                           google_connected=google_health.is_connected())
+                           google_connected=google_health.is_connected(), person=person,
+                           preferences=member_preferences(person["id"]), display_options=CHECKIN_DISPLAY)
+
+
+# Download only this member's changes saved in the current demo session.
+@app.route("/settings/export")
+def settings_export():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    person_id = person["id"]
+    saved_keys = ["profile", "member_preferences", "circle", "circle_shared_snapshots", "paired",
+                  "checkin_display", "checkin_response", "goals_added", "goals_done", "climb_seen",
+                  "badges", "routines", "health_action_states", "professional_proposals",
+                  "trusted_encouragements", "coach_assignments",
+                  "visit_questions", "visit_suggestions", "visit_entries", "visit_packet_drafts"]
+    changes = {key: session.get(key, {}).get(person_id) for key in saved_keys
+               if person_id in session.get(key, {})}
+    changes["checkins"] = [item for item in session.get("checkins", [])
+                            if item.get("person_id") == person_id]
+    changes["circle"] = circle_for(person)
+    changes["connected_sources"] = devices_for(person)
+    demo = load_demo_data()
+    activities = demo["activities"] if person_id == demo["member"]["application_person_id"] else []
+    activities = activities + session.get("coach_assignments", {}).get(person_id, [])
+    activity_ids = [item["id"] for item in activities]
+    changes["activity_states"] = {activity_id: {
+        "progress": session.get("activity_progress", {}).get(activity_id),
+        "presentation": session.get("activity_ui", {}).get(activity_id)}
+        for activity_id in activity_ids
+        if activity_id in session.get("activity_progress", {}) or activity_id in session.get("activity_ui", {})}
+    export = {"scope": "Member changes, Circle choices, and source choices from this demo session; baseline CSV health readings are not included.",
+              "member": {"id": person_id, "first_name": person["first_name"]},
+              "preferences": {**member_preferences(person_id), "theme": session.get("theme", "ocean"),
+                              "celebrations": session.get("celebrations", "big")},
+              "session_changes": changes}
+    response = app.response_class(json.dumps(export, ensure_ascii=False, indent=2),
+                                  mimetype="application/json")
+    response.headers["Content-Disposition"] = f"attachment; filename=pair-demo-export-{person_id}.json"
+    return response
+
+
+# Remove this member's demo changes and disconnect the optional in-memory Google token.
+@app.route("/settings/delete-data", methods=["POST"])
+def settings_delete_data():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    if request.form.get("confirm_delete") != "yes":
+        flash("Select the confirmation box before deleting your demo data.")
+        return redirect(url_for("settings"))
+    person_id = person["id"]
+    demo = load_demo_data()
+    activities = demo["activities"] if person_id == demo["member"]["application_person_id"] else []
+    activities = activities + session.get("coach_assignments", {}).get(person_id, [])
+    for key in ["profile", "member_preferences", "circle", "circle_shared_snapshots", "paired",
+                "checkin_display", "checkin_response", "week", "doctor", "goals_added", "goals_done",
+                "climb_seen", "badges", "routines", "health_action_states", "professional_proposals",
+                "trusted_encouragements", "coach_assignments", "visit_questions", "visit_suggestions",
+                "visit_entries", "visit_packet_drafts"]:
+        values = session.get(key)
+        if isinstance(values, dict):
+            values.pop(person_id, None)
+            session[key] = values
+    for key in ["activity_ui", "activity_progress"]:
+        values = session.get(key, {})
+        for activity in activities:
+            values.pop(activity["id"], None)
+        session[key] = values
+    session["checkins"] = [item for item in session.get("checkins", [])
+                           if item.get("person_id") != person_id]
+    session.pop("google_from_devices", None)
+    google_health.TOKENS.pop(session.pop("google_key", None), None)
+    if person_id == NEW_ID:
+        session.pop("new_person", None)
+        session.pop("signup", None)
+    session.pop("person_id", None)
+    session.pop("theme", None)
+    session.pop("celebrations", None)
+    session.pop("data_source", None)
+    flash("Your member changes were removed from this demo session. Simulated sample records remain in the demo.")
+    return redirect(url_for("choose"))
 
 
 # Connected Data Sources: list each source by connection type and current status.

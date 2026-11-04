@@ -19,6 +19,17 @@
   --motion-fast: 160ms;
 }
 
+/* Compact density tightens shared gaps while keeping controls at accessible target sizes. */
+body[data-density="compact"] {
+  --space-1: 0.2rem; --space-2: 0.35rem; --space-3: 0.55rem;
+  --space-4: 0.75rem; --space-5: 1rem; --space-6: 1.2rem;
+  --space-7: 1.5rem; --space-8: 2rem;
+  --card-padding: var(--space-4);
+}
+
+/* Pictures First gives activity prompts more visual weight without hiding their labels. */
+body[data-picture-preference="pictures_first"] .instruction-picture { font-size: 4rem; }
+
 /* Ocean: blue-green surfaces and warm gold accents. */
 [data-theme="ocean"] {
   --bg: #F3F8F7; --surface: #FFFFFF; --surface2: #E3EFED;

@@ -13,7 +13,9 @@
 
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body data-theme="{{ theme }}">
+<body data-theme="{{ theme }}" data-density="{{ member_preferences.density }}"
+      data-picture-preference="{{ member_preferences.picture_preference }}"
+      data-speech-rate="{{ member_preferences.speech_rate }}">
   <!-- Navigation: a top bar on wide screens, a bottom bar on phones -->
   <header class="site-header">
     <div class="header-inner">

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Trusted-person settings contain only this role's support preference. -->
+  <h1>Support Settings</h1>
+  <p class="note">These choices affect the trusted-person demo view only. They do not change what a member shares.</p>
+
+  <!-- Let the trusted person hide encouragement actions from their own view. -->
+  <section class="card">
+    <form method="post">
+      <label class="share-pick"><input type="checkbox" name="encouragement" {% if settings.encouragement %}checked{% endif %}> Show encouragement options for summaries shared with me</label>
+      <button type="submit" class="btn-primary">Save Support Settings</button>
+    </form>
+  </section>
+{% endblock %}
