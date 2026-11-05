@@ -22,7 +22,7 @@
       {% if public_view %}
         <nav class="public-nav" aria-label="Pair entry">
           <a href="{{ url_for('signin') }}">Sign in</a>
-          <a href="{{ url_for('choose') }}#role-choice">Get started</a>
+          <a href="{{ url_for('start_begin') }}">Get started</a>
         </nav>
       {% else %}
         <!-- Role switching explores sample workspaces; it is not authentication or consent. -->

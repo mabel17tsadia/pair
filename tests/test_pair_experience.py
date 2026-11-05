@@ -61,8 +61,10 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"Get started", page.data)
         self.assertIn(b"Whose view would you like to explore?", page.data)
         self.assertEqual(page.data.count(b'class="role-card"'), 5)
-        self.assertIn(b'href="#role-choice"', page.data)
-        self.assertIn(b'href="/\x23role-choice"', page.data)
+        self.assertIn(b'href="/start">Get started</a>', page.data)
+        self.assertIn(b'href="/signin">Sign in</a>', page.data)
+        self.assertNotIn(b"Continue sign-up", page.data)
+        self.assertNotIn(b'href="#role-choice"', page.data)
         self.assertIn(b"brand-mark", page.data)
         self.assertNotIn(b"Choose a demo person", page.data)
         self.assertNotIn(b"Maya Chen", page.data)
@@ -125,6 +127,13 @@ class PairExperienceTests(unittest.TestCase):
         self.assertNotIn(b"Usual range</strong> is the band around your earlier days", patterns)
         self.assertNotIn(b"Comparison period: the last five days", patterns)
         self.assertNotIn(b'class="card pattern-key"', patterns)
+
+        with open(os.path.join(pair.app.static_folder, "css", "style.css"), encoding="utf-8") as stylesheet:
+            css = stylesheet.read()
+        self.assertIn(".entry-roles .role-grid { grid-template-columns: repeat(5, minmax(0, 1fr))", css)
+        self.assertIn("@media (min-width: 768px) and (max-width: 1199px)", css)
+        self.assertIn("@media (min-width: 1200px)", css)
+        self.assertIn("@media (max-width: 767px) {\n  .entry-roles .role-grid { grid-template-columns: 1fr; }", css)
 
     # Keep prototype sign-in links honest and never submit the displayed password fields.
     def test_demo_sign_in_and_help_pages_are_transparent(self):

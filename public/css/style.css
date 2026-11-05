@@ -2108,10 +2108,9 @@ button, a, summary { touch-action: manipulation; }
   .entry-roles > .eyebrow, .entry-roles > h2, .entry-roles > p:not(.eyebrow) { text-align: center; }
   .entry-roles > h2 { margin: .2rem 0; font-size: clamp(1.5rem, 2vw, 1.75rem); }
   .entry-roles > p:not(.eyebrow) { margin: .35rem 0; }
-  .entry-roles .role-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .7rem; margin-top: .65rem; }
-  .entry-roles .role-card { grid-column: span 2; padding: .85rem 1rem; }
-  .entry-roles .role-card:nth-child(4) { grid-column: 2 / span 2; }
-  .entry-roles .role-card:nth-child(5) { grid-column: 4 / span 2; }
+  .entry-roles .role-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .7rem; margin-top: .65rem; }
+  .entry-roles .role-card { grid-column: auto; min-width: 0; padding: .85rem 1rem; }
+  .entry-roles .role-card:nth-child(4), .entry-roles .role-card:nth-child(5) { grid-column: auto; width: auto; }
   .entry-roles .role-card-icon { width: 2.35rem; height: 2.35rem; }
   .entry-roles .role-card h3 { margin: .35rem 0; font-size: 1.15rem; }
   .entry-roles .role-card > p { margin: .25rem 0; line-height: 1.35; }
@@ -2142,11 +2141,20 @@ button, a, summary { touch-action: manipulation; }
   .display-preference { margin-bottom: .55rem; }
 }
 
-/* Use a two-column role grid when there is not room for three readable cards. */
-@media (min-width: 769px) and (max-width: 999px) {
+/* Wrap the role choices on tablet-sized screens where five columns are too narrow. */
+@media (min-width: 768px) and (max-width: 1199px) {
   .entry-roles .role-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .entry-roles .role-card, .entry-roles .role-card:nth-child(4), .entry-roles .role-card:nth-child(5) { grid-column: auto; }
+  .entry-roles .role-card, .entry-roles .role-card:nth-child(4) { grid-column: auto; }
   .entry-roles .role-card:nth-child(5) { grid-column: 1 / -1; width: calc(50% - .35rem); justify-self: center; }
+}
+
+/* Keep each role choice a vertical card and stack the cards on mobile. */
+@media (min-width: 1200px) {
+  .entry-roles .role-demo-identity { margin-top: auto; }
+  .entry-roles .role-card .btn-secondary { min-height: var(--target-min); margin-top: .35rem; }
+}
+@media (max-width: 767px) {
+  .entry-roles .role-grid { grid-template-columns: 1fr; }
 }
 
 /* Reuse a compact desktop rhythm across key member and public pages. */

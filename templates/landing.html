@@ -8,7 +8,7 @@
       <p>Build life skills, prepare for healthcare visits, and choose what information you share.</p>
       <div class="actions">
         <a class="btn-primary" href="{{ url_for('signin') }}">Sign in</a>
-        <a class="btn-secondary" href="#role-choice">Get started</a>
+        <a class="btn-secondary" href="{{ url_for('start_begin') }}">Get started</a>
       </div>
     </div>
     <!-- Use the local mountain illustration to introduce Pair's personal climb. -->
@@ -20,6 +20,4 @@
     </svg>
   </section>
   {% include "partials/role_choices.html" %}
-  <!-- Keep sign-in and the existing new-member onboarding path available. -->
-  <p class="entry-path-links"><a href="{{ url_for('start_begin') }}">New to Pair? Continue sign-up</a></p>
 {% endblock %}
