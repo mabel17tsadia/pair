@@ -1,8 +1,13 @@
-## Project
+> Historical development note: This file contains the original instructions used when the prototype was called Pace and focused primarily on pattern detection. Pair later expanded into role-specific workspaces, healthcare follow-through, member-controlled sharing, and My Plan. Current product scope is defined in `docs/product-requirements.md`.
+
+## Historical project description
+
 Name: Pair. A web app for the North American AI Challenge, built with our challenge partner First Place AZ in mind.
 Pair connects, with consent, to devices a person already uses (phone first; optional smart washer, mattress sensor or smart ring), learns the person's own usual patterns, notices when several patterns change together, tells the person first in plain language, and lets them choose what each trust circle member can see.
 All device data is simulated from CSV files. Pair does not diagnose and is not a task planner.
 Out of scope: task lists, adding tasks, inbox, wearables being required, medical devices like pacemakers.
+
+For current product purpose and scope, see [docs/product-requirements.md](docs/product-requirements.md). The statements above record the original Pace-era project description and are not current Pair product requirements.
 
 # Rules for this project
 
