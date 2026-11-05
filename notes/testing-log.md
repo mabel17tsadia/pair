@@ -23,3 +23,11 @@ Verified on 4 November 2026:
 - Focused credential-pattern scan — no matches in current tracked files or the 76 visible commits.
 - Flask startup smoke check — landing page returned HTTP 200 with debug off; temporary server stopped.
 - `git diff --check` — passed after the documentation updates.
+
+### 4 November 2026: Prompt 28 documentation verification
+
+- `venv\Scripts\python.exe -m unittest discover -s tests -q` — **60 tests passed**. The system Python did not have `python-dotenv`; the repository virtual environment has the declared dependencies.
+- Python compilation and Flask import, JavaScript syntax checks for `public/js/*.js`, and `venv\Scripts\python.exe -m pip check` — passed.
+- Relative Markdown link check — 21 links checked with no missing local targets; all 11 tracked Markdown documents have exactly one H1 title.
+- Flask startup smoke check — landing page returned HTTP 200 on a temporary localhost port; server stopped.
+- `git diff --check` — passed.

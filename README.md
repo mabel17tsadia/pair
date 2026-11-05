@@ -12,7 +12,7 @@ Pair uses fictional data. It is not a medical device, an EHR, a diagnostic tool,
 
 | Workspace | What reviewers can explore |
 |---|---|
-| Pair member | Jordan’s sample Home, private Check In, Health, My Plan, Patterns, appointments, My Circle, and settings. |
+| Pair member | Jordan’s sample Home, private Check In, Health, My Plan, Patterns, Appointments, My Circle, and Settings. |
 | Coach or educator | Learning progress, activity library, learner profiles, and sample assignments. |
 | Healthcare professional | Member-shared appointment packets and proposed follow-up steps. |
 | Trusted person | Member-shared summaries and encouragement choices. |

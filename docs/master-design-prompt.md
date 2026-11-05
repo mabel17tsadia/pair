@@ -1,5 +1,7 @@
 # Pair Master UI/UX Design Requirements
 
+**Intended product direction:** This document records detailed design goals. The current application code and tests establish which parts are implemented; this document does not establish current behavior by itself.
+
 ## Product purpose
 
 Pair is an accessible independence companion for neurodivergent young adults. It helps members:
@@ -66,14 +68,16 @@ A role determines available navigation and actions. A role alone must not automa
 
 ## Pair-member navigation
 
-Use this primary navigation:
+Use this intended primary navigation:
 
 - Home.
-- My Plan.
 - Check In.
 - Health.
+- My Plan.
+- Patterns.
+- Appointments.
 - My Circle.
-- Me.
+- Settings.
 
 ## Home
 
@@ -89,6 +93,8 @@ The member’s Home page should show:
 Do not overload the Home page with every available feature.
 
 ## My Plan
+
+My Plan supports the member after reflection and relevant health context. It helps the member choose and follow manageable activities; it does not lead the product experience or make medical decisions.
 
 My Plan contains:
 
@@ -122,7 +128,7 @@ Every activity card should display:
 - Completion status.
 - The next action.
 
-Healthcare appointments themselves belong in Health, not My Plan. Accepted follow-up actions may appear in both Health and My Plan.
+Appointment preparation, packets, and follow-through belong in Appointments. Health provides the broader health overview and relevant records. Accepted follow-up actions may appear in both Health and My Plan.
 
 ## Activity experience
 

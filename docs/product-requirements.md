@@ -22,13 +22,15 @@ The current member navigation order is Home, Check In, Health, My Plan, Patterns
 
 Members can choose the Ocean, Garden, or Twilight visual theme. Theme choice changes appearance only.
 
-- **Home** offers a greeting, private check-in guidance when available, fictional health observations, a My Pace-controlled Today view, a compact appointment summary, and links to continue an activity or check in. Later items appear only when the member chooses the full-day view.
-- **My Plan** organizes educational, independent-living, personal, coach-assigned, and accepted healthcare follow-up activities. It supports time and source filters and shows each activity's source, due date or time, estimated time, status, and next action. Appointments themselves belong in Health.
-- **Activity experience** presents one step at a time and supports picture and text preferences, read aloud, simpler explanations, examples, original instructions, breaks, help requests, and difficulty feedback. Presentation changes must preserve the educator's objective and required outcome.
-- **Check In** offers labeled feelings and “What would help?” choices. A check-in is private unless the member chooses to share specific information.
-- **Health** organizes appointment preparation, shared packets, accepted next steps, member-selected patterns, connected sources, and previous appointments. It uses additional permission checks and progressive disclosure.
+- **Home** brings together the member's current context, a private check-in prompt when needed, fictional health observations, and a manageable next step. The schedule can show Now and Up Next or the full day when the member chooses.
+- **Check In** offers labeled feelings, “What would help?” choices, and an optional note. Responses are private unless the member deliberately shares selected information.
+- **Health** provides a broader health overview and relevant records, including previous appointment details, medications, care-team instructions, patterns, and connected sources. It uses additional permission checks and progressive disclosure.
+- **My Plan** organizes activities the member may choose to prioritize after considering their check-in, health context, personal goals, and guidance they have accepted. It supports filters and one-step-at-a-time activity completion. Pair does not automatically prescribe or medically determine the member’s priorities.
+- **Activity experience** supports My Plan by presenting one step at a time, with picture and text preferences, read aloud, simpler explanations, examples, original instructions, breaks, help requests, and difficulty feedback. Presentation changes must preserve the educator's objective and required outcome.
+- **Patterns** lets the member review one selected health or wellbeing pattern at a time and see its source and comparison with their usual range.
+- **Appointments** supports appointment preparation, member-reviewed packets, and follow-through on proposed care-team instructions. Health provides the broader health overview; Appointments provides the preparation and packet workflow.
 - **My Circle** lets the member review, change, revoke, or time-limit each person's permissions.
-- **Me** provides member-specific accessibility and privacy settings.
+- **Settings** provides member-specific accessibility, display, and privacy controls.
 
 ## Appointment and follow-up experience
 
@@ -58,4 +60,11 @@ The product-scope direction in this document supersedes the earlier statement th
 
 ## Source of truth
 
-Use [master-design-prompt.md](master-design-prompt.md) as the detailed UI/UX reference, [ui-ux-design-system.md](ui-ux-design-system.md) for presentation guidance, [roles-and-permissions.md](roles-and-permissions.md) for role boundaries, and [demo-walkthrough.md](demo-walkthrough.md) to distinguish current behavior from the intended experience.
+Use this hierarchy when product and implementation statements differ:
+
+- This document defines Pair's product purpose and scope.
+- [master-design-prompt.md](master-design-prompt.md) contains detailed intended UI/UX direction.
+- [ui-ux-design-system.md](ui-ux-design-system.md) defines presentation and accessibility guidance.
+- [roles-and-permissions.md](roles-and-permissions.md) defines intended role and information boundaries.
+- [demo-walkthrough.md](demo-walkthrough.md) explains the current demonstrable flows.
+- The current application code and tests establish what is actually implemented. Design documents do not override verified implementation claims.
