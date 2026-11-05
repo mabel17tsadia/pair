@@ -588,7 +588,7 @@ def shared_view(access, patterns, celebrations):
 def choose():
     if request.args.get("view") == "roles":
         return render_template("choose.html", title="Explore Pair", role_cards=ROLE_CARDS)
-    return render_template("landing.html", title="Welcome to Pair")
+    return render_template("landing.html", title="Welcome to Pair", role_cards=ROLE_CARDS)
 
 
 # Keep the old member URL for compatibility, but never offer Maya or Theo as member entry accounts.

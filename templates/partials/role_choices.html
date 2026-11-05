@@ -1,0 +1,20 @@
+{% from "macros.html" import icon %}
+<!-- Let people open a distinct demo workspace without authenticating or sharing data. -->
+<section id="role-choice" class="entry-roles" aria-labelledby="role-choice-title">
+  <p class="eyebrow">Explore the prototype</p>
+  <h2 id="role-choice-title">Whose view would you like to explore?</h2>
+  <p>Each choice opens a focused sample workspace. Switching a demo view is not sign-in or permission.</p>
+  <div class="role-grid">
+    {% for role in role_cards %}
+      <form class="role-card" method="post" action="{{ url_for('set_demo_role') }}">
+        <input type="hidden" name="role" value="{{ role.key }}">
+        <span class="role-card-icon" aria-hidden="true">{{ icon(role.icon) }}</span>
+        <h3>{{ role.label }}</h3>
+        <p>{{ role.description }}</p>
+        <p class="role-demo-identity">Demonstration identity: <strong>{{ role.identity }}</strong></p>
+        <button type="submit" class="btn-secondary">Explore workspace</button>
+      </form>
+    {% endfor %}
+  </div>
+  <p class="entry-privacy">Pair does not diagnose. Members control what they share. This prototype does not authenticate anyone.</p>
+</section>

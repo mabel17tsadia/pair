@@ -59,8 +59,10 @@ class PairExperienceTests(unittest.TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertIn(b"Welcome to Pair", page.data)
         self.assertIn(b"Get started", page.data)
-        self.assertNotIn(b"Whose view would you like to explore?", page.data)
-        self.assertNotIn(b"role-card", page.data)
+        self.assertIn(b"Whose view would you like to explore?", page.data)
+        self.assertEqual(page.data.count(b'class="role-card"'), 5)
+        self.assertIn(b'href="#role-choice"', page.data)
+        self.assertIn(b'href="/\x23role-choice"', page.data)
         self.assertIn(b"brand-mark", page.data)
         self.assertNotIn(b"Choose a demo person", page.data)
         self.assertNotIn(b"Maya Chen", page.data)
@@ -93,6 +95,36 @@ class PairExperienceTests(unittest.TestCase):
                               b"Appointments", b"My Circle", b"Settings"]
                 positions = [member_nav.index(label) for label in nav_labels]
                 self.assertEqual(positions, sorted(positions))
+
+    # Keep the denser public and member pages complete, labeled, and responsive.
+    def test_density_pages_keep_choices_content_and_accessible_controls(self):
+        landing = self.client.get("/").data
+        for identity in [b"Jordan Reyes", b"Dana Brooks", b"Dr. Priya Patel",
+                         b"Marisol Reyes", b"Alex Morgan", b"Members control what they share"]:
+            self.assertIn(identity, landing)
+
+        appointment = self.client.get("/visit").data
+        self.assertEqual(appointment.count(b'class="card visit-choice"'), 7)
+        self.assertIn(b"What kind of appointment is it?", appointment)
+
+        circle = self.client.get("/circle").data
+        level_help = circle.split(b'class="card levels-help"', 1)[1].split(b"</details>", 1)[0]
+        self.assertIn(b"What each level means", level_help)
+        self.assertIn(b"Manage", circle)
+
+        plan = self.client.get("/my-plan").data
+        for label in [b"Today", b"Tomorrow", b"This Week", b"Later", b"Added by Me",
+                      b"From My Coach", b"From Health", b"One thing at a time",
+                      b"Show my full day", b"Save My Pace"]:
+            self.assertIn(label, plan)
+
+        patterns = self.client.get("/patterns").data
+        for label in [b"Sleep", b"Movement", b"Screen Use", b"Time Away from Home",
+                      b"Blood Sugar", b"Heart Rate", b"Usual range", b"Last 5 days"]:
+            self.assertIn(label, patterns)
+        self.assertNotIn(b"Usual range</strong> is the band around your earlier days", patterns)
+        self.assertNotIn(b"Comparison period: the last five days", patterns)
+        self.assertNotIn(b'class="card pattern-key"', patterns)
 
     # Keep prototype sign-in links honest and never submit the displayed password fields.
     def test_demo_sign_in_and_help_pages_are_transparent(self):
@@ -206,6 +238,10 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(".checkin-form .choice-box { min-height: 7rem", css)
         self.assertIn("grid-template-columns: repeat(6, minmax(0, 1fr))", css)
         self.assertIn(".landing-hero { min-height: min(19rem, calc(100vh - 7rem))", css)
+        self.assertIn(".plan-filters { display: grid; grid-template-columns: 4.5rem", css)
+        self.assertIn(".circle-row-action", css)
+        self.assertIn(".pattern-tile { min-height: 5.75rem", css)
+        self.assertIn(".landing-hero { min-height: 7rem", css)
         self.assertIn(".visit-choice { box-sizing: border-box; min-height: 3.75rem", css)
         self.assertIn("@media (min-width: 900px) and (max-height: 650px)", css)
         for path in ["/", "/?view=roles", "/today", "/checkin", "/health", "/my-plan", "/visit/primary",

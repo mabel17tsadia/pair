@@ -48,6 +48,7 @@
               {% if c.relationship %}<span class="note">{{ c.relationship }}</span>{% endif %}
             </span>
               <span class="circle-access">{{ access_badge(c.access, levels[c.access][0]) }}<span class="note access-duration">{{ "Packet access is time limited" if c.access == "health" else "One-time snapshot" if c.access == "summary" else "Until you change this" if c.access != "none" else "No access" }}</span></span>
+              <span class="circle-row-action">Manage <span aria-hidden="true">›</span></span>
           </summary>
           <form method="post" action="{{ url_for('circle_save') }}" class="edit-panel">
             <input type="hidden" name="name" value="{{ c.name }}">

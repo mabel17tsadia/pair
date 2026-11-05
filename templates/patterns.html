@@ -7,12 +7,6 @@
   <h1>Health Patterns</h1>
   <p>Choose one pattern to compare your recent days with your own usual range.</p>
 
-  <!-- Explain the chart band and recent-period highlight before the pattern choices. -->
-  <section class="card pattern-key" aria-label="How to read these patterns">
-    <p><span class="pattern-key-swatch usual-swatch" aria-hidden="true"></span><strong>Usual range</strong> is the band around your earlier days.</p>
-    <p><span class="pattern-key-swatch recent-swatch" aria-hidden="true"></span><strong>Last 5 days</strong> are highlighted for comparison.</p>
-  </section>
-
   <!-- Let desktop users choose a labeled pictogram tile; only the chosen pattern is expanded. -->
   <nav class="pattern-tiles" aria-label="Choose a health pattern">
     {% for option in selectors %}
@@ -47,7 +41,6 @@
       {% if selected.signal == "glucose_avg" %}
         <p class="note">Blood sugar readings are shown as recorded by the connected monitor. Pair does not interpret readings or recommend care.</p>
       {% endif %}
-      <p class="note">Comparison period: the last five days; usual average: earlier days. The chart's shaded band shows your usual range.</p>
       <dl class="pattern-comparison">
         <div><dt>Your usual average</dt><dd>{{ signal_value(selected.signal, selected.usual | round | int) }}</dd></div>
         <div><dt>Last 5-day average</dt><dd>{{ signal_value(selected.signal, selected.recent | round | int) }}</dd></div>
