@@ -1,6 +1,7 @@
 # Pair deployment notes
 
-This guide covers the fictional Pair demonstration on Render and a separate Vercel project.
+This guide records deployment details for the fictional Pair demonstration. The current
+`pair-ui-redesign` challenge submission is on Vercel; the earlier prototype remains on Render.
 Role switching is a workspace preview only; it is not authentication or authorization.
 
 ## Current application shape
@@ -44,9 +45,11 @@ Keep the existing Render service and configuration in place:
 
 This audit does not change, replace, disconnect, or deploy the Render service.
 
-## Vercel project `pair-mvp`
+## Current Vercel project `pair-mvp`
 
-Create a separate Vercel project from the existing Git repository:
+The current challenge submission is available at <https://pair-mvp.vercel.app> and uses the
+`pair-ui-redesign` branch. These settings document the existing project and can also be used if it
+needs to be recreated:
 
 1. Import the `mabel17tsadia/pair` repository into Vercel.
 2. Set the Vercel project name to `pair-mvp` and the project root to the repository root.

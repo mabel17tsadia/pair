@@ -28,8 +28,8 @@ The current prototype now uses Ocean, Garden, and Twilight as its selectable the
 
 ## Layout and interaction
 
-- Member navigation: Home, My Plan, Check In, Health, My Circle, Me.
-- Keep Home focused on the next action and a short Now / Up Next / Later schedule.
+- Member navigation: Home, Check In, Health, My Plan, Patterns, Appointments, My Circle, Settings.
+- Keep Home focused on the next action. Show Now and Up Next by default; show Later only when the member chooses the full-day view.
 - Show one activity step at a time by default.
 - Pair icons or pictures with text labels; never make an icon the only explanation for an action.
 - Keep secondary detail available through clear, optional controls.

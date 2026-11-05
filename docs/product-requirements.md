@@ -18,11 +18,11 @@ Pair is not an electronic health-record (EHR) system. It does not diagnose, make
 
 ## Member experience
 
-The primary member navigation is Home, My Plan, Check In, Health, My Circle, and Me.
+The current member navigation order is Home, Check In, Health, My Plan, Patterns, Appointments, My Circle, and Settings.
 
 Members can choose the Ocean, Garden, or Twilight visual theme. Theme choice changes appearance only.
 
-- **Home** offers a greeting, a recommended next action, a simple Now / Up Next / Later schedule, optional private pattern notice, appointment reminder when relevant, and links to continue an activity or check in.
+- **Home** offers a greeting, private check-in guidance when available, fictional health observations, a My Pace-controlled Today view, a compact appointment summary, and links to continue an activity or check in. Later items appear only when the member chooses the full-day view.
 - **My Plan** organizes educational, independent-living, personal, coach-assigned, and accepted healthcare follow-up activities. It supports time and source filters and shows each activity's source, due date or time, estimated time, status, and next action. Appointments themselves belong in Health.
 - **Activity experience** presents one step at a time and supports picture and text preferences, read aloud, simpler explanations, examples, original instructions, breaks, help requests, and difficulty feedback. Presentation changes must preserve the educator's objective and required outcome.
 - **Check In** offers labeled feelings and “What would help?” choices. A check-in is private unless the member chooses to share specific information.

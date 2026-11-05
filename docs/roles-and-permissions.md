@@ -6,7 +6,7 @@ Roles define which workspace and actions are available. A role alone never grant
 
 | Role | Intended workspace and actions | Information boundary |
 |---|---|---|
-| Pair member | Home, My Plan, Check In, Health, My Circle, and Me; controls activities, check-ins, packets, source connections, and sharing choices. | Own information. The member chooses what specific information to share and with whom. |
+| Pair member | Home, Check In, Health, My Plan, Patterns, Appointments, My Circle, and Settings; controls activities, check-ins, packets, source connections, and sharing choices. | Own information. The member chooses what specific information to share and with whom. |
 | Coach or educator | Overview, learners, an individual learner profile, Activity Library, and Coach Settings; may assign an activity only after opening a specific learner profile. | May see assigned activity status, help requests, learning preferences, helpful presentation formats, and difficulty feedback when authorized. Must not see private check-ins, medical records, raw health readings, appointment packets, or unrelated health details. |
 | Healthcare professional | Shared Appointment Packets, Packet Detail, Communication Preferences, Proposed Next Steps, and Professional Settings. | Only packet content deliberately submitted by the member and only during the authorized period. May propose follow-up actions; does not automatically write to My Plan. |
 | Trusted person | Member-authorized summaries, shared accomplishments, encouragement opportunities, and support requests selected by the member. | Only specific content authorized by the member. No continuous-monitoring or surveillance dashboard. |

@@ -1,3 +1,43 @@
+# Local configuration and credentials
 .env
+.env.*
+!.env.example
+credentials*.json
+client_secret*.json
+*.pem
+*.p12
+
+# Local AI-agent instructions
+/AGENTS.md
+
+# Python environments, caches, and test coverage
 venv/
+.venv/
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Generated dependencies, builds, and deployment state
+node_modules/
+build/
+dist/
+.vercel/
+
+# Local editor, temporary, and operating-system files
+.vscode/
+.idea/
+*.tmp
+*.swp
+*.swo
+*.bak
+.DS_Store
+Thumbs.db
+Desktop.ini
