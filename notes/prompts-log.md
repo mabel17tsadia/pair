@@ -1,7 +1,11 @@
-   ## Stage 0, 28 October 2026
+# Early development prompts
+
+This file preserves the available early development prompts from 28 October 2026, when the prototype was initially called Pace. They show the beginning of the project and are not a complete prompt history. The product later evolved into Pair; later significant prompts will be represented in the challenge AI Prompts PDF.
+
+## Stage 0: 28 October 2026
    "Create a simple Flask app in this folder. This folder already has CLAUDE.md; keep it. Use this structure: app.py, templates/, static/css/, static/js/, data/, notes/. Create a virtual environment and a requirements.txt with only flask, pandas, python-dotenv, and anthropic. The home page should just say 'Pace'. Add a .gitignore that includes .env, venv/, and pycache/. Add a short README with how to run the app. Explain each file and folder you created in plain English."
 
-  ## Stage 1. Themes, layout, navigation, 28 October 2026
+## Stage 1: Themes, layout, navigation — 28 October 2026
 
 Stage 1: themes, layout and navigation.
 
@@ -67,7 +71,7 @@ can be tested.
 
 Keep it short and commented, following CLAUDE.md.
 
-## Stage 2. Sample data and the demo person picker, 28 October 2026
+## Stage 2: Sample data and the demo person picker — 28 October 2026
 
 Before this stage, download each tab of the Google Sheet "Pace Sample Data (demo, fictional)" as CSV (File, Download, Comma separated values) and save them in the data folder as people.csv, daily.csv, heart.csv, tasks.csv and inbox.csv. The README tab is for people and does not need to be downloaded.
 
@@ -109,7 +113,7 @@ saves the person's id in the Flask session and opens Today. Add a small
 
 Keep it short and commented, following CLAUDE.md.
 
-## Stage 3. Pace rule and Today screen, 28 October 2026
+## Stage 3: Pace rule and Today screen — 28 October 2026
 
 Stage 3: the pace rule and the Today screen.
 
@@ -169,16 +173,16 @@ Steady and Theo Okafor Ready.
 
 Keep it short and commented, following CLAUDE.md.
 
-## Stage 4. , 28 October 2026
+## Stage 4: Task steps — 28 October 2026
 Task steps "Build the Task steps page: one step at a time with a progress bar, Done, Back, and I need a break, and a gentle finish message. Use a small script in static/js for moving between steps."
 
-## Stage 5. , 28 October 2026
+## Stage 5: Check in — 28 October 2026
 Check in "Build the Check in page with five picture buttons, an optional note, Save and Skip. Store check ins in the Flask session for this demo."
 
-## Stage 6. , 28 October 2026
+## Stage 6: AI and Add a task — 28 October 2026
 AI and Add a task "Write ai.py that calls Claude using the key from .env. Add a function suggest_task(text) that returns a load level and up to 4 short steps as JSON. If the call fails, use a simple keyword lookup as a backup. Build the Add a task page so the person can change the suggestion before saving."
   
-## ## Stage 6 fix, 28 October 2026
+## Stage 6 fix: missing API key — 28 October 2026
 Bug found while testing: missing API key crashed the Add a task page.
 [Bug found while testing the backup: when ANTHROPIC_API_KEY is missing
 from .env (commented out), the Add a task page crashes with
