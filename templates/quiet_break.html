@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Return to My Plan without adding a timer or another activity step. -->
+  <a class="text-link" href="{{ url_for('plan') }}">‹ Back to My Plan</a>
+  <h1>Take a quiet break</h1>
+
+  <!-- Let the member decide when they are ready to finish the break. -->
+  <section class="card quiet-break-card">
+    <div class="quiet-break-instruction">
+      <p id="activity-instruction">Find a quiet or comfortable place. Take a few minutes to rest or do something calming.</p>
+      {% if read_aloud %}<button type="button" class="text-link" data-read-aloud>Read Aloud</button><span id="read-aloud-status" role="status" aria-live="polite"></span>{% endif %}
+    </div>
+    <form method="post" action="{{ url_for('activity_detail', activity_id=activity.id) if assigned else url_for('quiet_break') }}">
+      <input type="hidden" name="action" value="done">
+      <button type="submit" class="btn-primary">Done</button>
+    </form>
+    <a class="text-link" href="{{ url_for('plan') }}">Back to My Plan</a>
+  </section>
+{% endblock %}

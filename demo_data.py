@@ -97,13 +97,19 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
             if follow_up["id"] in seen_follow_ups:
                 continue
             seen_follow_ups.add(follow_up["id"])
-            due_on = plan_state.get("scheduled_for", follow_up.get("schedule", {}).get("date", follow_up.get("due_on", "")))
+            due_on = plan_state.get("scheduled_for", plan_state.get("schedule", {}).get(
+                "date", follow_up.get("schedule", {}).get("date", follow_up.get("due_on", ""))))
             schedule_time = follow_up.get("schedule", {}).get("time", "")
             scheduled_for = (datetime.strptime(f"{due_on} {schedule_time}", "%Y-%m-%d %I:%M %p").isoformat()
                              if due_on and schedule_time else "")
-            status = "paused" if plan_status == "paused" else "accepted"
+            status = ("completed" if plan_status == "completed" else
+                      "paused" if plan_status == "paused" else
+                      "in_progress" if plan_status == "in_progress" else "accepted")
             rows.append({
-                "id": follow_up["id"], "title": follow_up["instruction"], "source": "health",
+                "id": follow_up["id"], "health_action_id": follow_up.get("health_action_id", follow_up["id"]),
+                "recurrence_daily": follow_up.get("recurrence_daily", False),
+                "progress_label": follow_up.get("progress_label", ""),
+                "title": follow_up["instruction"], "source": "health",
                 "source_name": follow_up["source_name"], "source_label": "From Health",
                 "proposed_on": follow_up.get("proposed_on", ""),
                 "accepted_on": plan_state.get("accepted_on", follow_up.get("accepted_on", "")),
@@ -114,8 +120,8 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
                 "plan_status": plan_status,
                 "estimated_minutes": follow_up.get("estimated_minutes", 10),
                 "status": status,
-                "next_action": "Resume this step" if plan_status == "paused" else "Review the details in Health",
-                "health_link": f"/health/next-steps#{follow_up['id']}",
+                "next_action": "Continue" if plan_status == "paused" else "Review the details in Health",
+                "health_link": f"/health/next-steps#{follow_up.get('health_action_id', follow_up['id'])}",
             })
 
     visible = []

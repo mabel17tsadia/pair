@@ -59,7 +59,11 @@ singleSubmitForms.forEach((form) => {
 const readAloudButton = document.querySelector("[data-read-aloud]");
 if (readAloudButton) {
   readAloudButton.addEventListener("click", () => {
-    if (!("speechSynthesis" in window)) return;
+    if (!("speechSynthesis" in window)) {
+      document.getElementById("read-aloud-status").textContent =
+        "Read Aloud is not available in this browser.";
+      return;
+    }
     window.speechSynthesis.cancel();
     const speech = new SpeechSynthesisUtterance(
       document.getElementById("activity-instruction").textContent

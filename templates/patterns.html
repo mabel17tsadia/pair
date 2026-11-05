@@ -46,6 +46,7 @@
         <div><dt>Last 5-day average</dt><dd>{{ signal_value(selected.signal, selected.recent | round | int) }}</dd></div>
       </dl>
       {% include "partials/trend_chart.html" %}
+      <p class="note">{{ selected.explanation }}</p>
       {% if selected.related_metric %}
         <!-- Keep phone pickups available as a related Screen Use measure without adding another chart. -->
         <section class="related-pattern-metric" aria-labelledby="related-screen-title">
@@ -54,7 +55,6 @@
           <p class="note">Your usual average: {{ signal_value(selected.related_metric.signal, selected.related_metric.usual | round | int) }} · Last 5-day average: {{ signal_value(selected.related_metric.signal, selected.related_metric.recent | round | int) }} · Source: {{ selected.related_metric.source_label }}</p>
         </section>
       {% endif %}
-      <p class="note">{{ selected.explanation }}</p>
       <a class="btn-secondary" href="{{ url_for('devices') }}">Manage data sources</a>
     </section>
   {% else %}

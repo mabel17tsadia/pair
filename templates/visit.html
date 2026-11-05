@@ -15,8 +15,57 @@
       <h2>Appointment</h2><p>Provider and appointment details help organize your notes.</p>
       <p><strong>Appointment type:</strong> {{ visit_label }}</p>
       <label for="appointment-on">Date, if known</label><input id="appointment-on" name="appointment_on" type="date" min="{{ appointment_min }}" value="{{ draft.get('appointment_on', '') }}">
-      <label for="reason">Reason for the visit</label><textarea id="reason" name="reason" rows="3" maxlength="500">{{ draft.get('reason', '') }}</textarea>
-      <label for="help-with">What would you like help with?</label><textarea id="help-with" name="help_with" rows="3" maxlength="300">{{ draft.get('help_with', '') }}</textarea>
+      <label for="reason">What would you like to talk about at this visit?</label><textarea id="reason" name="reason" rows="3" maxlength="500">{{ draft.get('reason', draft.get('help_with', '')) }}</textarea>
+      <p class="visit-topic-link"><span>Not sure?</span> <a id="common-reasons-toggle" href="{{ url_for('visit_page', visit=visit, step=1, topics='show') }}" aria-controls="common-reasons" aria-expanded="{{ 'true' if topic_open else 'false' }}">{{ 'Hide common reasons' if topic_open else 'See common reasons for this type of visit' }}</a></p>
+      <input id="topic-action" type="hidden" name="topic_action" value="">
+      <!-- Keep provider-specific suggestions hidden until the member opens them. -->
+      <section id="common-reasons" class="visit-topic-suggestions" aria-live="polite" {% if not topic_open %}hidden{% endif %}>
+        <p class="note">{{ 'AI-assisted suggestions' if topic_suggestions.source == 'ai' else 'Built-in suggestions' }} · General information, not medical advice · <a href="{{ topic_suggestions.reference }}" target="_blank" rel="noopener">{{ topic_suggestions.source_name }}</a></p>
+        <fieldset><legend>Choose topics to add to your visit notes</legend>
+          {% for topic in topic_suggestions.topics %}
+            <label><input type="checkbox" class="visit-topic-choice" name="selected_topics" value="{{ topic }}" data-added-by-pair="{{ 'yes' if topic in draft.get('topic_additions', []) else 'no' }}" {% if topic in draft.get('selected_topics', []) %}checked{% endif %}> {{ topic }}</label>
+          {% endfor %}
+          {% for topic in draft.get('topic_additions', []) %}<input type="hidden" class="topic-addition" name="topic_additions" value="{{ topic }}">{% endfor %}
+        </fieldset>
+        <p class="note">Selected topics are added to the editable note. Leave suggestions unchecked to ignore them.</p>
+      </section>
+      <script>
+        // Toggle common reasons through the form so typed notes and checkbox choices are saved.
+        const topicToggle = document.getElementById('common-reasons-toggle');
+        topicToggle.addEventListener('click', (event) => {
+          event.preventDefault();
+          const isOpen = topicToggle.getAttribute('aria-expanded') === 'true';
+          document.getElementById('topic-action').value = isOpen ? 'hide' : 'show';
+          topicToggle.closest('form').requestSubmit();
+        });
+
+        // Add selected examples as separate lines and remove only lines Pair inserted.
+        const visitNote = document.getElementById('reason');
+        const topicFieldset = document.querySelector('#common-reasons fieldset');
+        document.querySelectorAll('.visit-topic-choice').forEach((choice) => choice.addEventListener('change', () => {
+          const lines = visitNote.value.split('\n');
+          if (choice.checked) {
+            const existed = lines.includes(choice.value);
+            if (!existed) visitNote.value = [visitNote.value.trim(), choice.value].filter(Boolean).join('\n');
+            choice.dataset.addedByPair = existed ? 'no' : 'yes';
+            if (!existed) {
+              const added = document.createElement('input');
+              added.type = 'hidden'; added.name = 'topic_additions'; added.value = choice.value; added.className = 'topic-addition';
+              topicFieldset.appendChild(added);
+            }
+          } else {
+            if (choice.dataset.addedByPair === 'yes') {
+              const index = lines.indexOf(choice.value);
+              if (index >= 0) lines.splice(index, 1);
+              visitNote.value = lines.join('\n');
+            }
+            choice.dataset.addedByPair = 'no';
+            topicFieldset.querySelectorAll('.topic-addition').forEach((added) => {
+              if (added.value === choice.value) added.remove();
+            });
+          }
+        }));
+      </script>
       <div class="wizard-actions"><a class="btn-secondary" href="{{ url_for('visit_start') }}">Back</a><button class="btn-primary" name="action" value="continue">Continue</button><button class="btn-secondary" name="action" value="save">Save and finish later</button></div>
     </form>
   {% elif step == 2 %}

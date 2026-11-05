@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Keep the member inside their Circle workspace and show who can be selected. -->
+  <a class="text-link" href="{{ url_for('circle') }}">‹ Back to My Circle</a>
+  <h1>Who would you like to message?</h1>
+
+  <!-- Prepare a message for one existing Circle member without connecting an external service. -->
+  <form method="post" class="card circle-message-form">
+    <label for="circle-recipient">Choose a person in My Circle</label>
+    <select id="circle-recipient" name="recipient" required>
+      <option value="">Choose someone</option>
+      {% for member in circle %}<option value="{{ member.name }}" {% if recipient == member.name %}selected{% endif %}>{{ member.name }} · {{ member.relationship }}</option>{% endfor %}
+    </select>
+    <label for="circle-message">Message</label>
+    <textarea id="circle-message" name="message" rows="4" maxlength="500" required>{{ message }}</textarea>
+    <p class="note">This prototype does not send a real message. No external messaging is connected.</p>
+    <button type="submit" class="btn-primary">Send</button>
+  </form>
+{% endblock %}

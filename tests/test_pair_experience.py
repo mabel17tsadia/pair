@@ -3,6 +3,7 @@
 import os
 import re
 import unittest
+from datetime import date, timedelta
 from unittest.mock import patch
 from html.parser import HTMLParser
 
@@ -11,7 +12,7 @@ os.environ["ANTHROPIC_API_KEY"] = ""
 
 import app as pair
 import data
-from demo_data import load_demo_data, plan_activities
+from demo_data import activity_assignments, load_demo_data, plan_activities
 
 
 class ControlNames(HTMLParser):
@@ -53,6 +54,12 @@ class PairExperienceTests(unittest.TestCase):
             state["demo_role"] = "member"
             state["signup"] = {"first_name": "Jordan"}
 
+    # Read generated Health activities inside the Flask request context that supplies member session state.
+    def plan_health_rows(self, activity_date):
+        with self.client:
+            self.client.get("/health")
+            return pair.plan_health_follow_ups(pair.current_person(), self.records, activity_date)
+
     # Open each role card into its actual route and show the matching role shell.
     def test_role_entry_opens_distinct_workspaces(self):
         page = self.client.get("/")
@@ -93,7 +100,7 @@ class PairExperienceTests(unittest.TestCase):
                 for label in [b"Pair member", b"Your information, your choices", b"Pair keeps the member in control", b"Patterns", b"Appointments"]:
                     self.assertIn(label, page.data)
                 member_nav = page.data.split(b'<nav aria-label="Pair member navigation">', 1)[1].split(b"</nav>", 1)[0]
-                nav_labels = [b"Home", b"Check In", b"Health", b"My Plan", b"Patterns",
+                nav_labels = [b"Home", b"Check In", b"My Plan", b"Health", b"Patterns",
                               b"Appointments", b"My Circle", b"Settings"]
                 positions = [member_nav.index(label) for label in nav_labels]
                 self.assertEqual(positions, sorted(positions))
@@ -115,10 +122,10 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"Manage", circle)
 
         plan = self.client.get("/my-plan").data
-        for label in [b"Today", b"Tomorrow", b"This Week", b"Later", b"Added by Me",
-                      b"From My Coach", b"From Health", b"One thing at a time",
-                      b"Show my full day", b"Save My Pace"]:
+        for label in [b"When", b"From", b"Today", b"Tomorrow", b"This Week", b"Later", b"Added by Me",
+                      b"From My Coach", b"From Health", b"No check-in today."]:
             self.assertIn(label, plan)
+        self.assertNotIn(b"Save My Pace", plan)
 
         patterns = self.client.get("/patterns").data
         for label in [b"Sleep", b"Movement", b"Screen Use", b"Time Away from Home",
@@ -195,7 +202,7 @@ class PairExperienceTests(unittest.TestCase):
         mobile_nav = page.split(b'<nav class="mobile-role-nav"', 1)[1].split(b"</nav>", 1)[0]
         primary = mobile_nav.split(b'<details class="mobile-more-menu"', 1)[0]
         self.assertEqual(primary.count(b"<a "), 4)
-        labels = [b"Home", b"Check In", b"Health", b"My Plan"]
+        labels = [b"Home", b"Check In", b"My Plan", b"Health"]
         self.assertEqual([primary.index(label) for label in labels], sorted(primary.index(label) for label in labels))
         more = mobile_nav.split(b'<div class="mobile-more-links">', 1)[1]
         for label in [b"Patterns", b"Appointments", b"My Circle", b"Settings"]:
@@ -247,7 +254,7 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(".checkin-form .choice-box { min-height: 7rem", css)
         self.assertIn("grid-template-columns: repeat(6, minmax(0, 1fr))", css)
         self.assertIn(".landing-hero { min-height: min(19rem, calc(100vh - 7rem))", css)
-        self.assertIn(".plan-filters { display: grid; grid-template-columns: 4.5rem", css)
+        self.assertIn(".plan-filter-selects { gap: .5rem; margin-block: .65rem; }", css)
         self.assertIn(".circle-row-action", css)
         self.assertIn(".pattern-tile { min-height: 5.75rem", css)
         self.assertIn(".landing-hero { min-height: 7rem", css)
@@ -258,13 +265,14 @@ class PairExperienceTests(unittest.TestCase):
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200, path)
 
-    # Show the saved display preference next to its collapsed disclosure control.
-    def test_checkin_shows_saved_display_preference_summary(self):
+    # Keep saved display preferences in Settings instead of repeating them in Check In.
+    def test_display_preferences_are_saved_in_settings(self):
         page = self.client.get("/checkin")
         self.assertEqual(page.status_code, 200)
-        self.assertIn(b"Display preferences", page.data)
-        self.assertIn(b"Saved: Pictures and Words", page.data)
-        self.assertNotIn(b'<details class="card display-preference" open', page.data)
+        self.assertNotIn(b"Display preferences", page.data)
+        settings = self.client.get("/settings?section=appearance")
+        self.assertIn(b"Pictures and Words", settings.data)
+        self.assertIn(b'value="pictures_words" checked', settings.data)
 
     # Keep the member Home brief and focused on next actions and private summaries.
     def test_member_home_summarizes_without_showing_all_pattern_details(self):
@@ -277,13 +285,15 @@ class PairExperienceTests(unittest.TestCase):
         self.assertNotIn(b"Last 5-day average", page.data)
         self.assertNotIn(b"Last Check In", page.data)
         self.assertNotIn(b"My Circle</p>", page.data)
-        self.assertIn(b"Want to check in before choosing your next step?", page.data)
+        self.assertIn(b"Check In", page.data)
+        self.assertNotIn(b"Choose one thing. Details stay tucked away until you want them.", page.data)
+        self.assertNotIn(b"Want to check in before choosing your next step?", page.data)
+        self.assertEqual(page.data.count(b'class="btn-primary" href="/checkin"'), 1)
+        self.assertNotIn(b"home-checkin-invite", page.data)
         plan_page = self.client.get("/my-plan")
-        self.assertIn(b"One thing at a time", plan_page.data)
-        self.assertIn(b'value="one_at_a_time" checked', plan_page.data)
-        self.assertIn(b"Show my full day", plan_page.data)
-        self.assertIn(b"pace-focus-icon", plan_page.data)
-        self.assertIn(b"pace-day-icon", plan_page.data)
+        self.assertIn(b"No check-in today. Showing all activities", plan_page.data)
+        self.assertIn(b"Change in Check In", plan_page.data)
+        self.assertNotIn(b"Save My Pace", plan_page.data)
         self.assertIn(b"activity-pictogram", plan_page.data)
 
     # Show the three ordered fictional health observations and their expandable provenance.
@@ -304,7 +314,7 @@ class PairExperienceTests(unittest.TestCase):
         self.assertNotIn(b"normal", summary.lower())
         self.assertNotIn(b"abnormal", summary.lower())
 
-    # Keep the Home timeline limited to current-day items and preserve both My Pace views.
+    # Keep the Home timeline limited to its Now and Up Next schedule, independent of My Pace.
     def test_home_schedule_today_filter_pace_and_plan_links(self):
         page = self.client.get("/today")
         day = page.data.split(b'<ol class="day-timeline">', 1)[1].split(b'</ol>', 1)[0]
@@ -319,12 +329,10 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn(b"/my-plan?time=today", day)
         focused = self.client.get("/my-plan", query_string={"time": "today", "activity": "assignment-wellness-demo-today"})
         self.assertIn(b'id="assignment-wellness-demo-today"', focused.data)
-        self.client.post("/my-plan", data={"action": "pace", "pace": "full_day", "time": "today"})
-        full_day = self.client.get("/today").data.split(b'<ol class="day-timeline">', 1)[1].split(b'</ol>', 1)[0]
-        self.assertIn(b"Practice a simple meal", full_day)
-        self.assertIn(b"Tidy my desk", full_day)
-        self.assertIn(b"Later", full_day)
-        self.assertGreaterEqual(full_day.count(b'class="day-activity"'), 4)
+        self.assertEqual(day.count(b'class="timeline-marker"'), 2)
+        self.assertIn(b"Now", day)
+        self.assertIn(b"Up Next", day)
+        self.assertNotIn(b"Later", day)
 
     # Keep the landing page focused while placing appointment and instruction details behind actions.
     def test_health_overview_summarizes_visit_appointment_and_care_instructions(self):
@@ -359,7 +367,103 @@ class PairExperienceTests(unittest.TestCase):
             self.assertIn(b"About 15 minutes", page.data)
         plan = self.client.get("/my-plan?time=today&source=health").data
         self.assertIn(b"From Health", plan)
-        self.assertIn(b"Today at 1:00 PM", plan)
+        self.assertIn(b"Start", plan)
+        self.assertIn(b"Done", plan)
+        self.assertNotIn(b"Next action: Review the details in Health", plan)
+
+    # Test the in-progress controls for one occurrence without altering the Health record.
+    def test_daily_health_start_pause_continue_done_and_remove(self):
+        occurrence = f"follow-up-demo-today@{data.get_today()}"
+        url = f"/my-plan/health-action/{occurrence}"
+        self.assertEqual(self.client.post(url, data={"choice": "start"}).status_code, 302)
+        page = self.client.get("/my-plan?time=today&source=health").data
+        self.assertIn(b">Pause</button>", page)
+        self.assertIn(b'value="done"', page)
+        self.client.post(url, data={"choice": "pause"})
+        paused = self.client.get("/my-plan?time=today&source=health").data
+        self.assertIn("Paused — continue when ready".encode(), paused)
+        self.assertIn(b'value="continue"', paused)
+        self.client.post(url, data={"choice": "continue"})
+        continued = self.client.get("/my-plan?time=today&source=health").data
+        self.assertIn(b'value="pause"', continued)
+        self.client.post(url, data={"choice": "done"})
+        self.assertNotIn(occurrence.encode(), self.client.get("/my-plan?time=today&source=health").data)
+
+        with self.client.session_transaction() as state:
+            state["health_plan_states"] = {"p1": {}}
+        page = self.client.get("/my-plan?time=today&source=health").data
+        self.assertIn(b"Remove this recurring activity from My Plan? Future daily occurrences will stop.", page)
+        self.client.post(url, data={"choice": "remove"})
+        self.assertNotIn(occurrence.encode(), self.client.get("/my-plan?time=today&source=health").data)
+
+    # Give a daily Health instruction a separate, idempotent occurrence for each demo date.
+    def test_daily_health_activity_is_repeatable_and_counted_once_per_day(self):
+        action_id = "follow-up-demo-today"
+        today = data.get_today()
+        occurrence = f"{action_id}@{today}"
+        page = self.client.get("/my-plan?time=today&source=health").data
+        self.assertIn(f'id="{occurrence}"'.encode(), page)
+        self.assertIn(b"More options", page)
+        self.assertIn(b"View health details", page)
+        self.assertIn(b"confirm('Remove this recurring activity", page)
+        for hidden_copy in [b"Choose another date", b"Reschedule", b"Open Health follow-up",
+                            b"Proposal date", b"Next action:"]:
+            self.assertNotIn(hidden_copy, page)
+
+        done_url = f"/my-plan/health-action/{occurrence}"
+        self.assertEqual(self.client.post(done_url, data={"choice": "done"}).status_code, 302)
+        self.client.post(done_url, data={"choice": "done"})
+        with self.client.session_transaction() as state:
+            completions = state["health_activity_completions"]["p1"]
+            self.assertEqual(len(completions), 1)
+            self.assertEqual(completions[occurrence]["date"], today)
+        climb = self.client.get("/climb").data
+        self.assertIn(b"1 of 7 days", climb)
+        self.assertNotIn(occurrence.encode(), self.client.get("/my-plan?time=today&source=health").data)
+
+        tomorrow = (date.fromisoformat(today) + timedelta(days=1)).isoformat()
+        with patch.object(data, "get_today", return_value=tomorrow):
+            tomorrow_page = self.client.get("/my-plan?time=today&source=health").data
+        self.assertIn(f'id="{action_id}@{tomorrow}"'.encode(), tomorrow_page)
+        with self.client.session_transaction() as state:
+            self.assertEqual(len(state["health_activity_completions"]["p1"]), 1)
+
+    # Preserve a learning activity's current step when the member pauses and asks for help.
+    def test_activity_break_resumes_saved_step_and_help_is_demo_only(self):
+        activity_id = self.records["activity_assignments"][0]["id"]
+        url = f"/activity/{activity_id}"
+        paused = self.client.post(url, data={"step": "2", "action": "break"})
+        self.assertIn("/my-plan", paused.headers["Location"])
+        with self.client.session_transaction() as state:
+            self.assertEqual(state["activity_progress"][activity_id]["status"], "paused")
+            self.assertEqual(state["activity_progress"][activity_id]["step"], 2)
+        plan = self.client.get(paused.headers["Location"]).data
+        self.assertIn(b"Continue", plan)
+        resumed = self.client.get(url)
+        self.assertIn(b"Step 2 of", resumed.data)
+
+        confirm = self.client.post(url, data={"step": "2", "action": "help"})
+        panel = self.client.get(confirm.headers["Location"]).data
+        self.assertIn(b"Ask Dana Brooks for help?", panel)
+        self.assertIn(b"This prototype does not deliver a real message.", panel)
+        sent = self.client.post(url, data={"step": "2", "action": "help_send"})
+        self.assertIn(b"Help request saved for this demo.", self.client.get(sent.headers["Location"]).data)
+
+    # Keep the colorful meal choices, single primary next action, and final-only feedback.
+    def test_activity_step_layout_and_meal_picture_choices(self):
+        meal = next(item for item in activity_assignments(self.records, "p1")
+                    if item.get("template_id") == "template-coach-01")
+        page = self.client.get(f"/activity/{meal['id']}").data
+        for picture, label in [("🥪", "Sandwich"), ("🥣", "Oatmeal"), ("🥗", "Salad"), ("✨", "Something else")]:
+            self.assertIn(picture.encode(), page)
+            self.assertIn(label.encode(), page)
+        self.assertLess(page.index(b"</fieldset>"), page.index(b"Next step"))
+        self.assertLess(page.index(b"Next step"), page.index(b"Read Aloud"))
+        self.assertNotIn(b"How did this activity feel?", page)
+        final_page = self.client.get(f"/activity/{meal['id']}?step={len(meal['steps'])}").data
+        self.assertIn(b"How did this activity feel?", final_page)
+        for feedback in [b"Easy", b"Okay", b"Difficult"]:
+            self.assertIn(feedback, final_page)
 
     # Let the member open every care-team instruction and its available choices.
     def test_health_instruction_review_has_back_navigation_and_all_choices(self):
@@ -406,19 +510,31 @@ class PairExperienceTests(unittest.TestCase):
         for placeholder in [b"example dose", b"example time", b"Example medication"]:
             self.assertNotIn(placeholder.lower(), page.lower())
 
-    # Keep the default pace focused, retain a saved choice, and clear it with the member's demo data.
-    def test_my_pace_default_saved_and_reset(self):
-        self.assertNotIn(b"Later", self.client.get("/today").data.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0])
+    # Keep the Home schedule stable while Check In sets the session's My Pace value.
+    def test_my_pace_is_saved_from_checkin_and_home_schedule_stays_basic(self):
+        home = self.client.get("/today").data
+        timeline = home.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0]
+        self.assertEqual(timeline.count(b'class="timeline-marker"'), 2)
+        self.assertIn(b"Now", timeline)
+        self.assertIn(b"Up Next", timeline)
+        self.assertNotIn(b"Later", timeline)
+        self.assertGreater(self.client.get("/my-plan").data.count(b'class="card activity-card'), 3)
+        form = self.client.get("/checkin").data
+        submission_id = re.search(rb'name="submission_id" value="([^\"]+)"', form).group(1).decode()
+        response = self.client.post("/checkin", data={"action": "save", "submission_id": submission_id,
+                                    "manageability": "few_manageable"})
+        self.assertEqual(response.status_code, 302)
         with self.client.session_transaction() as state:
-            self.assertNotIn("plan_pace", state)
-        self.client.post("/my-plan", data={"action": "pace", "pace": "full_day"})
-        self.assertIn(b"Later", self.client.get("/today").data.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0])
+            self.assertEqual(state["checkins"][-1]["my_pace"], "few_manageable")
+        self.assertEqual(self.client.get("/my-plan?time=this_week&source=all").data.count(b'class="card activity-card'), 3)
+        home = self.client.get("/today").data
+        timeline = home.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0]
+        self.assertEqual(timeline.count(b'class="timeline-marker"'), 2)
         self.client.post("/settings/delete-data", data={"confirm_delete": "yes"})
         with self.client.session_transaction() as state:
-            self.assertNotIn("p1", state.get("plan_pace", {}))
             state["person_id"] = "p1"
             state["demo_role"] = "member"
-        self.assertNotIn(b"Later", self.client.get("/today").data.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0])
+        self.assertGreater(self.client.get("/my-plan").data.count(b'class="card activity-card'), 3)
 
     # Keep care-team instructions private and separate from prescription details.
     def test_health_instructions_are_member_only_and_keep_original_sources(self):
@@ -541,6 +657,7 @@ class PairExperienceTests(unittest.TestCase):
     def test_member_adaptation_request_appears_in_authorized_coach_view(self):
         activity_id = self.records["activity_assignments"][0]["id"]
         self.client.post(f"/activity/{activity_id}", data={"step": "1", "action": "help"})
+        self.client.post(f"/activity/{activity_id}", data={"step": "1", "action": "help_send"})
         with self.client.session_transaction() as state:
             state["demo_role"] = "coach"
         page = self.client.get("/coach")
@@ -580,8 +697,8 @@ class PairExperienceTests(unittest.TestCase):
                 response = self.client.get("/my-plan", query_string={"time": time_filter,
                                                                       "source": source_filter})
                 self.assertEqual(response.status_code, 200)
-                self.assertIn(f"time={time_filter}".encode(), response.data)
-                self.assertIn(f"source={source_filter}".encode(), response.data)
+                self.assertIn(f'value="{time_filter}"'.encode(), response.data)
+                self.assertIn(f'value="{source_filter}"'.encode(), response.data)
         accepted = [item for item in plan_activities(self.records, data.get_today(), "later", "health")]
         self.assertTrue(all(item["status"] == "accepted" for item in accepted))
 
@@ -617,7 +734,7 @@ class PairExperienceTests(unittest.TestCase):
     def test_member_home_is_simple_and_timeline_destinations_work(self):
         page = self.client.get("/today")
         self.assertEqual(page.status_code, 200)
-        for label in [b"Good afternoon, Jordan.", b"Choose one thing. Details stay tucked away until you want them.",
+        for label in [b"Good afternoon, Jordan.", b"Check In",
                       b"Pair noticed", b"Your week at a glance", b"Your Day", b"Now", b"Up Next",
                       b"Upcoming appointment", b"My Climb", b"data-demo-role=\"member\""]:
             self.assertIn(label, page.data)
@@ -628,7 +745,7 @@ class PairExperienceTests(unittest.TestCase):
     # Keep sidebar and mobile member navigation in the approved order.
     def test_member_navigation_order_matches_across_screen_sizes(self):
         page = self.client.get("/today").data.decode()
-        expected = ["Home", "Check In", "Health", "My Plan", "Patterns", "Appointments", "My Circle", "Settings"]
+        expected = ["Home", "Check In", "My Plan", "Health", "Patterns", "Appointments", "My Circle", "Settings"]
         sidebar = page.split('<nav aria-label="Pair member navigation">', 1)[1].split("</nav>", 1)[0]
         mobile = page.split('<nav class="mobile-role-nav"', 1)[1].split("</nav>", 1)[0]
         for nav in [sidebar, mobile]:
@@ -640,7 +757,7 @@ class PairExperienceTests(unittest.TestCase):
     def test_appointment_wizard_steps_back_save_and_review_selected_items(self):
         self.assertEqual(self.client.get("/visit/primary?step=1").status_code, 200)
         response = self.client.post("/visit/primary?step=1", data={"reason": "Talk about my sleep",
-                                 "help_with": "Prepare questions", "appointment_on": data.get_today()})
+                                 "appointment_on": data.get_today()})
         self.assertIn("step=2", response.headers["Location"])
         page = self.client.get("/visit/primary?step=2")
         self.assertIn(b"What Pair noticed", page.data)
@@ -659,7 +776,7 @@ class PairExperienceTests(unittest.TestCase):
         response = self.client.post("/visit/primary?step=4", data={"questions": "Can you explain the next step?"})
         self.assertIn("/visit/primary/review", response.headers["Location"])
         review = self.client.get(response.headers["Location"])
-        for label in [b"Step 5 of 5", b"What I would like help with", b"Left out",
+        for label in [b"Step 5 of 5", b"What I would like to talk about", b"Left out",
                       b"Communication preferences", b"Can you explain the next step?", b"does not send packets"]:
             self.assertIn(label, review.data)
         invalid = self.client.post("/visit/primary/send", data={"recipient": "Dr. Patel",
@@ -679,26 +796,127 @@ class PairExperienceTests(unittest.TestCase):
         self.assertIn("/health", response.headers["Location"])
         self.assertIn(b"Continue saved Primary care doctor draft", self.client.get("/visit").data)
 
-    # Keep the focused plan display and full-day preference member-specific and usable.
-    def test_my_pace_switches_between_one_and_all_activities(self):
-        page = self.client.get("/my-plan?time=this_week&source=all")
-        self.assertEqual(page.status_code, 200)
-        self.assertIn(b"One thing at a time", page.data)
-        self.assertIn(b"Show my full day", page.data)
-        self.assertIn(b"Show the other", page.data)
-        response = self.client.post("/my-plan", data={"action": "pace", "pace": "full_day",
-                                   "time": "this_week", "source": "all"})
-        self.assertEqual(response.status_code, 302)
+    # Keep one member-authored visit topic and offer selectable, editable profession-based examples.
+    def test_visit_topics_use_ai_or_built_in_guidance_without_personal_data(self):
+        page = self.client.get("/visit/dietitian?step=1").data
+        self.assertIn(b"What would you like to talk about at this visit?", page)
+        self.assertIn(b"Not sure?</span>", page)
+        self.assertIn(b">See common reasons for this type of visit</a>", page)
+        self.assertNotIn(b"What would you like help with?", page)
+        self.assertIn(b'id="common-reasons"', page)
+        self.assertIn(b" hidden>", page)
+        fallback = self.client.post("/visit/dietitian?step=1", data={"topic_action": "show",
+                                                "reason": "My usual meals"}, follow_redirects=True)
+        self.assertIn(b"Built-in suggestions", fallback.data)
+        self.assertIn(b"Planning balanced meals", fallback.data)
+        self.assertIn(b"dietitians-and-nutritionists.htm", fallback.data)
+        self.assertIn(b"My usual meals", fallback.data)
+        self.assertIn(b"class=\"visit-topic-choice\"", fallback.data)
+
+        with patch("ai.os.getenv", return_value="demo-key"), patch(
+                "ai.ask_claude", return_value='{"topics":["Daily routines","Nutrition questions","Food preferences"]}') as ask:
+            ai_topics = pair.suggest_visit_topics("dietitian")
+        self.assertEqual(ai_topics["source"], "ai")
+        self.assertEqual(len(ai_topics["topics"]), 3)
+        self.assertEqual(ai_topics["source_name"], "U.S. Bureau of Labor Statistics")
+        self.assertEqual(ai_topics["reference"], "https://www.bls.gov/ooh/healthcare/dietitians-and-nutritionists.htm")
+        self.assertNotIn("Jordan", ask.call_args.args[1])
+        self.assertIn("dietitian", ask.call_args.args[1].lower())
+        with patch("ai.os.getenv", return_value="demo-key"), patch(
+                "ai.ask_claude", return_value='{"topics":["You have diabetes","Treatment plan","Question","Another"]}'):
+            self.assertEqual(pair.suggest_visit_topics("dietitian")["source"], "rules")
+
+    # Keep selected visit examples editable and preserve a phrase the member had typed independently.
+    def test_visit_topic_selection_keeps_member_written_text_and_source_links(self):
+        with patch.object(pair, "suggest_visit_topics", return_value={
+                "topics": ["Planning balanced meals", "Food allergies or dietary needs"],
+                "source": "ai", "source_name": "U.S. Bureau of Labor Statistics",
+                "reference": "https://www.bls.gov/ooh/healthcare/dietitians-and-nutritionists.htm"}):
+            opened = self.client.post("/visit/dietitian?step=1", data={"topic_action": "show",
+                                             "reason": "My own note"}, follow_redirects=True)
+        self.assertIn(b"AI-assisted suggestions", opened.data)
+        self.assertIn(b'target="_blank" rel="noopener">U.S. Bureau of Labor Statistics</a>', opened.data)
+        self.assertIn(b"value=\"Planning balanced meals\"", opened.data)
+        source = open(os.path.join(pair.app.template_folder, "visit.html"), encoding="utf-8").read()
+        self.assertIn("choice.dataset.addedByPair === 'yes'", source)
+        self.assertIn("if (index >= 0) lines.splice(index, 1)", source)
+
+        self.client.post("/visit/dietitian?step=1", data={"action": "continue", "reason": "Planning balanced meals\nMy own note",
+                         "selected_topics": "Planning balanced meals", "topic_additions": ""})
         with self.client.session_transaction() as state:
-            self.assertEqual(state["plan_pace"]["p1"], "full_day")
-        page = self.client.get("/my-plan?time=this_week&source=all")
-        self.assertIn(b'value="full_day" checked', page.data)
-        self.assertNotIn(b"Show the other", page.data)
-        response = self.client.post("/my-plan", data={"action": "pace", "pace": "one_at_a_time",
-                                   "time": "this_week", "source": "all"})
+            draft = state["visit_packet_drafts"]["p1"]["dietitian"]
+            self.assertEqual(draft["reason"], "Planning balanced meals\nMy own note")
+            self.assertEqual(draft["selected_topics"], ["Planning balanced meals"])
+
+    # Check today's My Pace choice controls the number of plan activities without another selector.
+    def test_my_pace_controls_plan_count_and_pause_can_return_explicitly(self):
+        page = self.client.get("/my-plan")
+        self.assertIn(b'<select id="plan-when" name="time"', page.data)
+        self.assertIn(b'<option value="today" selected>Today</option>', page.data)
+        self.assertIn(b'<select id="plan-from" name="source"', page.data)
+        self.assertIn(b'<option value="all" selected>All</option>', page.data)
+        expected_default = plan_activities(self.records, data.get_today(), "today", "all", {})
+        self.assertEqual(page.data.count(b'class="card activity-card'), len(expected_default))
+        self.assertNotIn(b"Save My Pace", page.data)
+        self.assertNotIn(b"Show my full day", page.data)
+
+        expected = {"one_small_step": 1, "few_manageable": 3, "pause": 0, "not_sure": 1}
+        messages = {"one_small_step": "Based on your check-in, we\u2019re showing one activity at a time.",
+                    "few_manageable": "Based on your check-in, we\u2019re showing a few activities.",
+                    "pause": "You chose to pause. Return when you\u2019re ready.",
+                    "not_sure": "We\u2019ll start with one activity."}
+        for pace, count in expected.items():
+            with self.client.session_transaction() as state:
+                state["checkins"] = [{"person_id": "p1", "date": data.get_today(), "created_at": pace,
+                                      "my_pace": pace, "manageability": pace}]
+            page = self.client.get("/my-plan?time=this_week&source=all")
+            self.assertEqual(page.data.count(b'class="card activity-card'), count, pace)
+            self.assertIn(messages[pace].encode("utf-8"), page.data)
+            self.assertIn(b"Change in Check In", page.data)
+            if pace == "pause":
+                self.assertIn(b"Return when ready", page.data)
+                resumed = self.client.get("/my-plan?time=this_week&source=all&ready=yes")
+                self.assertEqual(resumed.data.count(b'class="card activity-card'), 1)
+
+    # One-activity views advance to the next incomplete item and name the all-complete state.
+    def test_one_activity_view_advances_after_completion_and_handles_empty_view(self):
+        with self.client.session_transaction() as state:
+            state["checkins"] = [{"person_id": "p1", "date": data.get_today(), "created_at": "10:00",
+                                  "my_pace": "one_small_step"}]
+        with pair.app.test_request_context():
+            daily_records = {**self.records,
+                             "health_follow_ups": pair.plan_health_follow_ups(
+                                 {"id": "p1"}, self.records, data.get_today())}
+        matches = plan_activities(daily_records, data.get_today(), "today", "all", {})
+        self.assertGreaterEqual(len(matches), 2)
+        first, second = matches[:2]
+        first_activity = next(item for item in activity_assignments(self.records, "p1")
+                              if item["id"] == first["id"])
+        response = self.client.post(f"/activity/{first['id']}?step={len(first_activity['steps'])}",
+                                    data={"action": "next"})
         self.assertEqual(response.status_code, 302)
-        page = self.client.get("/my-plan?time=this_week&source=all")
-        self.assertIn(b"Show the other", page.data)
+        page = self.client.get(response.headers["Location"]).data
+        self.assertIn(f"You finished {first['title']}".encode(), page)
+        self.assertIn(f'id="{second["id"]}"'.encode(), page)
+        self.assertNotIn(f'id="{first["id"]}"'.encode(), page)
+
+        with self.client.session_transaction() as state:
+            state["activity_progress"] = {item["id"]: {"status": "completed"} for item in matches}
+            state["health_plan_states"] = {"p1": {item["id"]: {"status": "completed"}
+                                                   for item in matches if item["source"] == "health"}}
+        page = self.client.get("/my-plan").data
+        self.assertIn(b"You completed everything in this view.", page)
+        self.assertNotIn(b'class="card activity-card', page)
+
+    # The two dropdown filters update server results and preserve both selections.
+    def test_plan_dropdown_filters_update_activity_results(self):
+        page = self.client.get("/my-plan?time=this_week&source=coach").data
+        self.assertIn(b'<option value="this_week" selected>This Week</option>', page)
+        self.assertIn(b'<option value="coach" selected>From My Coach</option>', page)
+        expected = plan_activities(self.records, data.get_today(), "this_week", "coach", {})
+        self.assertEqual(page.count(b'class="card activity-card'), len(expected))
+        stylesheet = open(os.path.join(pair.app.static_folder, "css", "style.css"), encoding="utf-8").read()
+        self.assertIn(".plan-filter-selects { grid-template-columns: 1fr; }", stylesheet)
 
     # Put a consistent pictogram beside every access label on Circle.
     def test_circle_access_levels_have_pictograms_and_text(self):
@@ -785,14 +1003,36 @@ class PairExperienceTests(unittest.TestCase):
 
     # Put only an accepted healthcare proposal in My Plan while it remains in Health.
     def test_accepting_health_next_step_adds_it_to_plan(self):
-        action = next(item for item in self.records["health_follow_ups"] if item["status"] == "proposed")
-        response = self.client.post(f"/health/next-steps/{action['id']}", data={"choice": "accept"})
+        action = next(item for item in self.records["health_follow_ups"] if item["id"] == "follow-up-01")
+        response = self.client.post(f"/health/next-steps/{action['id']}", data={
+            "choice": "accept", "when": data.get_today(), "reminder_time": "20:00"})
         self.assertEqual(response.status_code, 302)
-        plan_page = self.client.get("/my-plan", query_string={"time": "later", "source": "health"})
+        plan_page = self.client.get("/my-plan", query_string={"time": "today", "source": "health"})
         health_page = self.client.get("/health/next-steps")
-        self.assertIn(action["instruction"].encode(), plan_page.data)
+        health_landing = self.client.get("/health")
+        self.assertIn("Record today’s sleep".encode(), plan_page.data)
         self.assertIn(action["instruction"].encode(), health_page.data)
         self.assertIn(b"Accepted", health_page.data)
+        self.assertIn(b"Daily for seven days", health_landing.data)
+        self.assertIn(b"View in My Plan", health_landing.data)
+        self.assertIn(b"Day 1 of 7", plan_page.data)
+
+    # Render the acceptance action clearly and confirm it saves the member-selected schedule.
+    def test_health_next_steps_accept_button_label_and_schedule_action(self):
+        page = self.client.get("/health/next-steps").data
+        self.assertIn(b"<summary class=\"btn-primary\">Accept and add to My Plan</summary>", page)
+        self.assertIn(b">Decline</button>", page)
+        css = open(os.path.join(pair.app.static_folder, "css", "style.css"), encoding="utf-8").read()
+        self.assertIn(".health-schedule-review button.btn-primary", css)
+        self.assertIn("color: #FFFFFF", css)
+        response = self.client.post("/health/next-steps/follow-up-pressure", data={
+            "choice": "accept", "when": data.get_today(), "frequency": "once", "reminder_time": "09:00"})
+        self.assertEqual(response.status_code, 302)
+        plan = self.client.get("/my-plan", query_string={"time": "today", "source": "health"}).data
+        self.assertIn(b"Record blood-pressure reading", plan)
+        with self.client.session_transaction() as state:
+            self.assertEqual(state["health_plan_states"]["p1"]["follow-up-pressure"]["schedule"]["frequency"], "once")
+            self.assertEqual(state["health_plan_states"]["p1"]["follow-up-pressure"]["schedule"]["reminder_time"], "09:00")
 
     # Verify accepted follow-ups appear once, while declined and proposed steps stay out of My Plan.
     def test_health_followups_enter_plan_only_once_after_acceptance(self):
@@ -800,13 +1040,97 @@ class PairExperienceTests(unittest.TestCase):
         page = self.client.get("/my-plan", query_string={"time": "later", "source": "health"})
         self.assertNotIn(proposed[0]["instruction"].encode(), page.data)
         self.assertNotIn(proposed[1]["instruction"].encode(), page.data)
-        self.client.post(f"/health/next-steps/{proposed[0]['id']}", data={"choice": "accept"})
+        self.client.post(f"/health/next-steps/{proposed[0]['id']}", data={
+            "choice": "accept", "when": data.get_today(), "reminder_time": "20:00"})
         page = self.client.get("/my-plan", query_string={"time": "later", "source": "health"})
-        self.assertEqual(page.data.count(proposed[0]["instruction"].encode()), 1)
-        self.assertIn(f"/health/next-steps#{proposed[0]['id']}".encode(), page.data)
+        self.assertNotIn(proposed[0]["instruction"].encode(), page.data)
+        today_page = self.client.get("/my-plan", query_string={"time": "today", "source": "health"})
+        self.assertIn("Record today’s sleep".encode(), today_page.data)
+        self.assertIn(f"/health/next-steps#{proposed[0]['id']}".encode(), today_page.data)
         self.client.post(f"/health/next-steps/{proposed[1]['id']}", data={"choice": "decline"})
         self.assertNotIn(proposed[1]["instruction"].encode(), self.client.get(
             "/my-plan", query_string={"time": "later", "source": "health"}).data)
+
+    # Keep proposed instructions out of the plan until the member explicitly accepts or declines.
+    def test_proposed_instructions_need_member_choice_and_selected_frequency(self):
+        before = self.client.get("/my-plan", query_string={"time": "this_week", "source": "health"})
+        self.assertNotIn(b"Record blood-pressure reading", before.data)
+        pressure = next(item for item in self.records["health_follow_ups"] if item["id"] == "follow-up-pressure")
+        self.client.post("/health/next-steps/follow-up-pressure", data={
+            "choice": "accept", "when": data.get_today(), "reminder_time": "09:00"})
+        self.assertIn(b"Choose a reminder schedule", self.client.get("/health/next-steps").data)
+        with self.client:
+            self.client.get("/health")
+            self.assertEqual(next(item for item in pair.health_follow_ups_for(pair.current_person())
+                                  if item["id"] == pressure["id"])["status"], "proposed")
+        self.client.post("/health/next-steps/follow-up-pressure", data={
+            "choice": "accept", "when": data.get_today(), "frequency": "daily",
+            "reminder_time": "09:00"})
+        plan = self.client.get("/my-plan", query_string={"time": "later", "source": "health"})
+        self.assertIn(b"Record blood-pressure reading", plan.data)
+        self.assertIn(b"09:00", plan.data)
+        rows = self.plan_health_rows(data.get_today())
+        prep = next(item for item in rows if item["id"] == "follow-up-pressure-bring")
+        appointment = pair.next_appointment_date(self.records)
+        self.assertEqual(prep["due_on"], (date.fromisoformat(appointment) - timedelta(days=1)).isoformat())
+        self.assertEqual(prep["schedule"]["reminder_time"], "09:00")
+        today = date.fromisoformat(data.get_today())
+        prep_day = date.fromisoformat(prep["due_on"])
+        week_end = today + timedelta(days=6 - today.weekday())
+        when = ("today" if prep_day == today else "tomorrow" if prep_day == today + timedelta(days=1)
+                else "this_week" if prep_day <= week_end else "later")
+        plan_rows = plan_activities({**self.records, "activity_assignments": [], "health_follow_ups": rows},
+                                    data.get_today(), when, "health")
+        self.assertTrue(any(item["id"] == "follow-up-pressure-bring" for item in plan_rows))
+
+    # Create exactly seven member-selected sleep-recording occurrences with editable reminder times.
+    def test_sleep_recording_creates_seven_daily_occurrences_and_stops(self):
+        today = date.fromisoformat(data.get_today())
+        self.client.post("/health/next-steps/follow-up-01", data={
+            "choice": "accept", "when": today.isoformat(), "reminder_time": "20:00"})
+        occurrences = self.plan_health_rows(today.isoformat())
+        sleep = [item for item in occurrences if item.get("health_action_id") == "follow-up-01"]
+        self.assertEqual(len(sleep), 7)
+        self.assertEqual(sleep[2]["progress_label"], "Day 3 of 7")
+        self.assertEqual(sleep[0]["schedule"]["reminder_time"], "20:00")
+        self.client.post(f"/my-plan/health-action/follow-up-01@{today.isoformat()}", data={
+            "choice": "done", "health_action_id": "follow-up-01"})
+        self.client.post(f"/my-plan/health-action/follow-up-01@{today.isoformat()}", data={
+            "choice": "done", "health_action_id": "follow-up-01"})
+        with self.client.session_transaction() as state:
+            self.assertEqual(len(state["health_activity_completions"]["p1"]), 1)
+        tomorrow = self.plan_health_rows((today + timedelta(days=1)).isoformat())
+        self.assertFalse(any(item["id"] == f"follow-up-01@{today.isoformat()}" for item in tomorrow))
+        self.assertTrue(any(item["id"] == f"follow-up-01@{(today + timedelta(days=1)).isoformat()}"
+                            for item in tomorrow))
+        final_day = self.plan_health_rows((today + timedelta(days=7)).isoformat())
+        self.assertFalse(any(item.get("health_action_id") == "follow-up-01" for item in final_day))
+
+    # Let the member change the recurring walking reminder and complete one occurrence per date.
+    def test_daily_walking_uses_saved_time_and_reappears_next_day(self):
+        today = date.fromisoformat(data.get_today())
+        url = f"/my-plan/health-action/follow-up-demo-today@{today.isoformat()}"
+        self.client.post(url, data={"choice": "save_time", "health_action_id": "follow-up-demo-today",
+                                   "reminder_time": "07:30"})
+        home = self.client.get("/today")
+        plan = self.client.get("/my-plan", query_string={"time": "today", "source": "health"})
+        self.assertIn(b"7:30 AM", home.data)
+        self.assertIn(b"7:30 AM", plan.data)
+        self.client.post(url, data={"choice": "done", "health_action_id": "follow-up-demo-today"})
+        tomorrow = self.plan_health_rows((today + timedelta(days=1)).isoformat())
+        self.assertTrue(any(item["id"] == f"follow-up-demo-today@{(today + timedelta(days=1)).isoformat()}"
+                            for item in tomorrow))
+
+    # Show reminder cards only after the selected in-app reminder time has arrived.
+    def test_in_app_reminders_are_time_gated_and_used_on_home_and_plan(self):
+        activity = {"title": "Record today’s sleep", "due_on": data.get_today(),
+                    "schedule": {"reminder_time": "09:00"}, "status": "accepted"}
+        self.assertEqual(pair.due_in_app_reminders([activity], "08:59"), [])
+        self.assertEqual(pair.due_in_app_reminders([activity], "09:00"), [activity])
+        self.client.post("/health/next-steps/follow-up-01", data={
+            "choice": "accept", "when": data.get_today(), "reminder_time": "00:01"})
+        self.assertIn(b"In-app demonstration reminder", self.client.get("/today").data)
+        self.assertIn(b"In-app demonstration reminder", self.client.get("/my-plan").data)
 
     # Keep pausing, rescheduling, and removing from My Plan separate from the Health record.
     def test_health_plan_controls_preserve_the_health_history(self):
@@ -822,7 +1146,7 @@ class PairExperienceTests(unittest.TestCase):
         self.client.post(url, data={"choice": "pause"})
         paused = self.client.get("/my-plan", query_string={"time": "this_week", "source": "health"})
         self.assertIn(b"Paused", paused.data)
-        self.assertNotIn(f"/my-plan?time=today&amp;source=all&amp;activity={action['id']}#{action['id']}".encode(), self.client.get("/today").data)
+        self.assertIn(action["instruction"].encode(), self.client.get("/today").data)
         self.assertIn(action["instruction"].encode(), self.client.get("/health/next-steps").data)
         self.client.post(url, data={"choice": "reschedule", "schedule": "2026-11-20"})
         moved = self.client.get("/my-plan", query_string={"time": "later", "source": "health"})
@@ -871,6 +1195,11 @@ class PairExperienceTests(unittest.TestCase):
                       b"Blood Sugar", b"Heart Rate", b"Choose a health pattern"]:
             self.assertIn(label, page.data)
         self.assertEqual(page.data.count(b'<svg class="chart"'), 1)
+        self.assertIn(b'viewBox="0 0 600 280"', page.data)
+        css = open(os.path.join(pair.app.static_folder, "css", "style.css"), encoding="utf-8").read()
+        self.assertIn(".pattern-card .chart { max-height: 26.25rem; }", css)
+        self.assertIn(".pattern-card .chart { max-height: 14rem; }", css)
+        self.assertIn("width: 100%;\n  height: auto;", css)
         self.assertIn(b"class=\"pattern-tile is-selected", page.data)
         screen = self.client.get("/patterns?pattern=screen")
         self.assertEqual(screen.data.count(b'<svg class="chart"'), 1)
@@ -903,35 +1232,39 @@ class PairExperienceTests(unittest.TestCase):
     def test_activity_buttons_keep_the_route_working(self):
         activity_id = self.records["activity_assignments"][0]["id"]
         url = f"/activity/{activity_id}"
-        for action in ["fewer", "example", "different", "original", "pictures",
-                       "feedback:Okay", "break", "help", "next", "back"]:
+        for action in ["break", "help", "help_cancel", "help_send", "next", "back"]:
             response = self.client.post(url, data={"step": "1", "action": action})
             self.assertEqual(response.status_code, 302, action)
         page = self.client.get(url)
         self.assertEqual(page.status_code, 200)
         self.assertIn(b"Learning goal", page.data)
+        for control in [b"Show Fewer Words", b"Show an Example", b"Explain Differently",
+                        b"View Original", b"Hide Pictures"]:
+            self.assertNotIn(control, page.data)
+        self.assertLess(page.data.index(b"Next step"), page.data.index(b"Read Aloud"))
 
     # Exercise mood choices, display settings, and every visual theme without third-party calls.
     def test_checkin_theme_and_motion_controls(self):
         checkin_page = self.client.get("/checkin")
         for label in [b"Calm", b"Okay", b"Tired", b"Worried", b"Overwhelmed",
-                      b"Quiet Break", b"Smaller Step", b"Message Someone", b"Read Aloud",
-                      b"Reduce Screen Content", b"Nothing Right Now"]:
+                      b"Quiet Break", b"Message Someone", b"Nothing Right Now"]:
             self.assertIn(label, checkin_page.data)
+        for removed in [b"Smaller Step", b"Read Aloud", b"Reduce Screen Content"]:
+            self.assertNotIn(removed, checkin_page.data)
         for display in ["pictures_words", "words_only", "pictures_first"]:
-            response = self.client.post("/checkin", data={"action": "display", "display": display})
+            response = self.client.post("/settings?section=appearance", data={
+                "action": "save_member_preferences", "density": "comfortable",
+                "picture_preference": display, "speech_rate": "1"})
             self.assertEqual(response.status_code, 302)
         page = self.client.get("/checkin").data
         submission_id = re.search(rb'name="submission_id" value="([^"]+)"', page).group(1).decode()
         response = self.client.post("/checkin", data={"action": "save", "submission_id": submission_id,
                                     "feeling": "Okay", "help_choice": "quiet_break"})
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/quiet-break")
         saved_page = self.client.get(response.headers["Location"]).data
-        self.assertIn(b"Thank you for checking in", saved_page)
-        display_panel = saved_page.split(b'<details class="card display-preference"', 1)[1].split(b"</details>", 1)[0]
-        self.assertNotIn(b" open", display_panel[:40])
-        for choice in [b"Pictures and Words", b"Words Only", b"Pictures First", b"Save display preference"]:
-            self.assertIn(choice, display_panel)
+        self.assertIn(b"Take a quiet break", saved_page)
+        self.assertNotIn(b"Display preferences", saved_page)
         for theme in pair.THEMES:
             self.assertEqual(self.client.post("/theme", data={"theme": theme}).status_code, 302)
             page = self.client.get("/settings")
@@ -939,12 +1272,112 @@ class PairExperienceTests(unittest.TestCase):
         for motion in pair.CELEBRATIONS:
             self.assertEqual(self.client.post("/celebrations", data={"celebrations": motion}).status_code, 302)
 
+    # Keep the Check In introduction brief and offer only three outcome-specific help choices.
+    def test_checkin_introduction_and_help_choices_are_simplified(self):
+        page = self.client.get("/checkin").data
+        heading = page.index(b"<h1>Check In</h1>")
+        form = page.index(b'<form method="post" class="card checkin-form')
+        self.assertLess(heading, form)
+        self.assertNotIn(b"Your check-in and optional note are private by default", page)
+        for label in [b"Quiet Break", b"Message Someone", b"Nothing Right Now"]:
+            self.assertIn(label, page)
+        for label in [b"Smaller Step", b"Read Aloud", b"Reduce Screen Content"]:
+            self.assertNotIn(label, page)
+        self.assertEqual(page.count(b'name="help_choice"'), 3)
+
+    # Route a selected Quiet Break to its timer-free screen, then resume at the next plan activity.
+    def test_quiet_break_is_simple_and_returns_to_next_incomplete_plan_item(self):
+        form = self.client.get("/checkin").data
+        submission = re.search(rb'name="submission_id" value="([^"]+)"', form).group(1).decode()
+        before = plan_activities(self.records, data.get_today(), "today", "all", {})
+        next_activity = next(item for item in before if item["status"] != "completed")
+        response = self.client.post("/checkin", data={"action": "save", "submission_id": submission,
+                                    "manageability": "one_small_step", "help_choice": "quiet_break"})
+        self.assertEqual(response.headers["Location"], "/quiet-break")
+        page = self.client.get(response.headers["Location"]).data
+        for label in [b"Take a quiet break", b"Find a quiet or comfortable place. Take a few minutes to rest or do something calming.",
+                      b"Done", b"Back to My Plan"]:
+            self.assertIn(label, page)
+        for removed in [b"Step 1 of 2", b"Progressbar", b"Next step", b"Previous step", b"I need a break",
+                        b"I need help", b"Easy", b"Difficult", b"Learning goal", b"Assigned by", b"20 minutes"]:
+            self.assertNotIn(removed, page)
+        with self.client.session_transaction() as state:
+            self.assertEqual(state.get("activity_progress", {}), {})
+        done = self.client.post("/quiet-break", data={"action": "done"})
+        self.assertIn("/my-plan", done.headers["Location"])
+        plan = self.client.get(done.headers["Location"]).data
+        self.assertIn(b"Quiet break complete.", plan)
+        self.assertIn(f'id="{next_activity["id"]}"'.encode(), plan)
+        with self.client.session_transaction() as state:
+            self.assertEqual(len(state["quiet_break_completions"]), 1)
+            self.assertEqual(state["quiet_break_completions"][0]["person_id"], "p1")
+
+    # Let the member choose a Circle contact and prepare a demo-only message without external delivery.
+    def test_message_someone_opens_circle_and_nothing_now_adds_no_action(self):
+        form = self.client.get("/checkin").data
+        submission = re.search(rb'name="submission_id" value="([^"]+)"', form).group(1).decode()
+        response = self.client.post("/checkin", data={"action": "save", "submission_id": submission,
+                                    "help_choice": "message_someone"})
+        self.assertEqual(response.headers["Location"], "/circle/message")
+        page = self.client.get(response.headers["Location"]).data
+        self.assertIn(b"Who would you like to message?", page)
+        self.assertIn(b"Choose a person in My Circle", page)
+        self.assertIn(b"Marisol Reyes", page)
+        self.assertIn(b'name="message"', page)
+        self.assertIn(b"This prototype does not send a real message", page)
+        self.assertNotIn(b"WhatsApp", page)
+        sent = self.client.post("/circle/message", data={"recipient": "Marisol Reyes",
+                                     "message": "Thinking of you."})
+        self.assertEqual(sent.status_code, 302)
+        self.assertIn(b"No real message was sent", self.client.get(sent.headers["Location"]).data)
+
+        with self.client.session_transaction() as state:
+            state["activity_progress"] = {"before": {"status": "active"}}
+            state["health_plan_states"] = {"p1": {"before": {"status": "active"}}}
+        form = self.client.get("/checkin").data
+        submission = re.search(rb'name="submission_id" value="([^"]+)"', form).group(1).decode()
+        response = self.client.post("/checkin", data={"action": "save", "submission_id": submission,
+                                    "help_choice": "nothing_now"})
+        self.assertIn("/checkin?result=", response.headers["Location"])
+        self.client.get(response.headers["Location"])
+        with self.client.session_transaction() as state:
+            self.assertEqual(state["activity_progress"], {"before": {"status": "active"}})
+            self.assertEqual(state["health_plan_states"], {"p1": {"before": {"status": "active"}}})
+            self.assertNotIn("quiet_break_completions", state)
+
+    # Hide redundant activity controls and show the single-screen presentation for assigned breaks.
+    def test_assigned_quiet_break_is_not_a_learning_sequence(self):
+        page = self.client.get("/activity/assignment-wellness-demo-tomorrow")
+        self.assertEqual(page.status_code, 200)
+        for label in [b"Take a quiet break", b"Find a quiet or comfortable place.", b"Done", b"Back to My Plan"]:
+            self.assertIn(label, page.data)
+        for removed in [b"Step 1 of 2", b"Next step", b"Previous step", b"I need a break",
+                        b"I need help", b"Easy", b"Difficult", b"Learning goal", b"Assigned by", b"20 minutes"]:
+            self.assertNotIn(removed, page.data)
+        response = self.client.post("/activity/assignment-wellness-demo-tomorrow", data={"action": "done"})
+        self.assertEqual(response.status_code, 302)
+        with self.client.session_transaction() as state:
+            self.assertEqual(state["activity_progress"]["assignment-wellness-demo-tomorrow"]["status"], "completed")
+
+    # Show Help only for coach-assigned activities and hide Read Aloud when the member disables it.
+    def test_activity_support_controls_match_the_activity_and_settings(self):
+        coach_activity = self.client.get("/activity/assignment-coach-01").data
+        member_activity = self.client.get("/activity/assignment-member-01").data
+        self.assertIn(b"I need help", coach_activity)
+        self.assertNotIn(b"I need help", member_activity)
+        self.assertIn(b"Read Aloud", member_activity)
+        self.client.post("/settings?section=appearance", data={"action": "save_member_preferences",
+                         "density": "comfortable", "picture_preference": "pictures_words", "speech_rate": "1"})
+        no_read_aloud = self.client.get("/activity/assignment-coach-01").data
+        self.assertNotIn(b"Read Aloud", no_read_aloud)
+
     # Keep every check-in question optional and allow an empty private entry to be saved.
     def test_ema_questions_can_all_be_skipped_without_a_score(self):
         page = self.client.get("/checkin")
-        self.assertIn(b"How manageable does today feel right now?", page.data)
-        self.assertIn(b"Display preferences", page.data)
-        self.assertNotIn(b'<details class="card display-preference" open', page.data)
+        self.assertIn(b"<strong>My Pace</strong><br>How manageable does today feel right now?", page.data)
+        self.assertNotIn(b"Display preferences", page.data)
+        self.assertNotIn(b"Your check-in and optional note are private by default", page.data)
+        self.assertIn(b"Appearance and accessibility", self.client.get("/settings?section=appearance").data)
         self.assertIn(b"data-disable-repeat", page.data)
         with open(os.path.join(pair.app.static_folder, "js", "main.js"), encoding="utf-8") as script:
             self.assertIn('form.dataset.submitted = "yes"', script.read())
@@ -958,11 +1391,13 @@ class PairExperienceTests(unittest.TestCase):
         result = self.client.post("/checkin", data={"action": "save", "submission_id": submission_id})
         self.assertEqual(result.status_code, 302)
         saved = self.client.get(result.headers["Location"]).data
-        self.assertIn(b"Thank you for checking in", saved)
-        self.assertIn(b"Take it one small step at a time.", saved)
+        self.assertIn(b"Thank you for checking in.", saved)
+        self.assertIn(b"Continue to My Plan", saved)
+        self.assertIn(b"Change my choice", saved)
         confirmation = saved.split(b'<section class="card soft-card"', 1)[1].split(b"</section>", 1)[0]
         self.assertNotIn(b"You can decide when you are ready", confirmation)
-        self.assertIn(b"You chose not to answer these questions right now.", saved)
+        self.assertNotIn(b"private by default", confirmation)
+        self.assertNotIn(b"Take it one small step at a time", confirmation)
         self.assertIn(b"Private check-in history", saved)
         self.assertNotIn(b"%", saved)
         self.assertNotIn(b"readiness score", saved.lower())
@@ -971,7 +1406,7 @@ class PairExperienceTests(unittest.TestCase):
             self.assertEqual(checkin["visibility"], "private")
             self.assertTrue(checkin["created_at"])
             self.assertEqual(checkin["manageability"], "")
-            self.assertEqual(checkin["guidance_action"], "")
+            self.assertEqual(checkin["my_pace"], "")
         climb = self.client.get("/climb").data
         goal_list = climb.split(b'<ul class="goal-list">', 1)[1].split(b"</ul>", 1)[0]
         self.assertNotIn(b"Check in", goal_list)
@@ -985,15 +1420,15 @@ class PairExperienceTests(unittest.TestCase):
                           "manageability": "one_small_step"})
         page = self.client.get(result.headers["Location"]).data
         result_card = page.split(b'<section class="card soft-card"', 1)[1].split(b"</section>", 1)[0]
-        self.assertIn(b"Thank you for checking in", result_card)
-        self.assertIn(b"Take it one small step at a time.", result_card)
+        self.assertIn(b"Thank you for checking in.", result_card)
+        self.assertIn(b'href="/my-plan"', result_card)
+        self.assertIn(b"Continue to My Plan", result_card)
+        self.assertIn(b"Change my choice", result_card)
         for answer in [b"Ready for one small step", b"Overwhelmed", b"Smaller Step", b"One small step"]:
             self.assertNotIn(answer, result_card)
-        for action in [b"Show one small step", b"Take a quiet break", b"Nothing right now"]:
-            self.assertIn(action, result_card)
-        self.assertEqual(result_card.count(b'<button '), 3)
-        self.assertNotIn(b"Show my full day", result_card)
-        self.assertNotIn(b"Remind me later", result_card)
+        self.assertEqual(result_card.count(b"<a "), 2)
+        for action in [b"Show one small step", b"Take a quiet break", b"Nothing right now", b"Show my full day"]:
+            self.assertNotIn(action, result_card)
         self.assertIn(b"Overwhelmed", page)  # The answer remains inside the collapsed private history.
         history = page.split(b"Private check-in history", 1)[1]
         self.assertIn(b'<details><summary>', history)
@@ -1011,8 +1446,8 @@ class PairExperienceTests(unittest.TestCase):
         self.assertEqual(first_post.status_code, 302)
         result_url = first_post.headers["Location"]
         result_page = self.client.get(result_url).data
-        self.assertIn(b"Thank you for checking in", result_page)
-        self.assertIn(b"Take it one small step at a time.", result_page)
+        self.assertIn(b"Thank you for checking in.", result_page)
+        self.assertIn(b"Continue to My Plan", result_page)
         before_history, private_history = result_page.split(b'<ul class="checkin-list">', 1)
         for private_answer in [b"Tired", b"pause", b"Private demo note"]:
             self.assertNotIn(private_answer, before_history)
@@ -1025,7 +1460,7 @@ class PairExperienceTests(unittest.TestCase):
             self.assertEqual(saved["note"], "Private demo note")
         refreshed = self.client.get(result_url)
         self.assertEqual(refreshed.status_code, 200)
-        self.assertIn(b"Thank you for checking in", refreshed.data)
+        self.assertIn(b"Thank you for checking in.", refreshed.data)
         duplicate_post = self.client.post("/checkin", data=answers)
         self.assertEqual(duplicate_post.headers["Location"], result_url)
         with self.client.session_transaction() as state:
@@ -1054,43 +1489,38 @@ class PairExperienceTests(unittest.TestCase):
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.headers["Location"], "/devices")
 
-    # A check-in choice temporarily narrows Home without overwriting My Pace or changing activities.
-    def test_ema_one_step_is_temporary_and_does_not_mutate_activities(self):
+    # Home confirms completion without revealing responses and keeps its basic two-part schedule.
+    def test_home_checkin_card_is_simplified_and_schedule_is_unchanged(self):
         fixture_records = load_demo_data()
         fixture_instructions = fixture_records["health_follow_ups"]
         fixture_medications = fixture_records["medications"]
-        self.client.post("/my-plan", data={"action": "pace", "pace": "full_day"})
         with self.client.session_transaction() as state:
             before_progress = dict(state.get("activity_progress", {}))
             before_health = dict(state.get("health_plan_states", {}))
         form = self.client.get("/checkin").data
-        submission_id = re.search(rb'name="submission_id" value="([^"]+)"', form).group(1).decode()
+        submission_id = re.search(rb'name="submission_id" value="([^\"]+)"', form).group(1).decode()
         self.client.post("/checkin", data={"action": "save", "submission_id": submission_id,
-                          "manageability": "one_small_step", "help_choice": "smaller_step"})
-        with self.client.session_transaction() as state:
-            checkin_id = state["checkins"][-1]["id"]
-        self.client.post("/checkin", data={"action": "guidance", "checkin_id": checkin_id,
-                          "choice": "show_one_step"})
+                          "feeling": "Overwhelmed", "manageability": "one_small_step",
+                          "help_choice": "smaller_step"})
         home = self.client.get("/today").data
+        card = home.split(b'class="card home-guidance-card"', 1)[1].split(b"</section>", 1)[0]
+        self.assertIn(b"Check-in complete", card)
+        self.assertIn(b"Continue to My Plan", card)
+        self.assertNotIn(b"Overwhelmed", card)
+        self.assertNotIn(b"one_small_step", card)
         timeline = home.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0]
-        self.assertIn(b"One small step", timeline)
-        self.assertEqual(timeline.count(b'class="day-activity"'), 1)
-        self.assertIn(b"Walk for 15 minutes daily", timeline)
-        self.assertIn(b"Dr. Priya Patel", timeline)
-        self.assertIn(b"1:00 PM", timeline)
+        self.assertEqual(timeline.count(b'class="timeline-marker"'), 2)
+        self.assertIn(b"Now", timeline)
+        self.assertIn(b"Up Next", timeline)
+        self.assertNotIn(b"Later", timeline)
+        plan = self.client.get("/my-plan").data
+        self.assertIn(b"Based on your check-in, we\xe2\x80\x99re showing one activity at a time.", plan)
+        self.assertEqual(plan.count(b'class="card activity-card'), 1)
         with self.client.session_transaction() as state:
-            self.assertEqual(state["plan_pace"]["p1"], "full_day")
             self.assertEqual(state.get("activity_progress", {}), before_progress)
             self.assertEqual(state.get("health_plan_states", {}), before_health)
         self.assertEqual(load_demo_data()["health_follow_ups"], fixture_instructions)
         self.assertEqual(load_demo_data()["medications"], fixture_medications)
-        self.client.post("/checkin", data={"action": "guidance", "checkin_id": checkin_id,
-                          "choice": "show_full_day"})
-        full_day = self.client.get("/today").data
-        timeline = full_day.split(b'<ol class="day-timeline">', 1)[1].split(b"</ol>", 1)[0]
-        self.assertIn(b"Later", timeline)
-        with self.client.session_transaction() as state:
-            self.assertEqual(state["plan_pace"]["p1"], "full_day")
 
     # Keep all new check-in fields unavailable in the other role workspaces by default.
     def test_other_roles_cannot_see_private_ema_responses(self):
@@ -1115,6 +1545,7 @@ class PairExperienceTests(unittest.TestCase):
     # Check semantic landmarks, labels, keyboard focus, responsive breakpoints, and theme contrast.
     def test_accessibility_and_responsive_contracts(self):
         routes = [("member", route) for route in ["/today", "/my-plan", "/checkin", "/circle",
+                  "/circle/message", "/quiet-break",
                   "/health", "/health/my-plan", "/settings", "/settings?section=appearance",
                   "/settings?section=notifications", "/devices", "/activity/" + self.records["activity_assignments"][0]["id"],
                   "/visit/primary"]]

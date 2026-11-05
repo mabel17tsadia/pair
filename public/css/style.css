@@ -453,21 +453,13 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   white-space: nowrap;
 }
 
-/* My Plan filters and cards keep their controls clear on narrow and wide screens. */
-.plan-filters {
-  margin: var(--space-6) 0;
-  padding: var(--space-5);
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-}
-
-.plan-filters h2 {
-  margin: 0 0 var(--space-2);
-  font-size: 1rem;
-}
-
-.plan-filters h2:not(:first-child) { margin-top: var(--space-4); }
+/* Keep My Plan's two labeled filters compact on desktop and stacked on mobile. */
+.plan-filter-selects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin: var(--space-4) 0; }
+.plan-filter-selects label { display: grid; gap: var(--space-1); font-weight: 700; }
+.plan-filter-selects select { width: 100%; min-height: var(--target-min); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); color: var(--text); }
+.plan-complete-message { font-weight: 700; }
+.plan-pace-status { margin: var(--space-4) 0; }
+.plan-pace-status > div { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
 
 .filter-list {
   display: flex;
@@ -494,19 +486,16 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
   color: var(--primary);
 }
 
-/* My Pace choices use pictograms and short descriptions to distinguish each view. */
-.pace-choice h2 { margin-top: 0; }
-.pace-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
-.pace-option { display: flex; align-items: center; gap: var(--space-3); min-height: 6rem; padding: var(--space-3); border: var(--border-strong) solid var(--border); border-radius: var(--radius-card); background: var(--surface); cursor: pointer; }
-.pace-option.is-selected { border-color: var(--primary); background: var(--primary-soft); }
-.pace-option input { width: 1.25rem; height: 1.25rem; accent-color: var(--primary); flex: 0 0 auto; }
-.pace-option > span:last-child { display: grid; gap: var(--space-1); }
-.pace-icon { display: grid; place-items: center; width: 3rem; height: 3rem; flex: 0 0 auto; border-radius: 50%; background: var(--surface2); font-size: 1.6rem; }
-.remaining-activities > summary { min-height: var(--target-min); color: var(--primary); font-weight: 700; cursor: pointer; }
-.remaining-activities .activity-card { padding-top: var(--space-4); border-top: var(--border-width) solid var(--border); }
-
 .activity-card { scroll-margin-top: var(--space-6); }
 .health-plan-card { border-inline-start: 6px solid var(--alert); }
+.daily-health-meta { margin: var(--space-2) 0; color: var(--muted); }
+.daily-health-paused { margin: var(--space-2) 0; font-weight: 700; }
+.daily-health-actions, .daily-health-actions > form { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.daily-health-more { margin-top: var(--space-2); }
+.daily-health-more > summary { min-height: var(--target-min); display: flex; align-items: center; color: var(--primary); font-weight: 700; cursor: pointer; }
+.daily-health-more form { display: inline; }
+.daily-health-more .text-link { margin-inline-end: var(--space-3); }
+.daily-health-more button.text-link { min-height: var(--target-min); border: 0; background: transparent; font: inherit; cursor: pointer; text-decoration: underline; }
 .health-plan-source { color: var(--muted); }
 .plan-health-controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-2); margin-top: var(--space-3); }
 .plan-health-controls form { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-2); }
@@ -549,6 +538,16 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
 .health-action-choices { display: grid; gap: var(--space-3); margin-top: var(--space-4); }
 .health-action-choices form { display: grid; justify-items: start; gap: var(--space-2); }
 .health-action-choices textarea { width: 100%; }
+.health-schedule-review { margin-block: var(--space-3); }
+.health-schedule-review > summary { display: inline-flex; align-items: center; min-height: var(--target-min); cursor: pointer; }
+.health-schedule-review > summary.btn-primary, .health-schedule-review button.btn-primary { background: #155E63; border-color: #155E63; color: #FFFFFF; }
+.health-schedule-review form { display: grid; gap: var(--space-3); margin-top: var(--space-3); }
+.health-schedule-review label, .reminder-time-form label { display: grid; gap: var(--space-1); font-weight: 700; }
+.health-schedule-review input, .health-schedule-review select, .reminder-time-form input { min-height: var(--target-min); padding: var(--space-2); border: var(--border-width) solid var(--border); border-radius: var(--radius-control); background: var(--surface); color: var(--text); }
+.health-schedule-review fieldset { display: flex; flex-wrap: wrap; gap: var(--space-2); border: var(--border-width) solid var(--border); border-radius: var(--radius-card); }
+.health-schedule-review fieldset label { display: inline-flex; align-items: center; min-height: var(--target-min); }
+.reminder-time-form { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-2); margin-block: var(--space-2); }
+.in-app-reminder { border-inline-start: .35rem solid var(--accent); font-weight: 700; }
 
 /* Activity detail keeps each instruction, presentation control and feedback choice easy to use. */
 .objective-card { border-left: 6px solid var(--secondary); }
@@ -560,8 +559,12 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
 .instruction-text { margin: 0; font-size: 1.35rem; font-weight: 700; }
 .original-instruction, .example-note { margin: var(--space-4) 0; padding: var(--space-4); border-radius: var(--radius-control); background: var(--surface2); }
 .original-instruction summary { min-height: var(--target-min); color: var(--primary); font-weight: 700; cursor: pointer; }
-.activity-controls { display: grid; gap: var(--space-5); margin-top: var(--space-5); }
+.activity-controls { display: grid; gap: var(--space-3); margin-top: var(--space-4); }
 .activity-controls .note { margin: calc(-1 * var(--space-4)) 0 0; }
+.learning-goal { margin: 0 0 var(--space-3); color: var(--muted); }
+.activity-support-controls { margin-top: var(--space-2); }
+.help-confirmation { margin-top: var(--space-3); border-color: var(--primary); }
+.help-confirmation .actions form { display: inline-flex; }
 .feedback-choices { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; border: 0; }
 .feedback-choices legend { width: 100%; margin-bottom: var(--space-2); font-weight: 700; }
 .feedback-choices button[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
@@ -1224,11 +1227,6 @@ input::placeholder, textarea::placeholder {
   .phone-only { display: none !important; }
 }
 
-/* Stack the pace cards before a phone-sized layout makes their text cramped. */
-@media (max-width: 600px) {
-  .pace-options { grid-template-columns: 1fr; }
-}
-
 /* ===== Wide screens (900px and up): navigation becomes a top bar ===== */
 @media (min-width: 900px) {
   .site-header {
@@ -1541,7 +1539,7 @@ input::placeholder, textarea::placeholder {
   .card, .person-card { padding: var(--space-4); }
   .person-list, .card-grid { grid-template-columns: 1fr; }
   .actions > * { flex: 1 1 100%; }
-  .pace-options, .pattern-comparison { grid-template-columns: 1fr; }
+  .pattern-comparison { grid-template-columns: 1fr; }
 }
 
 /* On phones, staff use a fixed compact nav and the public entry stacks its illustration. */
@@ -1657,14 +1655,7 @@ main > .card, .workspace-main > .card { border-radius: 1.25rem; }
 .member-next-action { border-top-color: var(--celebrate); }
 .member-dashboard-grid { margin-bottom: var(--space-4); }
 
-/* Activity and My Pace cards pair a repeated icon with a clear action and status. */
-.pace-option { position: relative; align-items: flex-start; min-height: 8rem; padding: var(--space-4); }
-.pace-option.is-selected { box-shadow: inset 0 0 0 1px var(--primary); }
-.pace-icon { width: 4rem; height: 4rem; border-radius: 1rem; color: var(--primary); }
-.pace-icon .icon { width: 2.3rem; height: 2.3rem; }
-.pace-focus-icon { background: var(--primary-soft); }
-.pace-day-icon { background: var(--alert-soft); color: var(--text); }
-.pace-option > span:last-child strong { font-family: var(--font-heading); font-size: 1.05rem; }
+/* My Plan activity cards keep their actions and status clear. */
 .activity-title { display: flex; align-items: center; gap: var(--space-3); }
 .activity-pictogram { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; border-radius: .85rem; background: var(--primary-soft); color: var(--primary); }
 .activity-pictogram .icon { width: 1.5rem; height: 1.5rem; }
@@ -1678,12 +1669,10 @@ main > .card, .workspace-main > .card { border-radius: 1.25rem; }
 .checkin-form .choice-icon { min-height: 2.5rem; font-size: 2.25rem; }
 .checkin-form.display-pictures_first .choice-box { min-height: 8rem; }
 .checkin-form .actions { padding-top: var(--space-2); }
-.checkin-urgent-help { margin-top: var(--space-3); }
-.checkin-urgent-help > summary { min-height: var(--target-min); display: flex; align-items: center; cursor: pointer; font-weight: 700; }
 
 /* Pattern cards let members compare their own recent days with a labeled usual range. */
 .pattern-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
-.pattern-card .chart { max-height: 16rem; }
+.pattern-card .chart { max-height: 26.25rem; }
 .pattern-card .pattern-summary { padding: var(--space-3) var(--space-4); border-radius: var(--radius-control); background: var(--primary-soft); }
 .pattern-comparison div { border: 1px solid var(--border); }
 .pattern-pictogram { width: 3.5rem; height: 3.5rem; border: 1px solid var(--border); }
@@ -1743,6 +1732,13 @@ main > .card, .workspace-main > .card { border-radius: 1.25rem; }
 .visit-section h2 { padding-bottom: var(--space-2); border-bottom: 1px solid var(--border); }
 .visit-choices { gap: var(--space-3); }
 .visit-choice { justify-content: flex-start; min-height: 5rem; padding: var(--space-4); background: linear-gradient(110deg, var(--surface), var(--primary-soft)); }
+.visit-topic-link { margin: 0; }
+.visit-topic-link a { color: var(--primary); text-decoration: underline; text-underline-offset: .15em; }
+.visit-topic-link a:hover { color: var(--text); }
+.visit-topic-link a:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: var(--focus-gap); }
+.visit-topic-suggestions { padding: var(--space-3); border-radius: var(--radius-control); background: var(--surface2); }
+.visit-topic-suggestions fieldset { display: grid; gap: var(--space-2); border: 0; padding: 0; }
+.visit-topic-suggestions label { display: flex; align-items: center; gap: var(--space-2); }
 
 /* Shared actions, charts, badges and empty states stay readable at all screen sizes. */
 .status-label, .chip { min-height: 2rem; padding: .3rem .8rem; white-space: normal; }
@@ -1810,7 +1806,7 @@ button, a, summary { touch-action: manipulation; }
   .role-switcher > summary { min-height: 2.5rem; padding-inline: .6rem; font-size: .9rem; }
   .entry-hero { gap: var(--space-2); }
   .entry-mountain { max-height: 8rem; }
-  .summary-grid, .member-dashboard-grid, .pace-options, .pattern-comparison { grid-template-columns: 1fr; }
+  .summary-grid, .member-dashboard-grid, .pattern-comparison { grid-template-columns: 1fr; }
   .circle-row { align-items: flex-start; }
   .circle-access { width: 100%; margin-left: 4rem; }
   .activity-title { align-items: flex-start; }
@@ -1818,7 +1814,7 @@ button, a, summary { touch-action: manipulation; }
   .activity-heading .activity-status { margin-left: 3.5rem; }
   .checkin-form .choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .checkin-form .actions > * { flex: 1 1 100%; }
-  .filter-chip { flex: 1 1 auto; justify-content: center; }
+  .plan-filter-selects { grid-template-columns: 1fr; }
   .chart text { font-size: 11px; }
 }
 
@@ -1838,10 +1834,10 @@ button, a, summary { touch-action: manipulation; }
 .home-guidance-card { margin: var(--space-4) 0; padding: var(--space-4) var(--space-5); border-left: 4px solid var(--primary); }
 .home-guidance-card h2 { margin: 0 0 var(--space-2); font-size: 1.2rem; }
 .home-guidance-card p { margin: var(--space-2) 0; }
-.home-guidance-actions, .checkin-guidance-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
-.home-checkin-invite { display: block; margin: var(--space-4) 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); color: var(--primary); font-weight: 700; text-decoration: none; }
-.home-checkin-invite:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: var(--focus-gap); }
-.checkin-guidance-actions button { flex: 1 1 11rem; }
+.quiet-break-card { display: grid; justify-items: start; gap: var(--space-4); }
+.quiet-break-instruction { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-4); }
+.quiet-break-instruction p { margin: 0; max-width: 60ch; font-size: var(--font-large); }
+.quiet-break-card .text-link { min-height: var(--target-min); }
 .home-primary-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(21rem, .95fr); align-items: stretch; gap: var(--space-5); margin-bottom: var(--space-5); }
 .home-primary-grid > .card, .home-secondary-grid > .card { min-width: 0; padding: clamp(1.25rem, 2.5vw, 2rem); }
 .home-health-summary { border-top: 5px solid var(--celebrate); }
@@ -1893,14 +1889,10 @@ button, a, summary { touch-action: manipulation; }
 .activity-choice-list legend { width: 100%; font-weight: 700; }
 .activity-choice { display: grid; justify-items: center; gap: var(--space-2); min-width: 8rem; min-height: 7rem; padding: var(--space-3); border: 2px solid var(--border); border-radius: var(--radius-card); background: var(--surface); text-align: center; cursor: pointer; }
 .activity-choice:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
-.meal-choice-icon { color: var(--primary); }
-.meal-choice-icon .icon { width: 2rem; height: 2rem; }
+.meal-choice-icon { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 50%; background: var(--primary-soft); font-size: 2.25rem; line-height: 1; }
 .activity-choice-list.pictures_first .activity-choice { min-height: 8rem; }
-.activity-choice-list.pictures_first .meal-choice-icon .icon { width: 3rem; height: 3rem; }
+.activity-choice-list.pictures_first .meal-choice-icon { width: 4rem; height: 4rem; font-size: 2.75rem; }
 .activity-choice-list.words_only .meal-choice-icon { display: none; }
-.activity-display-preference { display: grid; gap: var(--space-3); }
-.activity-display-preference fieldset { display: flex; flex-wrap: wrap; gap: var(--space-3); }
-.provenance-label { display: inline-block; padding: .3rem .8rem; border-radius: var(--radius-pill); background: var(--primary-soft); color: var(--primary); font-weight: 700; }
 
 /* Keep phone layouts compact without changing the desktop workspace or navigation. */
 @media (max-width: 767px) {
@@ -1944,7 +1936,7 @@ button, a, summary { touch-action: manipulation; }
   .visit-choices { gap: var(--space-2); }
   .visit-choice { min-height: 3.25rem; padding: .65rem .8rem; }
   .appointment-details summary, .source-summary, .pattern-checkins > summary { min-height: var(--target-min); }
-  .home-guidance-card, .home-checkin-invite { margin-block: var(--space-3); }
+  .home-guidance-card { margin-block: var(--space-3); }
   .day-timeline li { min-width: 0; }
 }
 
@@ -2129,7 +2121,6 @@ button, a, summary { touch-action: manipulation; }
   .home-hero h1 { font-size: clamp(2.5rem, 3vw, 3rem); }
   .home-mountain { width: min(11rem, 20%); }
   .home-mountain .climb-art { max-height: 6rem; }
-  .home-checkin-invite { display: inline-flex; min-height: var(--target-min); align-items: center; margin: .1rem 0 0; padding: .1rem 0; border: 0; background: transparent; box-shadow: none; }
   .home-primary-grid, .home-secondary-grid { gap: 1rem; margin-bottom: 1rem; }
   .home-primary-grid > .card, .home-secondary-grid > .card { padding: 1.15rem; }
   .day-timeline li { min-height: 3.4rem; }
@@ -2197,16 +2188,7 @@ button, a, summary { touch-action: manipulation; }
   .levels-help { margin: .5rem 0 .75rem; padding: .15rem .75rem; }
   .levels-help summary { min-height: var(--target-min); }
 
-  .plan-filters { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); align-items: center; gap: .45rem .75rem; margin: .65rem 0; padding: .7rem .9rem; }
-  .plan-filters h2, .plan-filters h2:not(:first-child) { margin: 0; }
-  .filter-list { gap: .4rem; }
-  .filter-chip { min-height: var(--target-min); padding-inline: .85rem; }
-  .pace-choice { margin: .65rem 0; padding: .85rem 1rem; }
-  .pace-choice h2 { margin-bottom: .35rem; }
-  .pace-options { gap: .65rem; margin-bottom: .6rem; }
-  .pace-option { min-height: 4.25rem; gap: .65rem; padding: .55rem .7rem; }
-  .pace-icon { width: 2.5rem; height: 2.5rem; font-size: 1.35rem; }
-  .pace-option > span:last-child { gap: .1rem; }
+  .plan-filter-selects { gap: .5rem; margin-block: .65rem; }
   .plan-activities > .card { margin-block: .65rem; padding: 1rem; }
 
   .pattern-tiles { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .5rem; margin: .6rem 0; }
@@ -2216,7 +2198,7 @@ button, a, summary { touch-action: manipulation; }
   .selected-pattern { margin-top: .6rem; padding: 1rem; }
   .pattern-card { gap: .4rem; }
   .pattern-card .pattern-summary { margin-block: .15rem; padding: .5rem .7rem; }
-  .pattern-card .chart { max-height: 12rem; }
+  .pattern-card .chart { max-height: 14rem; }
   .pattern-comparison { margin-block: .25rem; }
   .pattern-checkins { margin-top: .65rem; }
 }

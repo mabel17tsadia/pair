@@ -4,7 +4,11 @@ This document summarizes the visual and interaction rules in [master-design-prom
 
 ## Design principles
 
-- Use progressive disclosure and put one clear primary action first.
+- Give each section one clear primary action.
+- Use text links for secondary navigation when a button would compete visually with the primary action.
+- Explain privacy or safety once where it helps the member decide; do not repeat the same explanation on every screen.
+- Do not display a control unless it produces a visible, working result.
+- Use progressive disclosure for filters, connected sources, and additional details.
 - Write in plain language with short sections and clear headings.
 - Use generous spacing, rounded cards, and large interaction targets.
 - Provide visible keyboard focus and sufficient color contrast.
@@ -13,6 +17,8 @@ This document summarizes the visual and interaction rules in [master-design-prom
 - Respect reduced-motion settings and avoid unnecessary animation.
 - Do not assume one visual style or information density suits everyone.
 - Explain AI suggestions and keep the original instruction available.
+- Keep common activities simple; put less common actions under More options.
+- Keep charts completely visible in their card without internal scrolling.
 
 ## Member-selectable themes
 
@@ -28,9 +34,11 @@ The current prototype now uses Ocean, Garden, and Twilight as its selectable the
 
 ## Layout and interaction
 
-- Member navigation: Home, Check In, Health, My Plan, Patterns, Appointments, My Circle, Settings.
-- Keep Home focused on the next action. Show Now and Up Next by default; show Later only when the member chooses the full-day view.
+- Member navigation: Home, Check In, My Plan, Health, Patterns, Appointments, My Circle, Settings.
+- Keep Home focused on the next action. Your Day keeps Now and Up Next visible; My Pace changes how many activities My Plan reveals.
+- Show My Plan's When and From controls as two compact dropdowns side by side; stack them on small screens. Default to Today and All; with no check-in today, show every matching activity.
 - Show one activity step at a time by default.
+- Keep Home's Now and Up Next schedule independent of My Pace; My Pace changes the number of activities revealed in My Plan.
 - Pair icons or pictures with text labels; never make an icon the only explanation for an action.
 - Keep secondary detail available through clear, optional controls.
 - Make keyboard focus visible and controls usable by keyboard and touch.
@@ -39,15 +47,17 @@ The current prototype now uses Ocean, Garden, and Twilight as its selectable the
 
 ## Activity presentation preferences
 
-Support Pictures and Words, Words Only, and Pictures First. Offer Read Aloud, Show Fewer Words, Show an Example, Explain Differently, View the Original Instruction, I Need a Break, I Need Help, and Easy / Okay / Difficult feedback. An adapted presentation must retain the educator's learning objective and required outcome.
+Pictures and Words is the default. Display preference choices (Pictures and Words, Words Only, and Pictures First), Read Aloud enablement, and speech rate live in Settings. Offer an activity control only when relevant and functional: Read Aloud for available instruction text, I Need Help only for coach-assigned activities with an identified coach, and difficulty feedback at the end of a supported activity. An adapted presentation must retain the educator's learning objective and required outcome. A Quiet Break is a single-screen, timer-free support action, not a learning sequence.
 
 ## Check-in choices
 
-Show a clear icon or picture together with each label. Feelings include Calm, Okay, Tired, Worried, Overwhelmed, and Another Feeling. “What would help?” options include a quiet break, a smaller step, messaging someone trusted, read aloud, reducing screen content, or Nothing Right Now. Offer Pictures and Words, Words Only, and Pictures First display preferences. Check-in privacy remains clear at the point of entry and sharing.
+Show a clear icon or picture together with each label. Feelings include Calm, Okay, Tired, Worried, Overwhelmed, and Another Feeling. “What would help?” offers Quiet Break, Message Someone, and Nothing Right Now. Display preferences live in Settings, not on Check In. Check-in responses remain private; explain privacy at the point where it helps the member make a choice, without repeating the same banner on every result page.
 
 ## Health and sharing presentation
 
 Show health details gradually and only after an appropriate permission check. Appointment packet content must identify its source and remain private until the member reviews and submits it. Sharing controls start unselected, say who will receive what, and support access expiration where the workflow provides it.
+
+Use links for secondary actions such as opening Health details or returning to My Plan. Reserve filled buttons for the main action in each section. Keep responsive Health Patterns charts, labels, plotted points, usual-range bands, and recent-day highlights fully visible without an internally scrolling chart panel.
 
 ## Existing visual implementation
 

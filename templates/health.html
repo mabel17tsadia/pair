@@ -50,6 +50,7 @@
         <article class="health-instruction-row" id="summary-{{ action.id }}">
           <div><h3>{{ action.instruction }}</h3>
             <p class="note">About {{ action.estimated_minutes }} minutes · {{ action.source_name }} · {{ action.schedule.label if action.schedule and action.schedule.label else (action.due_on | long_day if action.due_on else 'No schedule set') }}</p>
+            {% if action.status == "accepted" %}<a class="text-link" href="{{ url_for('plan', time='today', source='health') }}">View in My Plan</a>{% endif %}
           </div><span class="chip">{{ action.status.capitalize() }}</span>
         </article>
       {% else %}<p>No care-team instructions are recorded.</p>{% endfor %}

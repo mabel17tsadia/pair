@@ -2,15 +2,15 @@
 <!-- One 21 day line chart (expects "t" from get_trends() with "t.chart" from trend_chart() in app.py):
      the last 5 days highlighted, the usual range shaded, then the line with a dot for each recent day -->
 {% set c = t.chart %}
-<svg class="chart" viewBox="0 0 600 200" role="img"
+<svg class="chart" viewBox="0 0 600 {{ c.height }}" role="img"
      aria-label="{{ t.name }} for the last 21 days, {{ t.dates[0] | long_day }} to {{ t.dates[-1] | long_day }}. Daily values from {{ signal_value(t.signal, t['values'] | min) }} to {{ signal_value(t.signal, t['values'] | max) }}. Your usual range is {{ signal_value(t.signal, (t.usual * 0.9) | round | int) }} to {{ signal_value(t.signal, (t.usual * 1.1) | round | int) }}. The last 5 days, highlighted, average {{ signal_value(t.signal, t.recent | round | int) }}.">
-  <rect class="chart-recent" x="{{ c.recent_x }}" y="10" width="{{ 590 - c.recent_x }}" height="165"/>
+  <rect class="chart-recent" x="{{ c.recent_x }}" y="14" width="{{ 590 - c.recent_x }}" height="{{ c.baseline - 14 }}"/>
   <rect class="chart-band" x="50" y="{{ c.band_top }}" width="530" height="{{ c.band_bottom - c.band_top }}"/>
-  <line class="chart-axis" x1="50" y1="178" x2="580" y2="178"/>
+  <line class="chart-axis" x1="50" y1="{{ c.baseline }}" x2="580" y2="{{ c.baseline }}"/>
   <polyline class="chart-line" points="{{ c.points }}"/>
   {% for x, y in c.recent_dots %}<circle class="chart-dot" cx="{{ x }}" cy="{{ y }}" r="5"/>{% endfor %}
   <text x="56" y="{{ c.band_top - 6 if c.band_top > 30 else c.band_bottom + 18 }}">Usual range</text>
-  <text x="{{ c.recent_x + 6 }}" y="28">Last 5 days</text>
-  <text x="50" y="197">{{ t.dates[0] | long_day }}</text>
-  <text x="580" y="197" text-anchor="end">{{ t.dates[-1] | long_day }}</text>
+  <text x="{{ c.recent_x + 6 }}" y="32">Last 5 days</text>
+  <text x="50" y="274">{{ t.dates[0] | long_day }}</text>
+  <text x="580" y="{{ c.height - 6 }}" text-anchor="end">{{ t.dates[-1] | long_day }}</text>
 </svg>

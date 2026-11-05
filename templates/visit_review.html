@@ -12,8 +12,7 @@
   <section class="card visit-section">
     <h2>{{ draft.appointment_type }}</h2>
     <p><strong>Appointment date:</strong> {{ draft.appointment_on | long_day if draft.appointment_on else "Not added." }}</p>
-    <p><strong>Reason for visit</strong><br>{{ draft.reason or "No reason added." }}</p>
-    <p><strong>What I would like help with</strong><br>{{ draft.help_with or "Not added." }}</p>
+    <p><strong>What I would like to talk about</strong><br>{{ draft.reason or draft.help_with or "No topic added." }}</p>
     <p class="note">Source: written by you.</p>
   </section>
 

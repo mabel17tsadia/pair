@@ -58,6 +58,46 @@ VISITS = {
                       "When should I come back or get in touch?"]},
 }
 
+# Keep fixed examples tied to authoritative public descriptions of each profession's scope.
+VISIT_TOPIC_GUIDANCE = {
+    "primary": {"scope": "Primary care includes preventive care, checkups, new concerns, follow-up, medication questions, vaccines, and referrals.",
+                "topics": ["Annual checkup or preventive care", "A new symptom or health concern",
+                           "Follow-up for an ongoing condition", "Medication questions",
+                           "Vaccines or health screenings", "Referral to another professional"],
+                "source_name": "U.S. Bureau of Labor Statistics",
+                "source": "https://www.bls.gov/ooh/healthcare/physicians-and-surgeons.htm"},
+    "dietitian": {"scope": "Dietitians discuss nutrition, eating habits, food preferences, and meal planning.",
+                  "topics": ["Planning balanced meals", "Food allergies or dietary needs", "Digestive concerns",
+                             "Nutrition for an ongoing health condition", "Building consistent eating routines"],
+                  "source_name": "U.S. Bureau of Labor Statistics",
+                  "source": "https://www.bls.gov/ooh/healthcare/dietitians-and-nutritionists.htm"},
+    "endo": {"scope": "Endocrinology includes hormone health, blood sugar, and monitoring questions.",
+             "topics": ["Blood sugar or glucose questions", "Hormone-related questions", "Understanding test results",
+                        "Questions about monitoring", "Follow-up and care coordination"],
+             "source_name": "Endocrine Society",
+             "source": "https://support.endocrine.org/patient-engagement"},
+    "womens": {"scope": "Ob-gyn care includes reproductive health, routine visits, and preventive screenings.",
+               "topics": ["Menstrual or reproductive health", "Pregnancy or family-planning questions",
+                          "Preventive screenings", "Pelvic health questions", "Routine women's health care"],
+               "source_name": "American College of Obstetricians and Gynecologists",
+               "source": "https://www.acog.org/womens-health/about-acog"},
+    "therapist": {"scope": "Counseling includes stress management, emotions, coping skills, relationships, and daily concerns.",
+                  "topics": ["Stress or anxiety", "Changes in mood", "Building coping skills",
+                             "Relationships or communication", "Life changes or daily pressures"],
+                  "source_name": "U.S. Bureau of Labor Statistics",
+                  "source": "https://www.bls.gov/ooh/community-and-social-service/substance-abuse-behavioral-disorder-and-mental-health-counselors.htm"},
+    "dentist": {"scope": "Dental care includes oral health, teeth, gums, preventive care, and oral comfort.",
+                "topics": ["Teeth or gum questions", "Tooth sensitivity or oral discomfort", "Cleaning and preventive care",
+                           "Dental care routines", "Questions about a dental procedure"],
+                "source_name": "U.S. Bureau of Labor Statistics",
+                "source": "https://www.bls.gov/ooh/healthcare/dentists.htm"},
+    "other": {"scope": "General preparation topics for a visit with another healthcare professional.",
+              "topics": ["What I would like to understand at this visit", "Questions about my daily routines",
+                         "What information would be useful to bring", "Possible next steps to discuss"],
+              "source_name": "U.S. Bureau of Labor Statistics",
+              "source": "https://www.bls.gov/ooh/healthcare/"},
+}
+
 
 # The change and body sentences worth telling this professional, each with the device it came from
 # (read only: these come straight from paired devices)

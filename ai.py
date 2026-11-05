@@ -3,7 +3,7 @@ import os
 import anthropic
 from dotenv import load_dotenv
 from patterns import feeling_counts
-from visits import VISITS
+from visits import VISITS, VISIT_TOPIC_GUIDANCE
 
 # Load ANTHROPIC_API_KEY from the .env file (the Anthropic client reads it from there)
 load_dotenv()
@@ -305,6 +305,32 @@ def suggest_questions(person, visit, patterns, body, mood_counts):
         return backup
 
 
+# Adapt fixed visit topics using only the chosen professional and concerns the member entered for this visit.
+def suggest_visit_topics(visit, concerns=""):
+    guidance = VISIT_TOPIC_GUIDANCE[visit]
+    backup = {"topics": guidance["topics"], "source": "rules", "source_name": guidance["source_name"],
+              "reference": guidance["source"]}
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        return backup
+    details = json.dumps({"professional": VISITS[visit]["label"], "scope": guidance["scope"],
+                          "member_selected_concerns": concerns[:500]})
+    schema = {"type": "object", "properties": {"topics": {"type": "array", "items": {"type": "string"}}},
+              "required": ["topics"], "additionalProperties": False}
+    system = """Offer 3 to 5 short, neutral topics a person might choose to discuss with this type of
+    health professional. Use only the profession, scope and optional concerns the member entered. Topics are examples,
+not medical advice. Never diagnose, imply the person has a condition, recommend treatment, or tell
+the person which professional they need. Return short topic labels only."""
+    try:
+        answer = json.loads(ask_claude(system, details, {"type": "json_schema", "schema": schema}))
+        topics = [item.strip()[:100] for item in answer["topics"] if item.strip()][:5]
+        unsafe = ["you have", "diagnos", "treatment", "prescrib", "you should see", "recommend a", "must see"]
+        if len(topics) < 3 or any(word in item.lower() for item in topics for word in unsafe):
+            raise ValueError("Unsafe or incomplete topic list")
+        return {"topics": topics, "source": "ai", "source_name": guidance["source_name"],
+                "reference": guidance["source"]}
+    except Exception as error:
+        print("Visit topic suggestions failed, using built-in guidance:", type(error).__name__)
+        return backup
 # Instructions for Claude when helping someone choose who to see
 PROFESSIONALS_SYSTEM = """You help a person choose which kind of health professional to see.
 You get their first name, how they say they have been feeling, and sentences about their patterns

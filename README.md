@@ -12,7 +12,7 @@ Pair uses fictional data. It is not a medical device, an EHR, a diagnostic tool,
 
 | Workspace | What reviewers can explore |
 |---|---|
-| Pair member | Jordan’s sample Home, private Check In, Health, My Plan, Patterns, Appointments, My Circle, and Settings. |
+| Pair member | Jordan’s sample Home, private Check In, My Plan, Health, Patterns, Appointments, My Circle, and Settings. |
 | Coach or educator | Learning progress, activity library, learner profiles, and sample assignments. |
 | Healthcare professional | Member-shared appointment packets and proposed follow-up steps. |
 | Trusted person | Member-shared summaries and encouragement choices. |
@@ -23,9 +23,9 @@ Selecting a role opens a sample workspace; it does not sign in or grant real acc
 ## Key prototype features
 
 - **Home:** brings together the member’s current context and a manageable next step.
-- **Private Check In:** supports picture-based reflection; responses stay private by default.
+- **Private Check In:** captures the member’s current feeling, My Pace, and requested support; responses stay private by default.
+- **My Plan:** My Pace in Check In controls how many activities it reveals. It combines member-added, coach-assigned, accepted healthcare, and appointment-preparation activities. Proposed care-team instructions stay in Health until accepted; recurring instructions can create daily scheduled activities.
 - **Health:** helps the member review relevant information, prepare for appointments, and review care-team instructions.
-- **My Plan:** uses the member’s choices and available context to help organize activities, which can be followed one step at a time.
 - **Patterns and connected data sources:** shows one selected pattern at a time and manages optional sample sources.
 - **Appointments:** supports appointment preparation, packet review, and member acceptance of proposed next steps.
 - **My Circle:** lets the member choose what specific information to share and with whom; sharing is not automatic.
@@ -66,7 +66,7 @@ Open <http://127.0.0.1:5000>. `ANTHROPIC_API_KEY` is optional; keep any key priv
 python -m unittest discover -s tests -q
 ```
 
-**60 tests passed on 4 November 2026.** Rerun the command for the latest result.
+**78 tests passed on 5 November 2026.** Rerun the command for the latest result.
 
 ## Deployment and project links
 

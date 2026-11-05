@@ -2,6 +2,8 @@
 
 **Intended product direction:** This document records detailed design goals. The current application code and tests establish which parts are implemented; this document does not establish current behavior by itself.
 
+In the sections below, **Implemented now** describes behavior verified in the Flask prototype. **Future / production direction** describes goals that are not available as production services. Demo-session state and sample integrations are not durable or production behavior.
+
 ## Product purpose
 
 Pair is an accessible independence companion for neurodivergent young adults. It helps members:
@@ -72,8 +74,8 @@ Use this intended primary navigation:
 
 - Home.
 - Check In.
-- Health.
 - My Plan.
+- Health.
 - Patterns.
 - Appointments.
 - My Circle.
@@ -81,98 +83,47 @@ Use this intended primary navigation:
 
 ## Home
 
-The member’s Home page should show:
+**Implemented now:** The member's Home page has a short greeting and one Check In button. It shows fictional health observations, a basic Now / Up Next schedule that is independent of My Pace, and a compact Check-in complete card after saving. When the member visits after a scheduled activity's time, Home may show an in-app demonstration reminder. It does not send push, text, or email notifications.
 
-- A short greeting.
-- One recommended next action.
-- A simple Now, Up Next and Later schedule.
-- An optional private pattern notice.
-- An upcoming appointment reminder when relevant.
-- Clear links to continue an activity or check in.
-
-Do not overload the Home page with every available feature.
+The primary action opens Check In. Continue to My Plan is a secondary link after a check-in. Do not add a second prompt asking the member to choose a pace on Home.
 
 ## My Plan
 
-My Plan supports the member after reflection and relevant health context. It helps the member choose and follow manageable activities; it does not lead the product experience or make medical decisions.
+**Implemented now:** My Plan is the member's place to follow through on activities added by the member, assigned by a coach or educator, accepted healthcare instructions, and appointment-preparation activities. Proposed healthcare instructions stay in Health until accepted; declined or unanswered proposals do not enter My Plan. Appointments themselves remain in Health and Appointments.
 
-My Plan contains:
+The two side-by-side dropdowns are **When** (Today, Tomorrow, This Week, Later) and **From** (All, Added by Me, From My Coach, From Health). Defaults are Today and All. A message links back to Check In to change My Pace; the choice is not repeated in My Plan.
 
-- Educational activities.
-- Independent-living activities.
-- Personal activities added by the member.
-- Activities assigned by a coach or educator.
-- Accepted healthcare follow-up actions.
+Use the latest check-in for the member's display:
 
-Provide time filters:
+- **One small step:** show the first incomplete activity.
+- **A few things feel manageable:** show up to three activities.
+- **I need a pause:** initially show no activity; Return when ready reveals one activity.
+- **Not sure:** show one incomplete activity.
+- **No check-in today:** show all activities matching Today and All.
 
-- Today.
-- Tomorrow.
-- This Week.
-- Later.
-- Completed.
+After a one-at-a-time activity is completed, return to My Plan and show the next incomplete activity. If none remain in the view, say “You completed everything in this view.” Keep Home's basic Now / Up Next schedule visible regardless of My Pace.
 
-Provide source filters:
+Every activity should retain its title, source, scheduled date/time, estimate, status, and next action. Use Start, Pause, and Done for applicable recurring health activities; Done may be used without Start. Store daily completion by occurrence so a repeated submission does not count twice. Generate the next occurrence only on its scheduled date. The walk's displayed duration is approximately 15 minutes. Accepted instructions with a defined period, such as seven days of sleep recording, stop when that period ends.
 
-- All.
-- Added by Me.
-- From My Coach.
-- From Health.
-
-Every activity card should display:
-
-- Activity title.
-- Source.
-- Due date or scheduled time.
-- Estimated time.
-- Completion status.
-- The next action.
-
-Appointment preparation, packets, and follow-through belong in Appointments. Health provides the broader health overview and relevant records. Accepted follow-up actions may appear in both Health and My Plan.
+**Future / production direction:** Durable schedules, background delivery, and external notification integrations are not part of this Flask demo. The prototype checks for due in-app reminders when Home or My Plan is rendered.
 
 ## Activity experience
 
-Display one activity step at a time by default.
+**Implemented now:** Coach-assigned learning activities display one step at a time. The activity screen supports picture prompts, step choices, Previous / Next, Show fewer words, Show an example, Explain differently, View the original, and Easy / Okay / Difficult feedback on the final step. I need a break pauses learning and returns to My Plan. I need help is available only for a coach-assigned activity with an identified coach; its confirmation makes clear that no real message is delivered. Read Aloud is shown only when enabled in Settings and meaningful text is present.
 
-Support:
+Pictures and Words is the default presentation. Settings also offers Words Only and Pictures First. A presentation change must preserve the educator's objective and required outcome. A Quiet Break is an exception: it is an immediate, timer-free support screen with one instruction, optional Read Aloud, Done, and a return link. It is not a multi-step lesson and Check In does not create a plan activity for it.
 
-- Pictures and words.
-- Words only.
-- Pictures first.
-- Read aloud.
-- Show fewer words.
-- Show an example.
-- Explain differently.
-- View the original instruction.
-- I Need a Break.
-- I Need Help.
-- Easy, Okay or Difficult feedback.
-
-AI may change how an activity is presented, but it must not silently change the educator’s learning objective or required outcome.
+**Future direction:** Any additional adaptation control should appear only when it has a working outcome and a visible way to return to the original instruction.
 
 ## Check In
 
-Use pictures or clear icons together with text labels.
+**Implemented now:** The page begins with optional picture-supported feeling choices, followed by **My Pace — How manageable does today feel right now?** and an optional note. The only “What would help?” choices are Quiet Break, Message Someone, and Nothing Right Now. Smaller Step is not offered because My Pace controls the number of activities in My Plan; Read Aloud and screen display options are available in their relevant activity or Settings contexts.
 
-Feelings may include:
+Each question is optional. When the member chooses Nothing Right Now or no support option, Save shows only “Thank you for checking in,” Continue to My Plan, and Change my choice. Quiet Break and Message Someone instead open their selected destination directly. Complete answers remain in collapsed private history. Home's Check-in complete card does not repeat answers. Display preferences do not appear on this page.
 
-- Calm.
-- Okay.
-- Tired.
-- Worried.
-- Overwhelmed.
-- Another feeling.
+The My Pace mapping is documented in My Plan above. “Nothing Right Now” saves without creating an activity. Quiet Break opens the simplified screen and Done returns to My Plan. Message Someone opens My Circle, asks the member to select an existing Circle relationship, and offers a message field. The prototype sends no external message.
 
-“What would help?” choices should include:
-
-- Take a quiet break.
-- Show me a smaller step.
-- Message someone I trust.
-- Read this aloud.
-- Reduce what is on the screen.
-- Nothing right now.
-
-Check-ins remain private unless the member deliberately shares specific information.
+Check-ins remain private unless the member deliberately shares specific information. A generic reminder preview is not a real system notification.
 
 ## Health
 
@@ -188,26 +139,17 @@ Health contains:
 
 Health information must use additional permission checks and progressive disclosure.
 
+### Health Patterns
+
+**Implemented now:** Show one selected pattern at a time with a pictogram and text label, plain-language summary, source, comparison with the member's usual range, chart, explanation, and available actions. Desktop uses selectable tiles; mobile uses a native select. Keep the complete responsive chart visible without a nested scrolling container; retain labels, point markers, the usual-range band, and the recent-days highlight.
+
 ## Appointment preparation
 
-Use a guided process:
+**Implemented now:** The guided flow asks about appointment type/date and reason, presents member-selected pattern or check-in items one at a time, asks about communication and accommodations, collects questions, and provides a final packet review before recipient and expiration are selected. Nothing is shared before member review and submission.
 
-1. Appointment type and date.
-2. Reason for the visit.
-3. Member-selected changes or symptoms.
-4. Questions the member wants to ask.
-5. Communication preferences.
-6. Final packet review.
-7. Recipient and access-expiration selection.
+The reason field is “What would you like to talk about at this visit?” The optional “Not sure?” link reveals common topics for the selected professional type. Suggestions are sourced from profession-scope guidance, labeled AI-assisted or built-in, and may be selected, edited in the member's note, or ignored. They are general discussion examples, not diagnoses, treatment advice, or a direction to see a particular professional. Question suggestions are separately labeled Adapted with AI or Using built-in guidance and remain editable.
 
-Nothing is shared before the member reviews and submits the packet.
-
-Every included item should identify its source, such as:
-
-- Entered by the member.
-- From a private check-in.
-- From phone activity.
-- From a connected health source.
+**Future / production direction:** Real packet delivery and live clinician communication are not implemented by these demonstration flows.
 
 ## Healthcare follow-up
 
@@ -227,13 +169,9 @@ Every proposed next step must include:
 - Optional due date.
 - Supporting details or original document.
 
-The member must be able to:
+The member can review a proposal in Health and choose Accept, Ask a Question, or Decline. Acceptance asks for the date, recurrence where applicable, and optional reminder time. Sleep recording runs daily for seven days with an editable suggested evening reminder. For blood-pressure recording, the member selects the reminder frequency because the sample care-team instruction specifies none; Pair does not invent a medically required frequency. A separate “Bring blood-pressure readings to your next visit” preparation activity is scheduled before the confirmed visit. The daily walking activity keeps its approximately 15-minute source record, supports Start / Pause / Done, and counts at most once per day.
 
-- Accept.
-- Ask a Question.
-- Decline.
-
-Only accepted actions enter the member’s plan.
+Only accepted instructions create My Plan activities. Source instruction, professional, acceptance state, schedule, occurrence completion, and paused state are shown or stored in the Flask session for this demo. An in-app demonstration reminder appears when Home or My Plan is rendered at or after the scheduled time. No push, text, or email notification is sent.
 
 ## Connected Data Sources
 
@@ -268,6 +206,8 @@ Do not describe an API or account integration as a Bluetooth connection unless B
 
 ## Coach or educator experience
 
+**Implemented now:** Coach Overview, Learners, learner profiles, Activity Library, and Coach Settings use the coach workspace. Reusable activities are created in the library; open a learner profile before assigning. A coach may review learning activity progress and member-submitted help requests but not private check-ins or Health information.
+
 Provide:
 
 - Overview.
@@ -299,6 +239,8 @@ The coach must not see:
 
 ## Healthcare-professional experience
 
+**Implemented now:** The professional workspace lists member-shared appointment packets within their demo authorization period and lets the professional propose next steps associated with an authorized packet. The inbox uses “New appointment packets” and explains that they are shared by members and awaiting review. Only submitted packet content is shown.
+
 Provide:
 
 - Shared Appointment Packets.
@@ -317,6 +259,8 @@ Supporting text:
 
 The professional sees only the content deliberately included in the submitted packet and only for the authorized period.
 
+**Future / production direction:** Professional identity verification, durable authorization, and real clinical record exchange are not implemented.
+
 ## My Circle
 
 Allow the member to invite:
@@ -326,7 +270,7 @@ Allow the member to invite:
 - Family member.
 - Friend or trusted person.
 
-The member chooses exact permissions for every person.
+The member chooses exact permissions for every person. **Implemented now:** Message Someone asks the member to select an existing Circle relationship and compose a session-only demo message; it does not open WhatsApp or send an external message.
 
 Allow permissions to be:
 
@@ -364,21 +308,9 @@ Administrator status must not automatically provide access to private member con
 
 ## Settings
 
-Member settings should include:
+**Implemented now:** Member settings include theme, comfortable or compact density, Pictures and Words / Words Only / Pictures First, Read Aloud enablement, speech rate, notification-preview privacy, celebration motion, source and Circle links, personalization review, data export, and deletion of demo-session changes. Pictures and Words is the default activity presentation. The system reduced-motion preference is respected. Biometric sign-in is not available in this prototype.
 
-- Theme.
-- Text size.
-- Information density.
-- Pictures-and-words preference.
-- Read-aloud controls.
-- Reduced motion.
-- Celebration style.
-- Connected Data Sources.
-- My Circle permissions.
-- AI personalization profile.
-- Face ID or device biometrics.
-- Data download.
-- Account deletion.
+**Future direction:** Adjustable text-size controls and biometric sign-in may be considered for a future product. Settings shown in the prototype do not make its demo data durable or create external notification delivery.
 
 Coach, healthcare, trusted-person and administrator settings should contain only controls relevant to those roles.
 

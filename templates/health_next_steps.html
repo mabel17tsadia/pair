@@ -26,14 +26,37 @@
         {% endif %}
         {% if action.status == "accepted" %}
           <p><strong>My Plan status:</strong> {{ action.plan_status.replace("_", " ").capitalize() }} · <strong>Schedule:</strong> {{ action.schedule.label if action.schedule and action.schedule.label else (action.due_on | long_day if action.due_on else "Choose a date in My Plan") }}</p>
-          {% if action.plan_status != "removed" %}<a class="text-link" href="{{ url_for('plan', time='later', source='health') }}">Open My Plan controls</a>{% else %}<p class="note">Removed from your active plan. This Health visit record stays here.</p><form method="post" action="{{ url_for('health_plan_action', action_id=action.id) }}"><input type="hidden" name="choice" value="add"><button class="btn-secondary" type="submit">Add back to My Plan</button></form>{% endif %}
+          {% if action.plan_status != "removed" %}<a class="text-link" href="{{ url_for('plan', time='today', source='health') }}">View in My Plan</a>{% else %}<p class="note">Removed from your active plan. This Health visit record stays here.</p><form method="post" action="{{ url_for('health_plan_action', action_id=action.id) }}"><input type="hidden" name="choice" value="add"><button class="btn-secondary" type="submit">Add back to My Plan</button></form>{% endif %}
         {% elif action.status != "declined" %}
-          <!-- Each choice is separate so the member can accept or decline without writing a question. -->
-          <div class="health-action-choices">
+          <!-- Review the instruction and choose a member-controlled reminder before acceptance. -->
+          <details class="health-schedule-review">
+            <summary class="btn-primary">Accept and add to My Plan</summary>
             <form method="post" action="{{ url_for('health_follow_up_action', action_id=action.id) }}">
               <input type="hidden" name="choice" value="accept">
-              <button type="submit" class="btn-primary">Accept</button>
+              {% if action.id == "follow-up-01" %}<input type="hidden" name="frequency" value="daily"><p>The care-team instruction is to record sleep daily for seven days. Choose a start date and an optional reminder.</p>
+              {% elif action.id == "follow-up-pressure" %}<p>No measurement frequency was provided. Choose how often you want a reminder; this is your reminder schedule, not medical advice.</p>
+              {% else %}<p>Choose when this should appear. Any reminder schedule you select is for your own planning.</p>{% endif %}
+              <label for="when-{{ action.id }}">When should this appear?
+                <input id="when-{{ action.id }}" type="date" name="when" value="{{ today_iso }}" min="{{ today_iso }}" required>
+              </label>
+              {% if action.id != "follow-up-01" %}
+                <label for="frequency-{{ action.id }}">How often would you like a reminder?
+                  <select id="frequency-{{ action.id }}" name="frequency" required>
+                    <option value="" selected disabled>Choose a schedule</option><option value="once">Once</option><option value="daily">Daily</option><option value="specific_days">Specific days</option><option value="until_date">Until a selected date</option><option value="until_next_appointment">Until the next appointment</option>
+                  </select>
+                </label>
+                <fieldset><legend>Days (for Specific days)</legend>{% for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] %}<label><input type="checkbox" name="days" value="{{ day }}">{{ day[:3] }}</label>{% endfor %}</fieldset>
+                <label for="until-{{ action.id }}">End date (for Until a selected date)<input id="until-{{ action.id }}" type="date" name="until_date" min="{{ today_iso }}"></label>
+              {% endif %}
+              <label for="reminder-{{ action.id }}">Optional reminder time
+                <input id="reminder-{{ action.id }}" type="time" name="reminder_time" value="{{ '20:00' if action.id == 'follow-up-01' else '' }}">
+              </label>
+              <p class="note">Pair displays an in-app demonstration reminder only. No text, email, or push notification is sent.</p>
+              <button type="submit" class="btn-primary">Accept and add to My Plan</button>
             </form>
+          </details>
+          <!-- Questions and declining remain separate from acceptance. -->
+          <div class="health-action-choices">
             <form method="post" action="{{ url_for('health_follow_up_action', action_id=action.id) }}">
               <input type="hidden" name="choice" value="ask_question">
               <label for="question-{{ action.id }}">Ask a question</label>
