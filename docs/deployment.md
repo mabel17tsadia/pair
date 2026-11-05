@@ -102,7 +102,7 @@ uses a secure shared token store. The demo remains usable without Google credent
 
 ## Post-deployment review
 
-Manually review the welcome page, Jordan's Home, My Plan, Check In, Health, appointment packet
-preparation and review, Patterns, Connected Data Sources, My Circle, Settings, and the coach,
+Manually review the welcome page, Jordan's Home, Check In, My Plan, Health (including Connected Data Sources),
+Patterns, Appointments (including packet preparation and review), My Circle, Settings, and the coach,
 healthcare, trusted-person, and administrator workspaces. Confirm that static assets load, a new
 session starts with fictional data, and the configured production branch is `pair-ui-redesign`.
