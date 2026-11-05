@@ -4,13 +4,15 @@
 
 Pair is a Flask prototype for the North American AI Challenge, created with First Place AZ in mind. It explores how neurodivergent young adults can build life skills, follow through on healthcare, and control what information they share.
 
+Pair helps members notice how they are doing, understand relevant health and wellbeing information, and use that context to choose which activities to prioritize—one manageable step at a time.
+
 Pair uses fictional data. It is not a medical device, an EHR, a diagnostic tool, or a production healthcare system.
 
 ## Demonstration workspaces
 
 | Workspace | What reviewers can explore |
 |---|---|
-| Pair member | Jordan’s sample Home, My Plan, Check In, Health, Patterns, appointments, Circle, and settings. |
+| Pair member | Jordan’s sample Home, private Check In, Health, My Plan, Patterns, appointments, My Circle, and settings. |
 | Coach or educator | Learning progress, activity library, learner profiles, and sample assignments. |
 | Healthcare professional | Member-shared appointment packets and proposed follow-up steps. |
 | Trusted person | Member-shared summaries and encouragement choices. |
@@ -20,12 +22,14 @@ Selecting a role opens a sample workspace; it does not sign in or grant real acc
 
 ## Key prototype features
 
-- **My Plan:** filter activities by date and source, then follow an activity one step at a time.
-- **Private Check In:** choose picture-supported responses; answers stay private by default.
-- **Health:** prepare and review appointment packets and review care-team instructions.
-- **Patterns and connected data sources:** view one selected pattern at a time and manage optional sample sources.
-- **My Circle:** choose what specific information to share and with whom; sharing is not automatic.
-- **Staff demonstrations:** coach, healthcare professional, trusted-person, and administrator workspaces show role-specific views and boundaries.
+- **Home:** brings together the member’s current context and a manageable next step.
+- **Private Check In:** supports picture-based reflection; responses stay private by default.
+- **Health:** helps the member review relevant information, prepare for appointments, and review care-team instructions.
+- **My Plan:** uses the member’s choices and available context to help organize activities, which can be followed one step at a time.
+- **Patterns and connected data sources:** shows one selected pattern at a time and manages optional sample sources.
+- **Appointments:** supports appointment preparation, packet review, and member acceptance of proposed next steps.
+- **My Circle:** lets the member choose what specific information to share and with whom; sharing is not automatic.
+- **Staff demonstrations:** shows the boundaries of coach, healthcare professional, trusted-person, and administrator workspaces.
 
 ## Fictional data, privacy, and limitations
 
