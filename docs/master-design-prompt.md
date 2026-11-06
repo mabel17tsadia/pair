@@ -83,7 +83,7 @@ Use this intended primary navigation:
 
 ## Home
 
-**Implemented now:** The member's Home page has a short greeting and one Check In button. It shows fictional health observations, a basic Now / Up Next schedule that is independent of My Pace, and a compact Check-in complete card after saving. When the member visits after a scheduled activity's time, Home may show an in-app demonstration reminder. It does not send push, text, or email notifications.
+**Implemented now:** The member's Home page has a short greeting and one Check In button. It shows fictional health observations, a basic Now / Up Next schedule that is independent of My Pace, and a compact Check-in complete card after saving. An incomplete activity receives a small Due now badge at its scheduled time; completed activities do not. No push, text, or email notification is sent.
 
 The primary action opens Check In. Continue to My Plan is a secondary link after a check-in. Do not add a second prompt asking the member to choose a pace on Home.
 
@@ -105,7 +105,11 @@ After a one-at-a-time activity is completed, return to My Plan and show the next
 
 Every activity should retain its title, source, scheduled date/time, estimate, status, and next action. Use Start, Pause, and Done for applicable recurring health activities; Done may be used without Start. Store daily completion by occurrence so a repeated submission does not count twice. Generate the next occurrence only on its scheduled date. The walk's displayed duration is approximately 15 minutes. Accepted instructions with a defined period, such as seven days of sleep recording, stop when that period ends.
 
-**Future / production direction:** Durable schedules, background delivery, and external notification integrations are not part of this Flask demo. The prototype checks for due in-app reminders when Home or My Plan is rendered.
+At the scheduled time, show a small **Due now** badge on the incomplete activity in Home and My Plan. Do not create a separate reminder card or repeat a delivery disclaimer on every activity. Completed activities do not receive the badge. This is an in-app demonstration behavior only; no push, text, or email notification is sent.
+
+**Routines and My Climb:** Store a reusable routine with its steps, source, recurrence, selected days, time, and estimated duration. My Plan shows only the dated occurrence for the selected date range. Completing an occurrence marks that date only; later occurrences remain scheduled. My Climb Today derives one flag for each activity in the same daily Plan set and displays completed versus scheduled counts. Add a weekly summit-history entry only when every scheduled activity for that date is complete, at most once per date.
+
+**Settings and reset:** Member settings provide activity reminder enablement, a private or detailed in-app preview, completion celebrations, and reduced motion. The Demo data and reset section downloads fictional data and can restore session defaults after explicit confirmation. Reset preserves the selected sample identity but clears progress, completion history, schedules, and personal session preferences. CSV and JSON fixture files remain unchanged.
 
 ## Activity experience
 
@@ -171,7 +175,7 @@ Every proposed next step must include:
 
 The member can review a proposal in Health and choose Accept, Ask a Question, or Decline. Acceptance asks for the date, recurrence where applicable, and optional reminder time. Sleep recording runs daily for seven days with an editable suggested evening reminder. For blood-pressure recording, the member selects the reminder frequency because the sample care-team instruction specifies none; Pair does not invent a medically required frequency. A separate “Bring blood-pressure readings to your next visit” preparation activity is scheduled before the confirmed visit. The daily walking activity keeps its approximately 15-minute source record, supports Start / Pause / Done, and counts at most once per day.
 
-Only accepted instructions create My Plan activities. Source instruction, professional, acceptance state, schedule, occurrence completion, and paused state are shown or stored in the Flask session for this demo. An in-app demonstration reminder appears when Home or My Plan is rendered at or after the scheduled time. No push, text, or email notification is sent.
+Only accepted instructions create My Plan activities. Source instruction, professional, acceptance state, schedule, occurrence completion, and paused state are shown or stored in the Flask session for this demo. At the scheduled time, incomplete activities receive a small Due now badge in Home and My Plan; no separate reminder card is created. No push, text, or email notification is sent.
 
 ## Connected Data Sources
 

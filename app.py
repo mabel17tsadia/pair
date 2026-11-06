@@ -106,6 +106,7 @@ ROLE_ENDPOINTS = {
                "health_instructions",
                "health_plan_action", "activity_detail", "quiet_break", "checkin", "patterns",
                "circle", "circle_message", "circle_save", "circle_remove", "circle_add", "circle_revoke_share", "share",
+               "settings_reset_demo",
                "doctor", "visit_start", "visit_page", "visit_suggest", "visit_add_question", "visit_entry",
                "visit_review", "visit_packet_review", "visit_finish_later", "visit_send", "visit_not_sure", "climb", "climb_done",
                "climb_add", "routines", "routine_steps", "routine_finish", "routine_edit", "me", "me_edit",
@@ -229,7 +230,9 @@ def member_preferences(person_id):
                                                    session.get("checkin_display", {}).get(person_id, "pictures_words")),
             "read_aloud": preferences.get("read_aloud", True),
             "speech_rate": preferences.get("speech_rate", "1"),
-            "notification_privacy": preferences.get("notification_privacy", "generic")}
+            "notification_privacy": preferences.get("notification_privacy", "generic"),
+            "activity_reminders": preferences.get("activity_reminders", True),
+            "reduced_motion": preferences.get("reduced_motion", False)}
 
 
 # Template filter: minutes as "6 h 40 min"
@@ -421,6 +424,23 @@ def climb_flags(goals):
 # This week's climb for a person: goals with progress (reached goals first, so the climb fills
 # from the bottom), flag positions, the dotted path, and how many flags are reached
 def climb_for(person):
+    if person["id"] == load_demo_data()["member"]["application_person_id"]:
+        activities = climb_today_activities(person)
+        flags = climb_flags([{"goal": item["title"], "kind": "activity", "rule": "activity",
+                              "target": 1, "progress": int(item["status"] == "completed"),
+                              "done": item["status"] == "completed", "added_by": item["source_label"]}
+                             for item in activities])
+        reached = sum(item["done"] for item in flags)
+        today = date.fromisoformat(data.get_today())
+        week_start = today - timedelta(days=today.weekday())
+        week_end = week_start + timedelta(days=6)
+        summits = set(session.get("daily_summits", {}).get(person["id"], []))
+        summit_days = sum(week_start.isoformat() <= day <= week_end.isoformat() for day in summits)
+        return {"flags": flags, "reached": reached, "total": len(flags),
+                "summit": bool(flags) and reached == len(flags),
+                "path": " ".join(["200,280"] + [f"{f['x']},{f['y']}" for f in flags]),
+                "marker": flags[reached - 1] if reached else None,
+                "daily": True, "weekly_summits": summit_days}
     done = session.get("goals_done", {}).get(person["id"], [])
     today_checkins = sum(c["person_id"] == person["id"] for c in session.get("checkins", []))
     added = saved("goals_added", person["id"], [])
@@ -560,7 +580,117 @@ def trusted_shared_contacts(person):
 
 # A person's routines. After the first edit they are kept whole in the session (the CSV never changes).
 def routines_for(person):
-    return [dict(r) for r in saved("routines", person["id"], None) or data.get_routines(person["id"])]
+    routines = [dict(r) for r in saved("routines", person["id"], None) or data.get_routines(person["id"])]
+    for index, routine in enumerate(routines):
+        routine.setdefault("routine_id", routine["routine"].lower().replace(" ", "-"))
+        routine.setdefault("frequency", "daily")
+        routine.setdefault("days", [])
+        routine.setdefault("time", "")
+        routine.setdefault("estimated_minutes", 15)
+    return routines
+
+
+# Make member-created supports and scheduled routine occurrences look like normal Plan activities.
+def extra_plan_activities(person, time_filter, source_filter):
+    if person["id"] != load_demo_data()["member"]["application_person_id"]:
+        return []
+    today = date.fromisoformat(data.get_today())
+    if time_filter == "today":
+        start = end = today
+    elif time_filter == "tomorrow":
+        start = end = today + timedelta(days=1)
+    elif time_filter == "this_week":
+        start, end = today, today + timedelta(days=6 - today.weekday())
+    else:
+        start, end = today + timedelta(days=7 - today.weekday()), today + timedelta(days=30)
+    routines = routines_for(person)
+    completed = session.get("routine_occurrences", {}).get(person["id"], {})
+    rows = []
+    for index, routine in enumerate(routines):
+        for scheduled_day in date_range(start, end):
+            if routine["frequency"] == "weekly" and scheduled_day.strftime("%A") not in routine["days"]:
+                continue
+            if routine["frequency"] not in ["daily", "weekly"]:
+                continue
+            added_by = routine["added_by"]
+            source = "member" if added_by == "me" else "coach" if added_by == "Dana Brooks" else "routine"
+            if source_filter != "all" and source != source_filter:
+                continue
+            occurrence_id = f"routine-{routine['routine_id']}@{scheduled_day.isoformat()}"
+            state = completed.get(occurrence_id, {})
+            scheduled_for = ""
+            if routine["time"]:
+                scheduled_for = datetime.strptime(f"{scheduled_day.isoformat()} {routine['time']}",
+                                                  "%Y-%m-%d %I:%M %p").isoformat()
+            time_label = datetime.fromisoformat(scheduled_for).strftime("%I:%M %p").lstrip("0") if scheduled_for else "Anytime"
+            rows.append({"id": occurrence_id, "routine_id": routine["routine_id"], "routine_index": index,
+                         "title": routine["routine"], "source": source,
+                         "source_label": "Added by me" if added_by == "me" else f"Added by {added_by}",
+                         "source_name": added_by, "due_on": scheduled_day.isoformat(),
+                         "scheduled_for": scheduled_for, "time_label": time_label,
+                         "date_label": f"{scheduled_day:%A}, {scheduled_day:%B} {scheduled_day.day}" +
+                                       (f" · {time_label}" if scheduled_for else ""),
+                         "estimated_minutes": routine["estimated_minutes"], "status": state.get("status", "not_started"),
+                         "status_label": "Completed" if state.get("status") == "completed" else "Not started",
+                         "next_action": "Review routine" if state.get("status") == "completed" else "Start routine",
+                         "routine": True, "steps": routine["steps"]})
+    supports = session.get("plan_support_activities", {}).get(person["id"], [])
+    progress = session.get("activity_progress", {})
+    for support in supports:
+        if support.get("due_on") and not start.isoformat() <= support["due_on"] <= end.isoformat():
+            continue
+        if source_filter not in ["all", "member"]:
+            continue
+        state = progress.get(support["id"], {})
+        status = state.get("status", support.get("status", "not_started"))
+        rows.append({**support, **state, "source": "member", "source_label": "Added by me",
+                     "date_label": f"{date.fromisoformat(support['due_on']):%A}, {date.fromisoformat(support['due_on']):%B} {date.fromisoformat(support['due_on']).day}",
+                     "status": status, "status_label": status.replace("_", " ").capitalize(),
+                     "next_action": "Take a quiet break", "support_activity": True})
+    return rows
+
+
+# Combine today's scheduled activities with saved completion records for the daily climb.
+def climb_today_activities(person):
+    records = load_demo_data()
+    assigned = activities_for_member(person["id"], records)
+    follow_ups = plan_health_follow_ups(person, records, data.get_today())
+    combined = {**records, "activity_assignments": assigned, "health_follow_ups": follow_ups}
+    activities = plan_activities(combined, data.get_today(), "today", "all",
+                                 session.get("activity_progress", {}))
+    activities.extend(extra_plan_activities(person, "today", "all"))
+    known = {item["id"] for item in activities}
+    for occurrence_id, completion in session.get("health_activity_completions", {}).get(person["id"], {}).items():
+        if completion.get("date") != data.get_today() or occurrence_id in known:
+            continue
+        action = next((item for item in records["health_follow_ups"]
+                       if item["id"] == completion.get("activity_id")), None)
+        if action:
+            title = completion.get("title") or ("Record blood-pressure reading" if action["id"] == "follow-up-pressure" else
+                     "Record today’s sleep" if action["id"] == "follow-up-01" else action["instruction"])
+            activities.append({"id": occurrence_id, "title": title, "source": "health",
+                               "source_label": "From Health", "source_name": action["source_name"],
+                               "status": "completed", "estimated_minutes": action.get("estimated_minutes", 10),
+                               "due_on": data.get_today()})
+    return activities
+
+
+# Save a one-per-day summit record and the short completion feedback for the Plan return.
+def record_plan_completion(person, title, activity_id=None):
+    activities = climb_today_activities(person)
+    completed_today = any(item.get("id") == activity_id and item.get("status") == "completed"
+                          for item in activities)
+    summit = completed_today and bool(activities) and all(item.get("status") == "completed" for item in activities)
+    if summit:
+        history = session.get("daily_summits", {})
+        days = history.get(person["id"], [])
+        today = data.get_today()
+        if today not in days:
+            history[person["id"]] = days + [today]
+            session["daily_summits"] = history
+    notices = session.get("plan_completion_notices", {})
+    notices[person["id"]] = {"title": title, "summit": summit, "date": data.get_today()}
+    session["plan_completion_notices"] = notices
 
 
 # Celebrations a circle member may see: the summit this week (if reached) and the badges
@@ -766,7 +896,8 @@ def today():
     records = load_demo_data()
     demo_member = pid == records["member"]["application_person_id"]
     today_activities = scheduled_activities_for_today(person, records)
-    due_activity_ids = {item["id"] for item in due_in_app_reminders(today_activities)}
+    due_activity_ids = ({item["id"] for item in due_in_app_reminders(today_activities)}
+                        if member_preferences(pid)["activity_reminders"] else set())
     health_observations = records.get("health_observations", []) if demo_member else []
     latest_checkin = latest_checkin_today(pid)
     climb = climb_for(person)
@@ -808,7 +939,20 @@ def plan():
         source_filter = "all"
     activities = plan_activities(records, data.get_today(), time_filter, source_filter,
                                  session.get("activity_progress", {})) if has_activities else []
-    due_activity_ids = {item["id"] for item in due_in_app_reminders(activities)}
+    activities.extend(extra_plan_activities(person, time_filter, source_filter))
+    activities.sort(key=lambda item: (item.get("due_on", ""), item.get("scheduled_for", "")))
+    preferences = member_preferences(person["id"])
+    due_activity_ids = ({item["id"] for item in due_in_app_reminders(activities)}
+                        if preferences["activity_reminders"] else set())
+    for activity in activities:
+        plan_state = activity.get("plan_state", {})
+        remaining = plan_state.get("timer_remaining_seconds")
+        if activity.get("timer_enabled") and remaining is None and activity.get("status") == "in_progress":
+            remaining = activity.get("estimated_minutes", 15) * 60
+        if plan_state.get("timer_started_at"):
+            started = datetime.fromisoformat(plan_state["timer_started_at"])
+            remaining = max(0, remaining - int((datetime.now().astimezone() - started).total_seconds()))
+        activity["timer_remaining_seconds"] = remaining
     checkin = latest_checkin_today(person["id"])
     pace = (checkin.get("my_pace", checkin.get("manageability", "not_sure")) or "not_sure") if checkin else ""
     pace_messages = {
@@ -829,16 +973,23 @@ def plan():
     if return_ready:
         visible_activities = incomplete[:1]
     daily_state = session.get("health_plan_states", {}).get(person["id"], {})
-    completed_daily_today = any(key.endswith(f"@{data.get_today()}") and value.get("status") == "completed"
-                                 for key, value in daily_state.items())
-    all_activities_complete = bool(one_activity_mode and (activities or completed_daily_today) and not incomplete)
+    all_activities_complete = bool(time_filter == "today" and activities and not incomplete)
+    notices = session.get("plan_completion_notices", {})
+    completion_notice = notices.pop(person["id"], None)
+    session["plan_completion_notices"] = notices
+    completion_celebration = bool(completion_notice and completion_notice["date"] == data.get_today()
+                                  and session.get("celebrations", "big") == "big"
+                                  and not preferences["reduced_motion"])
     return render_template("plan.html", title="My Plan", person=person, activities=activities,
                            pace=pace, pace_message=pace_messages.get(pace, pace_messages["not_sure"]),
                            has_checkin=bool(checkin), is_paused=bool(checkin and pace == "pause"),
                            return_ready=return_ready, one_activity_mode=one_activity_mode,
                            all_activities_complete=all_activities_complete,
+                           completion_notice=completion_notice,
+                           completion_celebration=completion_celebration,
                            visible_activities=visible_activities,
                            due_activity_ids=due_activity_ids,
+                           today_iso=data.get_today(),
                            time_filter=time_filter, source_filter=source_filter,
                            has_demo_records=has_activities)
 
@@ -891,17 +1042,32 @@ def health_plan_action(action_id):
     if daily or separator:
         if choice == "start":
             state["status"] = "in_progress"
+            if action["id"] == "follow-up-demo-today":
+                state["timer_remaining_seconds"] = state.get("timer_remaining_seconds", action.get("estimated_minutes", 15) * 60)
+                state["timer_started_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
         elif choice == "pause":
+            if state.get("timer_started_at"):
+                started = datetime.fromisoformat(state["timer_started_at"])
+                remaining = state.get("timer_remaining_seconds", action.get("estimated_minutes", 15) * 60)
+                state["timer_remaining_seconds"] = max(0, remaining - int((datetime.now().astimezone() - started).total_seconds()))
+                state.pop("timer_started_at", None)
             state["status"] = "paused"
             state["step"] = state.get("step", 1)
         elif choice == "continue":
             state["status"] = "in_progress"
+            if action["id"] == "follow-up-demo-today" and state.get("timer_remaining_seconds", 0) > 0:
+                state["timer_started_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
         elif choice == "done":
+            if state.get("status") == "completed":
+                return redirect(url_for("plan", time="today", source="all"))
             state["status"] = "completed"
             state["completed_on"] = occurrence_date or today
+            state.pop("timer_started_at", None)
             completions = session.get("health_activity_completions", {})
             member_completions = completions.get(person["id"], {})
-            member_completions.setdefault(occurrence_id, {"date": occurrence_date or today, "activity_id": action["id"]})
+            member_completions.setdefault(occurrence_id, {"date": occurrence_date or today,
+                                                           "activity_id": action["id"],
+                                                           "title": "Record blood-pressure reading" if action["id"] == "follow-up-pressure" else action["instruction"]})
             completions[person["id"]] = member_completions
             session["health_activity_completions"] = completions
         else:
@@ -910,8 +1076,8 @@ def health_plan_action(action_id):
         states[person["id"]] = member_states
         session["health_plan_states"] = states
         if choice == "done":
-            flash(f"You completed {action['instruction']} for today.")
-            return redirect(url_for("plan", time="today", source="health"))
+            record_plan_completion(person, action["instruction"], occurrence_id)
+            return redirect(url_for("plan", time="today", source="all"))
         if choice == "pause":
             flash("Paused — continue when ready.")
             return redirect(url_for("plan", time="today", source="health"))
@@ -919,13 +1085,23 @@ def health_plan_action(action_id):
         return redirect(url_for("plan", time="today", source="health"))
 
     if choice == "done":
+        if state.get("status") == "completed":
+            return redirect(url_for("plan", time="today", source="all"))
         state["status"] = "completed"
         state["completed_on"] = today
         member_states[action_id] = state
         states[person["id"]] = member_states
         session["health_plan_states"] = states
-        flash(f"You completed {action['instruction']}.")
-        return redirect(url_for("plan", time="today", source="health"))
+        completions = session.get("health_activity_completions", {})
+        member_completions = completions.get(person["id"], {})
+        completion_title = ("Bring blood-pressure readings to your next visit"
+                            if action_id == "follow-up-pressure-bring" else action["instruction"])
+        member_completions.setdefault(action_id, {"date": today, "activity_id": source_id,
+                                                    "title": completion_title})
+        completions[person["id"]] = member_completions
+        session["health_activity_completions"] = completions
+        record_plan_completion(person, action["instruction"], action_id)
+        return redirect(url_for("plan", time="today", source="all"))
     if choice == "pause":
         state["status"] = "paused"
     elif choice == "resume":
@@ -1497,10 +1673,11 @@ def activity_detail(activity_id):
     if activity.get("template_id") == "template-personal-break":
         if request.method == "POST" and request.form.get("action") == "done":
             progress = dict(session.get("activity_progress", {}))
-            progress[activity_id] = {"status": "completed", "completed_on": data.get_today(),
-                                     "next_action": "No next step"}
+            if progress.get(activity_id, {}).get("status") != "completed":
+                progress[activity_id] = {"status": "completed", "completed_on": data.get_today(),
+                                         "next_action": "No next step"}
             session["activity_progress"] = progress
-            flash("Quiet break complete.")
+            record_plan_completion(person, activity["title"], activity_id)
             return redirect(url_for("plan", time="today", source="all"))
         return render_template("quiet_break.html", title="Take a quiet break", activity=activity,
                                assigned=True, read_aloud=member_preferences(person["id"])["read_aloud"])
@@ -1563,9 +1740,9 @@ def activity_detail(activity_id):
         elif action == "next":
             activity_progress.update(status="completed", next_action="No next step",
                                      completed_on=data.get_today())
-            flash(f"You finished {activity['title']}.")
             progress[activity_id] = activity_progress
             session["activity_progress"] = progress
+            record_plan_completion(person, activity["title"], activity_id)
             today = date.fromisoformat(data.get_today())
             due = date.fromisoformat(activity.get("due_on") or data.get_today())
             time_filter = ("today" if due == today else "tomorrow" if due == today + timedelta(days=1)
@@ -1658,7 +1835,14 @@ def checkin():
         checkins.append(record)
         session["checkins"] = checkins[-20:]
         if help_choice == "quiet_break":
-            return redirect(url_for("quiet_break"))
+            supports = session.get("plan_support_activities", {})
+            member_supports = supports.get(pid, [])
+            activity_id = f"quiet-break-{record['id']}"
+            member_supports.append({"id": activity_id, "title": "Take a quiet break", "due_on": data.get_today(),
+                                    "estimated_minutes": 5, "status": "not_started"})
+            supports[pid] = member_supports
+            session["plan_support_activities"] = supports
+            return redirect(url_for("quiet_break", activity_id=activity_id))
         if help_choice == "message_someone":
             return redirect(url_for("circle_message"))
         return redirect(url_for("checkin", result=submission_id))
@@ -1686,14 +1870,26 @@ def quiet_break():
     person = current_person()
     if not person:
         return redirect(url_for("choose"))
+    activity_id = request.values.get("activity_id", "")
+    support = next((item for item in session.get("plan_support_activities", {}).get(person["id"], [])
+                    if item["id"] == activity_id), None) if activity_id else None
     if request.method == "POST" and request.form.get("action") == "done":
+        if support:
+            progress = dict(session.get("activity_progress", {}))
+            if progress.get(activity_id, {}).get("status") != "completed":
+                progress[activity_id] = {"status": "completed", "completed_on": data.get_today()}
+                session["activity_progress"] = progress
+                record_plan_completion(person, support["title"], activity_id)
         breaks = session.get("quiet_break_completions", [])
         breaks.append({"person_id": person["id"], "completed_at": datetime.now().astimezone().isoformat(timespec="seconds")})
         session["quiet_break_completions"] = breaks[-20:]
+        if support:
+            return redirect(url_for("plan", time="today", source="all"))
         flash("Quiet break complete.")
-        return redirect(url_for("plan"))
+        return redirect(url_for("plan", time="today", source="all"))
     return render_template("quiet_break.html", title="Take a quiet break", activity=None,
-                           assigned=False, read_aloud=member_preferences(person["id"])["read_aloud"])
+                           assigned=False, read_aloud=member_preferences(person["id"])["read_aloud"],
+                           activity_id=activity_id)
 
 
 # Patterns: a 21 day line chart for each signal from a paired device, with the usual range
@@ -2612,8 +2808,7 @@ def routines():
     return render_template("routines.html", title="My routines", routines=routines_for(person))
 
 
-# Picture steps for one routine, shown one at a time by public/js/steps.js. Finishing the last
-# step posts to routine_finish.
+# Picture steps for one reusable routine, with an optional scheduled occurrence date.
 @app.route("/routines/<int:index>")
 def routine_steps(index):
     person = current_person()
@@ -2626,11 +2821,12 @@ def routine_steps(index):
     if not routine["steps"]:
         flash("This routine has no steps yet. Add the steps you use.")
         return redirect(url_for("routine_edit", index=index))
-    return render_template("steps.html", title=routine["routine"], person=person, routine=routine, index=index)
+    occurrence = request.args.get("occurrence", "")
+    return render_template("steps.html", title=routine["routine"], person=person, routine=routine,
+                           index=index, occurrence=occurrence)
 
 
-# Finishing a routine marks the weekly goal with the same name as done, then shows My climb
-# (which celebrates if that was the last flag). Without a matching goal, go back to My routines.
+# Completing a scheduled routine marks only that date's occurrence as done in My Plan.
 @app.route("/routines/<int:index>/finish", methods=["POST"])
 def routine_finish(index):
     person = current_person()
@@ -2639,11 +2835,25 @@ def routine_finish(index):
     routines = routines_for(person)
     if index >= len(routines):
         abort(404)
-    name = routines[index]["routine"]
+    routine = routines[index]
+    name = routine["routine"]
+    occurrence = request.form.get("occurrence", "")
+    if occurrence:
+        try:
+            scheduled = date.fromisoformat(occurrence)
+        except ValueError:
+            abort(400)
+        if scheduled != date.fromisoformat(data.get_today()):
+            abort(400)
+        states = session.get("routine_occurrences", {})
+        member_states = states.get(person["id"], {})
+        key = f"routine-{routine['routine_id']}@{occurrence}"
+        member_states[key] = {"status": "completed", "completed_on": occurrence}
+        states[person["id"]] = member_states
+        session["routine_occurrences"] = states
+        record_plan_completion(person, name, key)
+        return redirect(url_for("plan", time="today", source="all"))
     flash(f"You finished {name}. Nice work.")
-    if any(g["goal"] == name and g["rule"] == "routine" for g in data.get_goals(person["id"])):
-        save("goals_done", person["id"], list(set(saved("goals_done", person["id"], []) + [name])))
-        return redirect(url_for("climb"))
     return redirect(url_for("routines"))
 
 
@@ -2662,6 +2872,7 @@ def routine_edit(index):
     routine = routines[index]
     helpers = ["me"] + [m["name"] for m in circle_for(person) if m["routines"]]
     steps, added_by, message, source = routine["steps"], routine["added_by"], None, None
+    time_value = datetime.strptime(routine["time"], "%I:%M %p").strftime("%H:%M") if routine["time"] else ""
 
     if request.method == "POST":
         steps = [s.strip()[:80] for s in request.form.getlist("steps")][:12]
@@ -2683,7 +2894,29 @@ def routine_edit(index):
         elif what == "save":
             steps = [s for s in steps if s]
             if steps:
-                routine.update(steps=steps, added_by=added_by if added_by in helpers else "me")
+                frequency = request.form.get("frequency", routine["frequency"])
+                if frequency not in ["daily", "weekly"]:
+                    frequency = "daily"
+                days = request.form.getlist("days") if frequency == "weekly" else []
+                if frequency == "weekly" and not days:
+                    message = "Choose at least one day for a weekly routine."
+                    return render_template("routine_edit.html", title=f"Edit {routine['routine']}", routine=routine,
+                                           steps=steps, helpers=helpers, added_by=added_by, message=message,
+                                           source=source, time_value=time_value)
+                time = request.form.get("time", "").strip()
+                try:
+                    if time:
+                        datetime.strptime(time, "%H:%M")
+                except ValueError:
+                    time = ""
+                try:
+                    estimated = max(1, min(240, int(request.form.get("estimated_minutes", "15"))))
+                except ValueError:
+                    estimated = 15
+                routine.update(steps=steps, added_by=added_by if added_by in helpers else "me",
+                               frequency=frequency, days=days, time=(datetime.strptime(time, "%H:%M").strftime("%I:%M %p").lstrip("0") if time else ""),
+                               estimated_minutes=estimated)
+                time_value = time
                 save("routines", person["id"], routines)
                 flash(f"{routine['routine']} saved.")
                 return redirect(url_for("routines"))
@@ -2692,7 +2925,7 @@ def routine_edit(index):
     return render_template("routine_edit.html", title=f"Edit {routine['routine']}", routine=routine,
                            steps=steps or [""], helpers=helpers,
                            added_by=added_by if added_by in helpers else "me",
-                           message=message, source=source)
+                           message=message, source=source, time_value=time_value)
 
 
 # Me: a profile card (name, what drains and calms the person, with Edit) and four link cards
@@ -2742,8 +2975,10 @@ def settings():
     if not person:
         return redirect(url_for("choose"))
     sections = {"profile", "appearance", "notifications", "privacy", "sources", "circle",
-                "personalization", "data", "demo"}
+                "personalization", "demo"}
     section = request.args.get("section", "")
+    if section == "data":
+        return redirect(url_for("settings", section="demo"))
     if section not in sections:
         section = ""
     # Demo controls: save the chosen data source
@@ -2753,13 +2988,20 @@ def settings():
         return redirect(url_for("settings", section="demo"))
     if request.method == "POST" and request.form.get("action") == "save_notification_privacy":
         privacy = request.form.get("notification_privacy")
-        if privacy in ["generic", "detailed"]:
+        reminders = request.form.get("activity_reminders")
+        celebration = request.form.get("completion_celebration")
+        reduced_motion = request.form.get("reduced_motion")
+        if privacy in ["generic", "detailed"] and reminders in ["on", "off"] and \
+                celebration in ["on", "off"] and reduced_motion in ["on", "off"]:
             all_preferences = session.get("member_preferences", {})
-            preferences = all_preferences.get(person["id"], {})
-            preferences["notification_privacy"] = privacy
+            preferences = {**all_preferences.get(person["id"], {}),
+                           "notification_privacy": privacy,
+                           "activity_reminders": reminders == "on",
+                           "reduced_motion": reduced_motion == "on"}
             all_preferences[person["id"]] = preferences
             session["member_preferences"] = all_preferences
-            flash("Notification preview privacy was saved for this demo.")
+            session["celebrations"] = "big" if celebration == "on" else "off"
+            flash("Reminder and celebration settings saved in this demo.")
         return redirect(url_for("settings", section="notifications"))
     if request.method == "POST" and request.form.get("action") == "save_member_preferences":
         density, pictures = request.form.get("density"), request.form.get("picture_preference")
@@ -2795,7 +3037,8 @@ def settings_export():
                   "checkin_display", "goals_added", "goals_done", "climb_seen",
                   "badges", "routines", "plan_pace", "health_action_states", "health_plan_states",
                   "medication_reminder_choice", "medication_states", "professional_proposals",
-                  "trusted_encouragements", "coach_assignments",
+                  "trusted_encouragements", "coach_assignments", "routine_occurrences",
+                  "plan_support_activities", "health_activity_completions", "daily_summits",
                   "visit_questions", "visit_suggestions", "visit_entries", "visit_packet_drafts"]
     changes = {key: session.get(key, {}).get(person_id) for key in saved_keys
                if person_id in session.get(key, {})}
@@ -2823,6 +3066,24 @@ def settings_export():
                                   mimetype="application/json")
     response.headers["Content-Disposition"] = f"attachment; filename=pair-demo-export-{person_id}.json"
     return response
+
+
+# Restore the original fictional demo for this browser session without changing fixture files.
+@app.route("/settings/reset-demo", methods=["POST"])
+def settings_reset_demo():
+    person = current_person()
+    if not person:
+        return redirect(url_for("choose"))
+    if request.form.get("confirm_reset") != "yes":
+        flash("Confirm the reset to restore the original fictional sample data.")
+        return redirect(url_for("settings", section="demo"))
+    identity = {key: session.get(key) for key in ["person_id", "demo_role", "signup", "new_person"]
+                if key in session}
+    google_health.TOKENS.pop(session.get("google_key"), None)
+    session.clear()
+    session.update(identity)
+    flash("Demo reset. The original fictional sample data is ready for this browser session.")
+    return redirect(url_for("settings", section="demo"))
 
 
 # Remove this member's demo changes and disconnect the optional in-memory Google token.

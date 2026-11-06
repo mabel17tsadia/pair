@@ -102,9 +102,11 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
             schedule_time = follow_up.get("schedule", {}).get("time", "")
             scheduled_for = (datetime.strptime(f"{due_on} {schedule_time}", "%Y-%m-%d %I:%M %p").isoformat()
                              if due_on and schedule_time else "")
-            status = ("completed" if plan_status == "completed" else
-                      "paused" if plan_status == "paused" else
-                      "in_progress" if plan_status == "in_progress" else "accepted")
+            occurrence_state = follow_up.get("plan_state", {})
+            occurrence_status = occurrence_state.get("status", plan_status)
+            status = ("completed" if occurrence_status == "completed" else
+                      "paused" if occurrence_status == "paused" else
+                      "in_progress" if occurrence_status == "in_progress" else "accepted")
             rows.append({
                 "id": follow_up["id"], "health_action_id": follow_up.get("health_action_id", follow_up["id"]),
                 "recurrence_daily": follow_up.get("recurrence_daily", False),
@@ -117,7 +119,9 @@ def plan_activities(records, today, time_filter="today", source_filter="all", pr
                 "time_label": (datetime.fromisoformat(scheduled_for).strftime("%I:%M %p").lstrip("0")
                                if scheduled_for else "Anytime today"),
                 "schedule": plan_state.get("schedule", follow_up.get("schedule", {})),
+                "plan_state": occurrence_state,
                 "plan_status": plan_status,
+                "timer_enabled": follow_up.get("health_action_id", follow_up["id"]) == "follow-up-demo-today",
                 "estimated_minutes": follow_up.get("estimated_minutes", 10),
                 "status": status,
                 "next_action": "Continue" if plan_status == "paused" else "Review the details in Health",

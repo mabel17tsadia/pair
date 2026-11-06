@@ -8,15 +8,15 @@
     <nav class="settings-sections" aria-label="Settings sections">
       {% for key, icon_text, label, detail in [
         ('profile','👤','Profile','Review your name and personal information.'),
-        ('appearance','🎨','Appearance and accessibility','Choose theme, spacing, pictures, and reading controls.'),
-        ('notifications','🔔','Notifications and celebrations','Choose private reminders and motion preferences.'),
-        ('privacy','🔒','Privacy and security','Review biometrics and how Pair protects your choices.'),
+        ('appearance','🎨','Appearance and accessibility','Theme, display and reading controls.'),
+        ('notifications','🔔','Notifications and celebrations','Activity reminders and motion preferences.'),
+        ('privacy','🔒','Privacy and security','Review privacy and biometric sign-in availability.'),
         ('sources','📱','Connected data sources','Manage optional devices and apps.'),
         ('circle','🫶','Sharing and Circle permissions','Choose what each person can see.'),
         ('personalization','✨','AI personalization','Review information used to tailor suggestions.'),
-        ('data','📦','Export or delete my data','Download or remove your demo changes.'),
-        ('demo','⚙️','Demo controls','Change sample data and explore the demo.') ] %}
-        <a class="settings-section-row" href="{{ url_for('settings', section=key) }}"><span aria-hidden="true">{{ icon_text }}</span><span><strong>{{ label }}</strong><small>{{ detail }}</small></span><span class="settings-chevron" aria-hidden="true">›</span></a>
+        ('demo','⚙️','Demo data and reset','Download your demonstration changes or restore the original fictional sample data.') ] %}
+        {% set destination = url_for('me') if key == 'profile' else url_for('devices') if key == 'sources' else url_for('circle') if key == 'circle' else url_for('me') ~ '#personalization' if key == 'personalization' else url_for('settings', section=key) %}
+        <a class="settings-section-row" href="{{ destination }}"><span aria-hidden="true">{{ icon_text }}</span><span><strong>{{ label }}</strong><small>{{ detail }}</small></span><span class="settings-chevron" aria-hidden="true">›</span></a>
       {% endfor %}
     </nav>
   {% else %}
@@ -34,29 +34,25 @@
         <fieldset class="choices"><legend>Read Aloud</legend><label class="share-pick"><input type="checkbox" name="read_aloud" {% if preferences.read_aloud %}checked{% endif %}> Enable the browser's Read Aloud button</label><label for="speech-rate">Reading speed</label><select id="speech-rate" name="speech_rate">{% for rate, label in [('0.8','Slower'),('1','Usual'),('1.2','Faster')] %}<option value="{{ rate }}" {% if preferences.speech_rate == rate %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><p class="note">Read Aloud uses a voice provided by your browser or device.</p></fieldset>
         <button type="submit" class="btn-primary">Save display settings</button></form>
     {% elif section == 'notifications' %}
-      <!-- Keep reminder previews generic unless the member selects detailed previews. -->
-      <form method="post" class="card"><h2>Notification privacy</h2><input type="hidden" name="action" value="save_notification_privacy"><fieldset class="choices"><legend>Lock-screen preview</legend><label class="share-pick"><input type="radio" name="notification_privacy" value="generic" {% if preferences.notification_privacy == 'generic' %}checked{% endif %}> Generic preview</label><label class="share-pick"><input type="radio" name="notification_privacy" value="detailed" {% if preferences.notification_privacy == 'detailed' %}checked{% endif %}> Detailed preview</label></fieldset><p><strong>Example:</strong> {{ 'Pair has a private check-in reminder for you.' if preferences.notification_privacy == 'generic' else 'Your planned activity is ready to view in Pair.' }}</p><p class="note">This preference affects this demonstration only. Pair does not send system notifications.</p><button class="btn-primary" type="submit">Save notification preference</button></form>
-      <!-- Motion choices reuse the existing celebration preference. -->
-      <form method="post" action="{{ url_for('set_celebrations') }}" class="card" id="celebrations-form" data-chosen="{{ 'yes' if celebrations_chosen else 'no' }}"><fieldset class="choices"><legend>Motion and celebrations</legend>{% for key, label, meaning in [('big','Big','Confetti'),('calm','Calm','A soft glow, no movement'),('off','Off','Message only')] %}<label class="choice"><input type="radio" name="celebrations" value="{{ key }}" class="visually-hidden" {% if key == celebrations %}checked{% endif %}><span class="choice-box">{{ label }}<br><span class="note">{{ meaning }}</span></span></label>{% endfor %}</fieldset>{% if celebrations == 'big' %}<p class="note" id="confetti-note">Confetti is on. You can switch to Calm or Off at any time.</p>{% endif %}<button type="submit" class="btn-primary">Save motion setting</button></form>
+      <!-- Save the four reminder and celebration controls together in this demo session. -->
+      <form method="post" class="card"><h2>Notifications and celebrations</h2><input type="hidden" name="action" value="save_notification_privacy">
+        <fieldset class="choices"><legend>Activity reminders</legend><label class="share-pick"><input type="radio" name="activity_reminders" value="on" {% if preferences.activity_reminders %}checked{% endif %}> On</label><label class="share-pick"><input type="radio" name="activity_reminders" value="off" {% if not preferences.activity_reminders %}checked{% endif %}> Off</label></fieldset>
+        <fieldset class="choices"><legend>Reminder preview</legend><label class="share-pick"><input type="radio" name="notification_privacy" value="generic" {% if preferences.notification_privacy == 'generic' %}checked{% endif %}> Private</label><label class="share-pick"><input type="radio" name="notification_privacy" value="detailed" {% if preferences.notification_privacy == 'detailed' %}checked{% endif %}> Show activity name</label></fieldset>
+        <p><strong>Preview:</strong> {{ 'Pair has a private check-in reminder for you.' if preferences.notification_privacy == 'generic' else 'Your planned activity is ready to view in Pair.' }}</p>
+        <fieldset class="choices"><legend>Completion celebration</legend><label class="share-pick"><input type="radio" name="completion_celebration" value="on" {% if celebrations != 'off' %}checked{% endif %}> On</label><label class="share-pick"><input type="radio" name="completion_celebration" value="off" {% if celebrations == 'off' %}checked{% endif %}> Off</label></fieldset>
+        <fieldset class="choices"><legend>Reduced motion</legend><label class="share-pick"><input type="radio" name="reduced_motion" value="on" {% if preferences.reduced_motion %}checked{% endif %}> On</label><label class="share-pick"><input type="radio" name="reduced_motion" value="off" {% if not preferences.reduced_motion %}checked{% endif %}> Off</label></fieldset>
+        <p class="note">These controls apply to this demonstration. Pair does not send push notifications, texts or emails.</p><button class="btn-primary" type="submit">Save reminder and celebration settings</button></form>
     {% elif section == 'privacy' %}
       <!-- Explain the privacy controls already supported by this demo. -->
       <section class="card"><h2>Privacy and security</h2><p>Health data, check-ins, and appointment packets remain private unless you choose to share a specific item.</p><p>Pair does not collect face scans or fingerprints. Biometric sign-in is not available in this demo; use your device's own lock settings.</p></section>
-    {% elif section == 'sources' %}
-      <!-- Link to the existing optional source consent and disconnect controls. -->
-      <section class="card"><h2>Connected data sources</h2><p>Pair works when no source is connected.</p><a class="btn-secondary" href="{{ url_for('devices') }}">Manage connected data sources</a></section>
-    {% elif section == 'circle' %}
-      <!-- Keep member-controlled sharing in the existing Circle workflow. -->
-      <section class="card"><h2>Sharing and Circle permissions</h2><p>Each person sees only the information you choose to share.</p><a class="btn-secondary" href="{{ url_for('circle') }}">Review Circle permissions</a></section>
-    {% elif section == 'personalization' %}
-      <!-- Show the saved personalization inputs and their current editor. -->
-      <section class="card"><h2>AI personalization review</h2><p>Review what is saved to tailor plain-language suggestions.</p><h3>What drains me</h3><p>{{ person.drains | join(', ') if person.drains else 'Nothing saved.' }}</p><h3>What calms me</h3><p>{{ person.calms | join(', ') if person.calms else 'Nothing saved.' }}</p><a class="btn-secondary" href="{{ url_for('me') }}">Edit personalization</a></section>
-    {% elif section == 'data' %}
-      <!-- Keep export and deletion as separate explicit member actions. -->
-      <section class="card"><h2>Export my data</h2><p>Export includes your saved changes and choices. Baseline simulated health readings are excluded.</p><a class="btn-secondary" href="{{ url_for('settings_export') }}">Download my demo data</a></section>
-      <section class="card"><h2>Delete my demo data</h2><p>Remove saved changes from this browser session. Fictional sample records remain available.</p><form method="post" action="{{ url_for('settings_delete_data') }}"><label class="share-pick"><input type="checkbox" name="confirm_delete" value="yes" required> I understand this removes my saved demo changes.</label><button type="submit" class="btn-secondary">Delete my demo data</button></form></section>
+    {% elif section == 'sources' %}<p><a class="btn-secondary" href="{{ url_for('devices') }}">Open connected data sources</a></p>
+    {% elif section == 'circle' %}<p><a class="btn-secondary" href="{{ url_for('circle') }}">Open My Circle permissions</a></p>
+    {% elif section == 'personalization' %}<p><a class="btn-secondary" href="{{ url_for('me') }}#personalization">Review information used to tailor suggestions</a></p>
     {% elif section == 'demo' %}
-      <!-- Preserve sample source, Google Health, and role preview controls. -->
-      <section class="card"><h2>Demo controls</h2><p><a class="text-link" href="{{ url_for('choose') }}">Switch demo person</a></p><form method="post"><fieldset class="choices"><legend>Data source</legend>{% for key, label in sources.items() %}<label class="choice"><input type="radio" name="source" value="{{ key }}" class="visually-hidden" {% if key == data_source %}checked{% endif %}><span class="choice-box">{{ label }}</span></label>{% endfor %}</fieldset><button type="submit" class="btn-primary">Save</button></form>
+      <!-- Keep sample source, download, reset and role preview actions together. -->
+      <section class="card"><h2>Demo data and reset</h2><p>Download your demonstration changes or restore the original fictional sample data.</p><p><a class="btn-secondary" href="{{ url_for('settings_export') }}">Download my demo data</a></p>
+      <form method="post" action="{{ url_for('settings_reset_demo') }}" onsubmit="return confirm('Remove changes from this demonstration and restore the original sample data?')"><p>Remove changes from this demonstration and restore the original sample data.</p><label class="share-pick"><input type="checkbox" name="confirm_reset" value="yes" required> I understand this resets the current demo session.</label><button type="submit" class="btn-secondary">Reset demo</button></form>
+      <h3>Demonstration controls</h3><p><a class="text-link" href="{{ url_for('choose') }}">Switch demo person</a></p><form method="post"><fieldset class="choices"><legend>Data source</legend>{% for key, label in sources.items() %}<label class="choice"><input type="radio" name="source" value="{{ key }}" class="visually-hidden" {% if key == data_source %}checked{% endif %}><span class="choice-box">{{ label }}</span></label>{% endfor %}</fieldset><button type="submit" class="btn-primary">Save</button></form>
       {% if data_source == 'google' %}<h3>Google Health</h3>{% if google_connected %}<p>Connected.</p><form method="post" action="{{ url_for('google.disconnect') }}"><button type="submit" class="btn-secondary">Disconnect</button></form>{% else %}<a class="btn-secondary" href="{{ url_for('google.login') }}">Sign in with Google</a>{% endif %}<p><a class="text-link" href="{{ url_for('google.test') }}">Test the connection</a></p><p class="note">Testing mode: only test users added in Google Cloud can sign in. Data is kept in memory and removed when disconnected or the app restarts.</p>{% endif %}<p><a class="text-link" href="{{ url_for('coach') }}">Coach view (demo)</a></p></section>
     {% endif %}
   {% endif %}

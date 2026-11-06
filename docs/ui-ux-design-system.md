@@ -44,6 +44,10 @@ The current prototype now uses Ocean, Garden, and Twilight as its selectable the
 - Make keyboard focus visible and controls usable by keyboard and touch.
 - Do not rely on color alone to convey status.
 - Use motion only when it helps comprehension; provide a reduced-motion experience.
+- In Home and My Plan, mark an activity as Due now with a compact badge at its scheduled time. Keep reminder state on the activity itself and omit reminders for completed activities.
+- Present a routine as a reusable activity with a clear source, schedule, and estimate. A completed dated occurrence stays complete while the next scheduled occurrence remains available.
+- Make My Climb Today a visual summary of the same daily activities shown in My Plan: one mountain flag per activity, a completed-of-scheduled count, and a weekly record of completed summits.
+- Keep reset and demo-data controls inside Settings. Require a clear confirmation before clearing browser-session progress and restore fictional defaults without rewriting fixtures.
 
 ## Activity presentation preferences
 

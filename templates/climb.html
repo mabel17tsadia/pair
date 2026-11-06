@@ -2,9 +2,9 @@
 {% from "macros.html" import icon %}
 
 {% block content %}
-  <!-- Page title and a short note that these goals are personal -->
-  <h1>My climb this week</h1>
-  <p class="note">Your own goals, just for you. Each goal you reach is a flag on the way up.</p>
+  <!-- Show today's plan progress as a mountain with one flag for each scheduled activity. -->
+  <h1>{{ "My Climb Today" if climb.daily else "My climb this week" }}</h1>
+  <p class="note">{{ "Every completed activity moves you one step higher." if climb.daily else "Your own goals, just for you. Each goal you reach is a flag on the way up." }}</p>
 
   <!-- The mountain, the message and how many flags are reached. The card glows softly for a new
        flag and in gold at the summit (unless Celebrations is Off); a celebration message is announced
@@ -12,16 +12,24 @@
   {% set glow = ' summit-glow' if climb.summit else ' flag-glow' if new_flag else '' %}
   <section class="card climb-card{{ glow if celebrations != 'off' }}">
     {% include "partials/climb_mountain.html" %}
-    <p class="climb-message" {% if new_flag or new_badge %}role="status"{% endif %}>{{ message }}</p>
-    <p class="note">{{ climb.reached }} of {{ climb.total }} flags</p>
+    <p class="climb-message" {% if new_flag or new_badge %}role="status"{% endif %}>{% if climb.daily and climb.summit %}You reached today’s summit!{% elif climb.daily and not climb.total %}There are no scheduled activities in today’s Plan yet.{% else %}{{ message }}{% endif %}</p>
+    <p class="note">{% if climb.daily %}{{ climb.reached }} of {{ climb.total }} activities completed{% else %}{{ climb.reached }} of {{ climb.total }} flags{% endif %}</p>
   </section>
+
+  {% if climb.daily %}
+    <section class="card climb-week-summary">
+      <p class="note">You reached the summit on {{ climb.weekly_summits }} of 7 days this week.</p>
+      <a class="btn-secondary" href="{{ url_for('plan', time='today') }}">Open today in My Plan</a>
+    </section>
+  {% else %}
 
   <!-- The goals, in the same order as the flags: progress, who added it, and how to reach it.
        "units" turns a goal's rule into the word after the count, like "3 of 4 nights". -->
   {% set units = {"steps_usual": "day", "late_screen_under_30": "night", "sleep_usual": "night",
                   "laundry": "load", "checkins": "check in", "health_walk": "day"} %}
   <section class="card">
-    <h2>My goals</h2>
+    <h2>Long-term personal goals</h2>
+    <p>These goals are separate from today’s scheduled activities.</p>
     <ul class="goal-list">
       {% for g in climb.flags %}
         <li>
@@ -53,6 +61,7 @@
       <button type="submit" class="btn-secondary">Add</button>
     </form>
   </section>
+  {% endif %}
 
   <!-- My badges: one for each week the summit was reached (personal only, never compared) -->
   <section class="card">
@@ -66,7 +75,7 @@
 
   <!-- Confetti only if Celebrations is Big: a small burst for a new flag, the full one when the summit
        is first reached (confetti.js skips it if the device asks for reduced motion) -->
-  {% if celebrations == "big" and (new_badge or new_flag) %}
+  {% if celebrations == "big" and not member_preferences.reduced_motion and (new_badge or new_flag) %}
     <script src="{{ url_for('static', filename='js/confetti.js') }}" data-size="{{ 'full' if new_badge else 'small' }}"></script>
   {% endif %}
 {% endblock %}

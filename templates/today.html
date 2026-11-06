@@ -67,7 +67,7 @@
       {% else %}<h2>Prepare for an appointment</h2><p>Choose what you would like help with and what to share.</p>{% endif %}
       <a class="btn-secondary" href="{{ url_for('visit_start') }}">Prepare together</a></section>
     <section class="card home-climb"><div class="home-climb-art" aria-hidden="true">{% include "partials/climb_mountain.html" %}</div>
-      <div><p class="eyebrow">My Climb</p><h2>{{ climb.reached }} of {{ climb.total }} steps reached</h2><p>Small steps toward independence, at your pace.</p><a class="text-link" href="{{ url_for('climb') }}">Continue My Climb</a></div></section>
+      <div><p class="eyebrow">My Climb Today</p><h2>{{ climb.reached }} of {{ climb.total }} activities completed</h2><p>Every completed activity moves you one step higher.</p>{% if climb.summit %}<p><strong>You reached today’s summit!</strong></p>{% endif %}<p class="note">You reached the summit on {{ climb.weekly_summits }} of 7 days this week.</p><a class="text-link" href="{{ url_for('climb') }}">View My Climb Today</a></div></section>
   </div>
   <!-- Keep less urgent personal details closed until Jordan wants them. -->
   <details class="card home-other-updates"><summary>Other updates</summary><p>Your Circle has {{ circle | length }} people. You choose what each person can see.</p><a href="{{ url_for('circle') }}">Review My Circle</a></details>

@@ -83,6 +83,9 @@ def get_routines(person_id):
     routines = rows_for("routines.csv", person_id)
     for r in routines:
         r["steps"] = split_list(r["steps"])
+        r["days"] = split_list(r.get("days", ""))
+        r["estimated_minutes"] = int(r.get("estimated_minutes") or 15)
+        r["routine_id"] = r.get("routine_id") or r["routine"].lower().replace(" ", "-")
     return routines
 
 

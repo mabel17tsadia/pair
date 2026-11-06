@@ -72,3 +72,17 @@ if (readAloudButton) {
     window.speechSynthesis.speak(speech);
   });
 }
+
+// Update optional activity timers without changing or completing the activity.
+document.querySelectorAll("[data-countdown]").forEach((timer) => {
+  let remaining = Number(timer.dataset.countdown) || 0;
+  let previous = Date.now();
+  const value = timer.querySelector("span");
+  const interval = window.setInterval(() => {
+    const now = Date.now();
+    remaining = Math.max(0, remaining - Math.floor((now - previous) / 1000));
+    previous = now;
+    value.textContent = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`;
+    if (remaining === 0) window.clearInterval(interval);
+  }, 1000);
+});

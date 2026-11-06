@@ -41,7 +41,9 @@ The Prompt 6 target records are in [`data/demo_records.json`](../data/demo_recor
 
 ### Session-only workflow state
 
-The browser's Flask session, not the CSV or JSON fixture, temporarily holds member decisions and progress. This includes whether a proposed healthcare instruction was accepted or declined, selected recurrence and reminder time, daily occurrence completion, paused or in-progress activity state, and coach help requests. The fixture may define a baseline recurrence or acceptance status, but member changes do not rewrite it. These session values are not permanently stored and may disappear when the demo session is cleared.
+The browser's Flask session, not the CSV or JSON fixture, temporarily holds member decisions and progress. This includes whether a proposed healthcare instruction was accepted or declined, selected recurrence and reminder time, daily occurrence completion, paused or in-progress activity state, routine occurrence completion, daily summit history, member reminder and celebration preferences, and coach help requests. A routine keeps a stable routine ID; each scheduled Plan occurrence uses that ID plus its date, so completing one date neither removes the reusable routine nor counts the date twice. The fixture may define a baseline recurrence or acceptance status, but member changes do not rewrite it. These session values are not permanently stored and may disappear when the demo session is cleared.
+
+The Settings **Demo data and reset** section exports a fictional data snapshot and offers a confirmed session reset. Reset preserves the selected demonstration identity and role, clears session progress and member preferences, and restores defaults from the checked-in CSV and JSON fixtures. It does not modify fixture files.
 
 ## Privacy and demo behavior
 

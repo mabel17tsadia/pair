@@ -11,7 +11,7 @@
       <p id="activity-instruction">Find a quiet or comfortable place. Take a few minutes to rest or do something calming.</p>
       {% if read_aloud %}<button type="button" class="text-link" data-read-aloud>Read Aloud</button><span id="read-aloud-status" role="status" aria-live="polite"></span>{% endif %}
     </div>
-    <form method="post" action="{{ url_for('activity_detail', activity_id=activity.id) if assigned else url_for('quiet_break') }}">
+    <form method="post" action="{{ url_for('activity_detail', activity_id=activity.id) if assigned else url_for('quiet_break', activity_id=activity_id) }}">
       <input type="hidden" name="action" value="done">
       <button type="submit" class="btn-primary">Done</button>
     </form>

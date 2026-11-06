@@ -34,7 +34,9 @@
   </section>
 
   <!-- Posted by steps.js after the last step: marks the routine's weekly goal as done -->
-  <form id="finish-form" method="post" action="{{ url_for('routine_finish', index=index) }}" hidden></form>
+  <form id="finish-form" method="post" action="{{ url_for('routine_finish', index=index) }}" hidden>
+    {% if occurrence %}<input type="hidden" name="occurrence" value="{{ occurrence }}">{% endif %}
+  </form>
 
   <script src="{{ url_for('static', filename='js/steps.js') }}"></script>
 {% endblock %}
