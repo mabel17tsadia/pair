@@ -18,7 +18,6 @@
       <a class="btn-primary" href="{{ url_for('plan') }}">Continue to My Plan</a>
     </section>
   {% endif %}
-  {% for reminder in due_reminders %}<p class="card in-app-reminder" role="status">In-app demonstration reminder: {{ reminder.title }} is scheduled for {{ reminder.time_label }}. No message was sent outside Pair.</p>{% endfor %}
 
   <!-- Show three fictional health observations with source details kept closed until opened. -->
   <div class="home-primary-grid">
@@ -51,7 +50,7 @@
               {% endif %}
             {% endif %}
             {% if activity %}
-              <a class="day-activity" href="{{ url_for('plan', time='today', source='all', activity=activity.id) }}#{{ activity.id }}"><strong class="day-activity-title">{{ icon('medical' if activity.source == 'health' else 'book' if activity.source == 'coach' else 'heart') }} {{ activity.title }}</strong><span class="day-activity-time">Scheduled time: {{ activity.time_label or 'Anytime today' }} · Duration: About {{ activity.estimated_minutes }} minutes</span><span class="day-activity-meta">{{ activity.source_label }}{% if activity.source_name %} · {{ activity.source_name }}{% endif %} · {{ activity.status_label }}</span></a>
+              <a class="day-activity" href="{{ url_for('plan', time='today', source='all', activity=activity.id) }}#{{ activity.id }}"><strong class="day-activity-title">{{ icon('medical' if activity.source == 'health' else 'book' if activity.source == 'coach' else 'heart') }} {{ activity.title }}{% if activity.id in due_activity_ids %} <span class="chip due-now-badge">Due now</span>{% endif %}</strong><span class="day-activity-time">Scheduled time: {{ activity.time_label or 'Anytime today' }} · Duration: About {{ activity.estimated_minutes }} minutes</span><span class="day-activity-meta">{{ activity.source_label }}{% if activity.source_name %} · {{ activity.source_name }}{% endif %} · {{ activity.status_label }}</span></a>
             {% elif marker == "Up Next" %}<p>No activity is scheduled next.</p>
             {% else %}<p>No activity is scheduled for this part of today.</p>{% endif %}
           </div></li>

@@ -1121,16 +1121,23 @@ class PairExperienceTests(unittest.TestCase):
         self.assertTrue(any(item["id"] == f"follow-up-demo-today@{(today + timedelta(days=1)).isoformat()}"
                             for item in tomorrow))
 
-    # Show reminder cards only after the selected in-app reminder time has arrived.
-    def test_in_app_reminders_are_time_gated_and_used_on_home_and_plan(self):
+    # Mark due activities inline without separate reminder cards or repeated disclaimers.
+    def test_due_activity_badge_is_inline_on_home_and_plan(self):
         activity = {"title": "Record today’s sleep", "due_on": data.get_today(),
-                    "schedule": {"reminder_time": "09:00"}, "status": "accepted"}
+                    "id": "sleep-today", "schedule": {"reminder_time": "09:00"}, "status": "accepted"}
         self.assertEqual(pair.due_in_app_reminders([activity], "08:59"), [])
         self.assertEqual(pair.due_in_app_reminders([activity], "09:00"), [activity])
+        self.assertEqual(pair.due_in_app_reminders([{**activity, "status": "completed"}], "09:00"), [])
         self.client.post("/health/next-steps/follow-up-01", data={
             "choice": "accept", "when": data.get_today(), "reminder_time": "00:01"})
-        self.assertIn(b"In-app demonstration reminder", self.client.get("/today").data)
-        self.assertIn(b"In-app demonstration reminder", self.client.get("/my-plan").data)
+        home = self.client.get("/today").data
+        plan = self.client.get("/my-plan").data
+        self.assertIn(b"Due now", home)
+        self.assertIn(b"Due now", plan)
+        for page in [home, plan]:
+            self.assertNotIn(b"In-app demonstration reminder", page)
+            self.assertNotIn(b"No message was sent outside Pair", page)
+            self.assertNotIn(b'class="in-app-reminder"', page)
 
     # Keep pausing, rescheduling, and removing from My Plan separate from the Health record.
     def test_health_plan_controls_preserve_the_health_history(self):

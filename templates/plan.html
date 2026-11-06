@@ -28,7 +28,6 @@
         <a class="text-link" href="{{ url_for('checkin') }}">Change in Check In</a>
       </div>
     </div>
-    {% for reminder in due_reminders %}<p class="card in-app-reminder" role="status">In-app demonstration reminder: {{ reminder.title }} is scheduled for {{ reminder.time_label }}. No message was sent outside Pair.</p>{% endfor %}
 
     <!-- Each revealed activity keeps its source, date, estimate, status, and next action. -->
     {% if all_activities_complete %}
@@ -37,7 +36,7 @@
       {% for activity in visible_activities %}
         <article id="{{ activity.id }}" class="card activity-card {% if activity.source == 'health' %}health-plan-card{% endif %}">
           <div class="activity-heading">
-            <h2 class="activity-title"><span class="activity-pictogram" aria-hidden="true">{{ icon("book" if activity.source == "coach" else "heart" if activity.source == "member" else "medical") }}</span>{{ activity.title }}</h2>
+            <h2 class="activity-title"><span class="activity-pictogram" aria-hidden="true">{{ icon("book" if activity.source == "coach" else "heart" if activity.source == "member" else "medical") }}</span>{{ activity.title }}{% if activity.id in due_activity_ids %} <span class="chip due-now-badge">Due now</span>{% endif %}</h2>
             {% if not activity.recurrence_daily %}<span class="chip activity-status">{% if activity.status == 'paused' %}Paused — continue when ready{% else %}{{ activity.status_label }}{% endif %}</span>{% endif %}
           </div>
           {% if not activity.recurrence_daily %}<p class="activity-meta"><strong>{{ activity.source_label }}</strong> · {{ activity.date_label }} · About {{ activity.estimated_minutes }} minutes</p>{% endif %}

@@ -547,7 +547,7 @@ a.btn-primary, a.btn-secondary, summary.btn-secondary {
 .health-schedule-review fieldset { display: flex; flex-wrap: wrap; gap: var(--space-2); border: var(--border-width) solid var(--border); border-radius: var(--radius-card); }
 .health-schedule-review fieldset label { display: inline-flex; align-items: center; min-height: var(--target-min); }
 .reminder-time-form { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-2); margin-block: var(--space-2); }
-.in-app-reminder { border-inline-start: .35rem solid var(--accent); font-weight: 700; }
+.due-now-badge { display: inline-block; margin-inline-start: var(--space-2); background: var(--alert-soft); color: var(--text); vertical-align: middle; }
 
 /* Activity detail keeps each instruction, presentation control and feedback choice easy to use. */
 .objective-card { border-left: 6px solid var(--secondary); }

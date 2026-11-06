@@ -766,7 +766,7 @@ def today():
     records = load_demo_data()
     demo_member = pid == records["member"]["application_person_id"]
     today_activities = scheduled_activities_for_today(person, records)
-    reminders = due_in_app_reminders(today_activities)
+    due_activity_ids = {item["id"] for item in due_in_app_reminders(today_activities)}
     health_observations = records.get("health_observations", []) if demo_member else []
     latest_checkin = latest_checkin_today(pid)
     climb = climb_for(person)
@@ -779,7 +779,7 @@ def today():
                            patterns=patterns,
                            circle=circle_for(person),
                            today_activities=today_activities,
-                           due_reminders=reminders,
+                           due_activity_ids=due_activity_ids,
                            home_checkin=latest_checkin,
                            health_observations=health_observations,
                            upcoming_appointment=upcoming, today_iso=data.get_today())
@@ -808,7 +808,7 @@ def plan():
         source_filter = "all"
     activities = plan_activities(records, data.get_today(), time_filter, source_filter,
                                  session.get("activity_progress", {})) if has_activities else []
-    reminders = due_in_app_reminders(activities)
+    due_activity_ids = {item["id"] for item in due_in_app_reminders(activities)}
     checkin = latest_checkin_today(person["id"])
     pace = (checkin.get("my_pace", checkin.get("manageability", "not_sure")) or "not_sure") if checkin else ""
     pace_messages = {
@@ -838,7 +838,7 @@ def plan():
                            return_ready=return_ready, one_activity_mode=one_activity_mode,
                            all_activities_complete=all_activities_complete,
                            visible_activities=visible_activities,
-                           due_reminders=reminders,
+                           due_activity_ids=due_activity_ids,
                            time_filter=time_filter, source_filter=source_filter,
                            has_demo_records=has_activities)
 
